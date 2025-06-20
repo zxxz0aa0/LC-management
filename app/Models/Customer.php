@@ -36,5 +36,11 @@ class Customer extends Model
         'phone_number' => 'array',
         'addresses' => 'array',
     ];
+
+    // 定義與 User 事件關聯
+    public function events()
+    {
+        return $this->hasMany(CustomerEvent::class);
+    }
 }
 // 注意：此模型假設已經有對應的資料表 'customers'，並且資料表結構符合上述的欄位定義。

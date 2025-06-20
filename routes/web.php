@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerEventController;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,4 +28,7 @@ Route::post('customers/import', [CustomerController::class, 'import'])->name('cu
 Route::resource('customers', CustomerController::class)->except(['show']);
 
 Route::post('customers/batch-delete', [CustomerController::class, 'batchDelete'])->name('customers.batchDelete');
+
+//個案是建簿連接
+Route::resource('customer-events', CustomerEventController::class)->only(['store', 'update', 'destroy']);
 

@@ -81,14 +81,81 @@
                                 @endif
                             </td>
                             <td>
-                                <a href="{{ route('customers.edit', $customer) }}" class="btn btn-sm btn-warning">編輯</a>
-                                <form action="{{ route('customers.destroy', $customer) }}" method="POST" class="d-inline" onsubmit="return confirm('確定要刪除嗎？');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger">刪除</button>
-                                </form>
+                                <div class="d-flex gap-1"  style="width:150px;" >
+                                    <a href="{{ route('customers.edit', $customer) }}" class="btn btn-sm btn-warning">編輯</a>
+                                    <form action="{{ route('customers.destroy', $customer) }}" method="POST" class="d-inline m-0 p-0">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('確定要刪除嗎？');">刪除</button>
+                                    </form>
+                                    <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#eventModal{{ $customer->id }}">事件</button>
+                                </div>
+                                <!-- Modal -->
+                                    <div class="modal fade" id="eventModal{{ $customer->id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">事件紀錄：{{ $customer->name }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+
+                                            {{-- 新增事件 --}}
+                                            <form method="POST" action="{{ route('customer-events.store') }}" class="row g-2 mb-3">
+                                                @csrf
+                                                <input type="hidden" name="customer_id" value="{{ $customer->id }}">
+                                                <div class="col-md-4">
+                                                    <input type="datetime-local" name="event_date" class="form-control" required>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <input type="text" name="event" class="form-control" placeholder="事件內容" required>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <button class="btn btn-success w-100">新增</button>
+                                                </div>
+                                            </form>
+
+                                            {{-- 顯示事件清單 --}}
+                                            <table class="table table-bordered">
+                                            <thead>
+                                                <tr>
+                                                <th>建檔日期</th>
+                                                <th>事件</th>
+                                                <th>建立人</th>
+                                                <th>操作</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach ($customer->events as $event)
+                                                <tr id="event-row-{{ $event->id }}">
+                                                    <td>{{ $event->event_date }}</td>
+                                                    <td>
+                                                    <form method="POST" action="{{ route('customer-events.update', $event->id) }}">
+                                                        @csrf @method('PUT')
+                                                        <input type="text" name="event" value="{{ $event->event }}" class="form-control">
+                                                    </form>
+                                                    </td>
+                                                    <td>{{ $event->creator->name ?? 'N/A' }}</td>
+                                                    <td class="d-flex gap-1">
+                                                    <button type="submit" form="update-form-{{ $event->id }}" class="btn btn-sm btn-primary">儲存</button>
+                                                    <form method="POST" action="{{ route('customer-events.destroy', $event->id) }}" onsubmit="return confirm('確定要刪除嗎？')">
+                                                        @csrf @method('DELETE')
+                                                        <button type="submit" class="btn btn-sm btn-danger">刪除</button>
+                                                    </form>
+                                                    </td>
+                                                </tr>
+                                                @endforeach
+                                            </tbody>
+                                            </table>
+
+                                        </div>
+                                        </div>
+                                    </div>
+                                    </div>
+                                <!-- Modal -->
                             </td>
                         </tr>
+
                     @endforeach
                 </tbody>
             </table>
@@ -103,6 +170,8 @@
         {{-- {{ $customers->links() }} --}}
     </div>
 </div>
+
+
 @endsection
 
 @push('scripts')
@@ -133,3 +202,4 @@
     });
 </script>
 @endpush
+
