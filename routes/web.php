@@ -1,8 +1,8 @@
 <?php
 
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CustomerController;
-use App\Http\Controllers\CustomerEventController;
 
 /*
 |--------------------------------------------------------------------------
@@ -19,16 +19,19 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/dashboard', function () {
+    return view('dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
 
 
-//EXCEL匯入匯出
-Route::get('customers/export', [CustomerController::class, 'export'])->name('customers.export');
-Route::post('customers/import', [CustomerController::class, 'import'])->name('customers.import');
 
-Route::resource('customers', CustomerController::class)->except(['show']);
+require __DIR__.'/auth.php';
 
-Route::post('customers/batch-delete', [CustomerController::class, 'batchDelete'])->name('customers.batchDelete');
 
-//個案是建簿連接
-Route::resource('customer-events', CustomerEventController::class)->only(['store', 'update', 'destroy']);
 
