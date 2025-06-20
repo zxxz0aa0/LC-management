@@ -7,28 +7,28 @@ use Illuminate\Database\Eloquent\Model;
 class Customer extends Model
 {
     protected $fillable = [
-        'name',
-        'id_number',
-        'birthday',
-        'gender',
-        'phone_number',
-        'addresses',
-        'contact_person',
-        'contact_phone',
-        'contact_relationship',
-        'email',
-        'wheelchair',
-        'stair_climbing_machine',
-        'ride_sharing',
-        'identity',
-        'note',
-        'a_mechanism',
-        'a_manager',
-        'special_status',
-        'county_care',   
-        'service_company',  
-        'created_by',
-        'updated_by',
+        'name',//姓名
+        'id_number',// 身份證號
+        'birthday',// 生日
+        'gender',// 性別
+        'phone_number',// 電話號碼
+        'addresses',// 地址
+        'contact_person',// 緊急聯絡人
+        'contact_phone',// 緊急聯絡電話
+        'contact_relationship',// 緊急聯絡人關係
+        'email',// 電子郵件
+        'wheelchair',// 輪椅
+        'stair_climbing_machine',// 登樓機
+        'ride_sharing',// 共乘
+        'identity',// 身份別
+        'note',// 備註
+        'a_mechanism', // 機構
+        'a_manager',// 個管師
+        'special_status',// 特殊狀態
+        'county_care',   // 縣市照顧
+        'service_company',  // 服務公司
+        'created_by',// 建立者
+        'updated_by',// 更新者
     ];
 
     // 自動將 json 欄位轉換為 array

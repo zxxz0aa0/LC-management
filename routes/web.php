@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomEreventController;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,4 +35,18 @@ Route::middleware('auth')->group(function () {
 require __DIR__.'/auth.php';
 
 
+
+
+
+Route::post('customers/batch-delete', [CustomerController::class, 'batchDelete'])->name('customers.batchDelete');
+
+
+// 匯出/匯入在前，避免被 resource route 蓋掉
+Route::get('customers/export', [CustomerController::class, 'export'])->name('customers.export');
+Route::post('customers/import', [CustomerController::class, 'import'])->name('customers.import');
+
+// 客戶 CRUD（排除 show 方法）
+Route::resource('customers', CustomerController::class)->except(['show']);
+
+Route::resource('customer-events', CustomerEventController::class)->only(['store', 'update', 'destroy']);
 
