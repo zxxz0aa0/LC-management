@@ -8,9 +8,22 @@ use App\Models\Driver;
 
 class DriverController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $drivers = Driver::all();
+        $query = Driver::query();
+
+        if ($request->filled('keyword')) {
+            $keyword = $request->keyword;
+            $query->where(function ($q) use ($keyword) {
+                $q->where('name', 'like', "%$keyword%")
+                ->orWhere('phone', 'like', "%$keyword%")
+                ->orWhere('id_number', 'like', "%$keyword%")
+                ->orWhere('fleet_number', 'like', "%$keyword%");
+            });
+        }
+
+        $drivers = $query->get();
+
         return view('admin.drivers.index', compact('drivers'));
     }
 
