@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomEreventController;
+use App\Http\Controllers\OrderController;
 
 /*
 |--------------------------------------------------------------------------
@@ -52,3 +53,4 @@ Route::resource('customer-events', CustomerEventController::class)->only(['store
 
 Route::resource('admin/drivers', App\Http\Controllers\Admin\DriverController::class);
 
+Route::resource('orders', OrderController::class);
