@@ -36,7 +36,7 @@
 
         <form method="GET" action="{{ route('customers.index') }}" class="mb-3 d-flex flex-wrap gap-2">
             <input type="text" name="keyword" value="{{ request('keyword') }}" class="form-control me-2" placeholder="輸入姓名、電話或身分證查詢" style="max-width: 250px;">
-            <button type="submit" class="btn btn-outline-primary me-2">搜尋</button>
+            <button type="submit" class="btn btn-outline-success me-2">搜尋</button>
             <a href="{{ route('customers.index') }}" class="btn btn-outline-secondary">清除</a>
         </form>
 
@@ -61,7 +61,7 @@
                 <tbody>
                     @foreach ($customers as $customer)
                         <tr>
-                            <td><input type="checkbox" name="ids[]" value="{{ $customer->id }}" form="batch-delete-form"></td>
+                            <td><input class="me-2" type="checkbox" name="ids[]" value="{{ $customer->id }}" form="batch-delete-form">{{ $loop->iteration }}</td>
                             <td>{{ $customer->name }}</td>
                             <td>{{ $customer->id_number }}</td>
                             <td>{{ is_array($customer->phone_number) ? implode(' / ', $customer->phone_number) : $customer->phone_number }}</td>
@@ -73,11 +73,11 @@
                             <td>{{ $customer->special_status }}</td>
                             <td>
                                 @if($customer->status === '開案中')
-                                    <span class="badge bg-warning text-dark">開案中</span>
+                                    <span class="badge bg-success text-dark">開案中</span>
                                 @elseif($customer->status === '暫停中')
-                                    <span class="badge bg-primary">暫停中</span>
+                                    <span class="badge bg-warning">暫停中</span>
                                 @else
-                                    <span class="badge bg-success">已結案</span>
+                                    <span class="badge bg-danger">已結案</span>
                                 @endif
                             </td>
                             <td>
@@ -92,7 +92,7 @@
                                 </div>
                                 <!-- Modal -->
                                     <div class="modal fade" id="eventModal{{ $customer->id }}" tabindex="-1">
-                                    <div class="modal-dialog modal-lg">
+                                    <div class="modal-dialog modal-xl">
                                         <div class="modal-content">
                                         <div class="modal-header">
                                             <h5 class="modal-title">事件紀錄：{{ $customer->name }}</h5>
@@ -104,13 +104,13 @@
                                             <form method="POST" action="{{ route('customer-events.store') }}" class="row g-2 mb-3">
                                                 @csrf
                                                 <input type="hidden" name="customer_id" value="{{ $customer->id }}">
-                                                <div class="col-md-4">
-                                                    <input type="datetime-local" name="event_date" class="form-control" required>
+                                                <div class="col-md-3">
+                                                    <input type="datetime-local" name="event_date" class="form-control" required value="{{ now()->format('Y-m-d\TH:i') }}">
                                                 </div>
-                                                <div class="col-md-6">
+                                                <div class="col-md-8">
                                                     <input type="text" name="event" class="form-control" placeholder="事件內容" required>
                                                 </div>
-                                                <div class="col-md-2">
+                                                <div class="col-md-1">
                                                     <button class="btn btn-success w-100">新增</button>
                                                 </div>
                                             </form>
@@ -119,24 +119,24 @@
                                             <table class="table table-bordered">
                                             <thead>
                                                 <tr>
-                                                <th>建檔日期</th>
-                                                <th>事件</th>
-                                                <th>建立人</th>
-                                                <th>操作</th>
+                                                <th class="col-md-2 align-middle text-center">建檔日期</th>
+                                                <th class="col-md-7 align-middle text-center">事件</th>
+                                                <th class="col-md-1 align-middle text-center">建立人</th>
+                                                <th class="col-md-2 align-middle text-center">操作</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 @foreach ($customer->events as $event)
                                                 <tr id="event-row-{{ $event->id }}">
-                                                    <td>{{ $event->event_date }}</td>
-                                                    <td>
-                                                    <form method="POST" action="{{ route('customer-events.update', $event->id) }}">
+                                                    <td class="align-middle text-center">{{ \Carbon\Carbon::parse($event->event_date)->format('Y-m-d H:i') }}</td>
+                                                    <td class="align-middle">
+                                                    <form method="POST" action="{{ route('customer-events.update', $event->id) }}" id="update-form-{{ $event->id }}">
                                                         @csrf @method('PUT')
                                                         <input type="text" name="event" value="{{ $event->event }}" class="form-control">
                                                     </form>
                                                     </td>
-                                                    <td>{{ $event->creator->name ?? 'N/A' }}</td>
-                                                    <td class="d-flex gap-1">
+                                                    <td class="align-middle text-center">{{ $event->creator->name ?? 'N/A' }}</td>
+                                                    <td class="d-flex gap-1 align-middle justify-content-center">
                                                     <button type="submit" form="update-form-{{ $event->id }}" class="btn btn-sm btn-primary">儲存</button>
                                                     <form method="POST" action="{{ route('customer-events.destroy', $event->id) }}" onsubmit="return confirm('確定要刪除嗎？')">
                                                         @csrf @method('DELETE')

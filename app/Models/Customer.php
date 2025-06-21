@@ -29,6 +29,7 @@ class Customer extends Model
         'service_company',  // 服務公司
         'created_by',// 建立者
         'updated_by',// 更新者
+        'status', // 狀態
     ];
 
     // 自動將 json 欄位轉換為 array
