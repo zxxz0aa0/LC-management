@@ -50,3 +50,5 @@ Route::resource('customers', CustomerController::class)->except(['show']);
 
 Route::resource('customer-events', CustomerEventController::class)->only(['store', 'update', 'destroy']);
 
+Route::resource('admin/drivers', App\Http\Controllers\Admin\DriverController::class);
+

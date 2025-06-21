@@ -45,6 +45,12 @@
                             <p>客戶管理</p>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a href="{{ route('drivers.index') }}" class="nav-link {{ request()->is('admin/drivers*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-car"></i>
+                            <p>駕駛管理</p>
+                        </a>
+                    </li>
                     {{-- 未來可加入：訂單管理、駕駛管理 --}}
                 </ul>
             </nav>
