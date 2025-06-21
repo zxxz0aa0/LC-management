@@ -108,7 +108,12 @@
 
             <div class="form-group">
                 <label>身份別</label>
-                <input type="text" name="identity" class="form-control" value="{{ old('identity', $customer->identity) }}">
+                <select name="identity" class="form-control">
+                    <option value="">請選擇</option>
+                    @foreach(['市區-一般','市區-中低收','市區-低收','偏區-一般','偏區-中低收','偏區-低收'] as $option)
+                        <option value="{{ $option }}" {{ old('identity') == $option ? 'selected' : '' }}>{{ $option }}</option>
+                    @endforeach
+                </select>
             </div>
 
             <div class="form-group">
@@ -132,8 +137,13 @@
             </div>
 
             <div class="form-group">
-                <label>長照縣市</label>
-                <input type="text" name="county_care" class="form-control" value="{{ old('county_care', $customer->county_care) }}">
+                <label>個案來源</label>
+                <select name="county_care" class="form-control">
+                    <option value="">請選擇</option>
+                    @foreach(['新北長照','台北長照','愛接送','新北復康'] as $option)
+                        <option value="{{ $option }}" {{ old('county_care') == $option ? 'selected' : '' }}>{{ $option }}</option>
+                    @endforeach
+                </select>
             </div>
 
             <div class="form-group">
