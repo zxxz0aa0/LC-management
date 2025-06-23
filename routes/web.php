@@ -54,3 +54,6 @@ Route::resource('customer-events', CustomerEventController::class)->only(['store
 Route::resource('admin/drivers', App\Http\Controllers\Admin\DriverController::class);
 
 Route::resource('orders', OrderController::class);
+
+Route::get('/carpool-search', [CustomerController::class, 'carpoolSearch']);
+

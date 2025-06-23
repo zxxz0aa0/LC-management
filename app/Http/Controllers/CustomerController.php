@@ -179,4 +179,27 @@ class CustomerController extends Controller
     return redirect()->route('customers.index')->with('error', '請先勾選要刪除的資料');
 }
 
+    //共乘對象查詢
+    public function carpoolSearch(Request $request)
+    {
+        $keyword = $request->input('keyword');
+
+        $customers = Customer::where(function ($query) use ($keyword) {
+            $query->where('name', 'like', "%{$keyword}%")
+                ->orWhere('id_number', 'like', "%{$keyword}%")
+                ->orWhereJsonContains('phone_number', $keyword);
+        })->get(['name', 'id_number', 'phone_number', 'addresses']);
+
+        // 將 phone_number 改為只取第一個號碼
+        $customers = $customers->map(function ($customer) {
+            $customer->phone_number = is_array($customer->phone_number)
+                ? ($customer->phone_number[0] ?? '')
+                : $customer->phone_number;
+            return $customer;
+        });
+
+        return response()->json($customers);
+    }
+
+
 }
