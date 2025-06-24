@@ -1,103 +1,201 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <h3 class="mb-4">新增訂單</h3>
+<div class="container-fluid">
+        <div class="row mb-6">
+            <div class="col-md-6">
+                <h3 class="mb-2">新增訂單</h3>
+            </div>
+            <div class="h4 col-md-6 mb-3 text-danger text-end">
+                <label class="form-label">訂單類型：</label>
+                <span>{{ old('order_type', $customer->county_care ?? '') }}</span>
+                <input type="hidden" name="order_type" value="{{ old('order_type', $customer->county_care ?? '') }}">
+            </div>
+        </div>
 
     <form method="POST" action="{{ route('orders.store') }}">
         @csrf
 
-        {{-- 基本資料 --}}
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <label>建單人員</label>
-                <input type="text" name="created_by" class="form-control" 
-                    value="{{ $user->name }}" readonly>
-            </div>
-        </div>
 
-        {{-- 客戶資訊 --}}
-        <h5 class="mt-4">客戶資訊</h5>
-        <div class="row mb-3">
-            <div class="col-md-4 mt-3">
-                <label>姓名</label>
-                <input type="text" name="customer_name" class="form-control"
-                    value="{{ old('customer_name', $customer->name ?? '') }}" readonly>
-            </div>
-            <div class="col-md-4 mt-3">
-                <label>身分證字號</label>
-                <input type="text" name="customer_id_number" class="form-control"
-                    value="{{ old('customer_id_number', $customer->id_number ?? '') }}" readonly>
-            </div>
-            <div class="col-md-4 mt-3">
-                <label>電話</label>
-                <input type="text" name="customer_phone" class="form-control"
-                    value="{{ old('customer_phone', $customer->phone_number[0] ?? '') }}">
-            </div>
-            <div class="col-md-4 mt-3">
-                <label>身份別</label>
-                <input type="text" name="identity" class="form-control"
-                    value="{{ old('identity', $customer->identity ?? '') }}" readonly>
-            </div>
-            <div>
-               <!--可再放一個-->
-            </div>
-            <div class="col-md-4 mt-3">
-                <label>共乘對象</label>
-                <div class="input-group">
-                    <input type="text" name="carpool_with" id="carpool_with" class="form-control" placeholder="點選右側按鈕查詢" readonly onfocus="this.blur();">
-                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#carpoolModal">
-                        查詢個案
-                    </button>
-                    <button type="button" class="btn btn-outline-danger" id="clearCarpoolBtn">
-                        清除
-                    </button>
+        <div class="card container-fluid" style="border:1px solid DodgerBlue;">
+            {{-- 客戶資訊 --}}
+            <!--<h5 class="mt-3 text-center">客戶資訊</h5>
+            <hr style="border-top: 1px solid #000;">-->
+            <div class="row mb-3">
+                <div class="col-md-3 mt-3">
+                    <label>個案姓名</label>
+                    <input type="text" name="customer_name" class="form-control"
+                        value="{{ old('customer_name', $customer->name ?? '') }}" readonly>
                 </div>
-            </div>
-
-                <!-- Modale共乘對象 -->
-                <div class="modal fade" id="carpoolModal" tabindex="-1" aria-labelledby="carpoolModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-xl">
-                    <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="carpoolModalLabel">查詢共乘對象</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+                <div class="col-md-3 mt-3">
+                    <label>個案身分證字號</label>
+                    <input type="text" name="customer_id_number" class="form-control"
+                        value="{{ old('customer_id_number', $customer->id_number ?? '') }}" readonly>
+                </div>
+                <div class="col-md-3 mt-3">
+                    <label>個案電話</label>
+                    <input type="text" name="customer_phone" class="form-control"
+                        value="{{ old('customer_phone', $customer->phone_number[0] ?? '') }}">
+                </div>
+                <div class="col-md-3 mt-3">
+                    <label>個案身份別</label>
+                    <input type="text" name="identity" class="form-control"
+                        value="{{ old('identity', $customer->identity ?? '') }}" readonly>
+                </div>
+                <div class="col-md-2 mt-3">
+                    <label>共乘對象</label>
+                    <div class="input-group">
+                        <input type="text" name="carpool_with" id="carpool_with" class="form-control" placeholder="" readonly onfocus="this.blur();">
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#carpoolModal">
+                            查詢個案
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" id="clearCarpoolBtn">
+                            清除
+                        </button>
                     </div>
-                    <div class="modal-body">
-                        {{-- 查詢欄 --}}
-                        <div class="input-group mb-3">
-                        <input type="text" id="carpoolSearchInput" class="form-control" placeholder="輸入姓名、身分證字號、電話查詢">
-                        <button class="btn btn-primary" type="button" id="searchCarpoolBtn">搜尋</button>
+                </div>
+
+                    <!-- Modale共乘對象 -->
+                    <div class="modal fade" id="carpoolModal" tabindex="-1" aria-labelledby="carpoolModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="carpoolModalLabel">查詢共乘對象</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
                         </div>
+                        <div class="modal-body">
+                            {{-- 查詢欄 --}}
+                            <div class="input-group mb-3">
+                            <input type="text" id="carpoolSearchInput" class="form-control" placeholder="輸入姓名、身分證字號、電話查詢">
+                            <button class="btn btn-primary" type="button" id="searchCarpoolBtn">搜尋</button>
+                            </div>
 
-                        {{-- 查詢結果 --}}
-                        <div id="carpoolResults"></div>
+                            {{-- 查詢結果 --}}
+                            <div id="carpoolResults"></div>
+                        </div>
+                        </div>
                     </div>
                     </div>
+                <div class="col-md-2 mt-3">
+                    <label>共乘身分證字號</label>
+                    <div class="input-group">
+                        <input type="text" name="carpool_id_number" id="carpool_id_number" class="form-control" placeholder="" readonly onfocus="this.blur();">
+                    </div>
                 </div>
-                </div>
-            <div class="col-md-4 mt-3">
-                <label>共乘身分證字號</label>
-                <div class="input-group">
-                    <input type="text" name="carpool_id_number" id="carpool_id_number" class="form-control" placeholder="點選右側按鈕查詢" readonly onfocus="this.blur();">
+                <div class="col-md-2 mt-3">
+                    <label>共乘電話</label>
+                    <div class="input-group">
+                        <input type="text" name="carpool_phone_number" id="carpool_phone_number" class="form-control" placeholder="" readonly onfocus="this.blur();">
+                    </div>
+                </div>   
+                <div class="col-md-6 mt-3">
+                    <label>共乘乘客地址</label>
+                    <div class="input-group">
+                        <input type="text" name="carpool_addresses" id="carpool_addresses" class="form-control" placeholder="" readonly onfocus="this.blur();">
+                    </div>
                 </div>
             </div>
-            <div class="col-md-4 mt-3">
-                <label>共乘電話</label>
-                <div class="input-group">
-                    <input type="text" name="carpool_phone_number" id="carpool_phone_number" class="form-control" placeholder="點選右側按鈕查詢" readonly onfocus="this.blur();">
+    </div>
+
+    
+
+        <div class="card container-fluid" style="border:1px solid Tomato;">
+        {{-- 用車資訊 --}}
+        <!--<h5 class="mt-3 text-center">用車資訊</h5>
+        <hr style="border-top: 1px solid #000;">-->
+        <div class="row mb-3 mt-3">
+                <div class="col-md-3">
+                    <label>用車日期</label>
+                    <input type="date" name="ride_date" class="form-control">
                 </div>
-            </div>   
-            <div class="col-md-12 mt-3">
-                <label>共乘乘客地址</label>
-                <div class="input-group">
-                    <input type="text" name="carpool_addresses" id="carpool_addresses" class="form-control" placeholder="點選右側按鈕查詢" readonly onfocus="this.blur();">
+                <div class="col-md-3">
+                    <label>用車時間（格式： 時:分）</label>
+                    <input type="text" name="ride_time" class="form-control"
+                        pattern="^([01]\d|2[0-3]):[0-5]\d$"
+                        placeholder="例如：13:45"
+                        value="{{ old('ride_time', $order->ride_time ?? '') }}">
+                </div>
+                <div class="col-md-2">
+                    <label>陪同人數</label>
+                    <input type="number" name="companions" class="form-control" min="0">
+                </div>
+            
+                <div class="col-md-2">
+                    <label>是否需要輪椅</label>
+                    <select name="wheelchair" class="form-select">
+                        <option value="0" {{ old('wheelchair', $customer->wheelchair ?? false) ? '' : 'selected' }}>否</option>
+                        <option value="1" {{ old('wheelchair', $customer->wheelchair ?? false) ? 'selected' : '' }}>是</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label>是否需要爬梯機</label>
+                    <select name="stair_machine" class="form-select">
+                        <option value="0" {{ old('wheelchair', $customer->stair_climbing_machine ?? false) ? '' : 'selected' }}>否</option>
+                        <option value="1" {{ old('wheelchair', $customer->stair_climbing_machine ?? false) ? 'selected' : '' }}>是</option>
+                    </select>
+                </div>
+
+
+            {{-- 上車資訊 --}}
+            <!--<h5 class="mt-4">上車地點</h5>-->
+            <div class="row mb-3">
+                <div class="col-md-12 mt-3">
+                    <label>上車地址 (要有XX市XX區)</label>
+                    <input type="text" name="pickup_address" class="form-control"
+                        value="{{ old('pickup_address', $customer->addresses[0] ?? '') }}">
                 </div>
             </div>
+
+            {{-- 下車資訊 --}}
+            <div class="row mb-0">
+            <!--<h5 class="col-md-4 mt-4">下車地點</h5>-->
+
+            {{-- 🚕 上下車地址交換按鈕 --}}
+            <div class="col-md-12 mt-1 d-flex justify-content-center align-items-center">
+                <button type="button" class="btn btn-outline-info" id="swapAddressBtn">
+                交換上下車地址
+                </button>
+            </div>
+            </div>
+            <div class="row mb-2 mt-1">
+                <div class="col-md-12">
+                    <label>下車地址  (要有XX市XX區)</label>
+                    <input type="text" name="dropoff_address" class="form-control">
+                </div>
+            </div>
+
+
+            <div class="row">
+                {{-- 額外資訊 --}}
+                <div class="col-md-6 mb-3">
+                    <label>是否為特別訂單</label>
+                    <select name="special_order" class="form-select">
+                        <option value="0">否</option>
+                        <option value="1">是</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label>特別狀態訂單 (說明:T9的粉紅色)</label>
+                    <select name="special_status" class="form-select">
+                        <option value="一般">一般</option>
+                        <option value="個管單">個管單</option>
+                        <option value="VIP">VIP</option>
+                        <option value="黑名單">黑名單</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label>訂單備註</label>
+                    <textarea name="remark" rows="3" class="form-control"></textarea>
+                </div>
+                <div class="mb-1">
+                    <label>乘客備註</label>
+                    <p class="h5 text-danger">{{ old('remark2', $customer->note ?? '') }}</p>
+                </div>
+            </div>
+
         </div>
-
         {{-- 駕駛資訊 --}}
-        <h5 class="mt-4">駕駛資訊</h5>
+        
         <div class="row mb-3">
             <div class="col-md-4">
                 <label>駕駛 ID</label>
@@ -112,22 +210,16 @@
                 <input type="text" name="driver_plate_number" class="form-control">
             </div>
         </div>
+       
 
-        {{-- 用車資訊 --}}
-        <h5 class="mt-4">用車資訊</h5>
+                {{-- 基本資料 --}}
         <div class="row mb-3">
-            <div class="col-md-4">
-                <label>用車日期</label>
-                <input type="date" name="ride_date" class="form-control">
+            <div class="col-md-4 mt-3">
+                <label>服務單位</label>
+                <input type="text" name="service_company" class="form-control"
+                    value="{{ old('service_company', $customer->service_company ?? '') }}" readonly>
             </div>
-            <div class="col-md-4">
-                <label>用車時間（格式： 時:分）</label>
-                <input type="text" name="ride_time" class="form-control"
-                    pattern="^([01]\d|2[0-3]):[0-5]\d$"
-                    placeholder="例如：13:45"
-                    value="{{ old('ride_time', $order->ride_time ?? '') }}">
-            </div>
-            <div class="col-md-4">
+            <div class="col-md-4 mt-3">
                 <label>訂單狀態</label>
                 <select name="status" class="form-select">
                     <option value="open">可派遣</option>
@@ -137,92 +229,23 @@
                     <option value="cancelled">已取消</option>
                 </select>
             </div>
-        </div>
-
-        {{-- 上車資訊 --}}
-        <h5 class="mt-4">上車地點</h5>
-        <div class="row mb-3">
-            <div class="col-md-12">
-                <label>地址 (要有XX市XX區)</label>
-                <input type="text" name="pickup_address" class="form-control"
-                    value="{{ old('pickup_address', $customer->addresses[0] ?? '') }}">
+        
+            <div class="col-md-4 mt-3">
+                <label>建單人員</label>
+                <input type="text" name="created_by" class="form-control" 
+                    value="{{ $user->name }}" readonly>
             </div>
         </div>
 
-        {{-- 下車資訊 --}}
-        <div class="row">
-        <h5 class="col-md-4 mt-4">下車地點</h5>
-        {{-- 🚕 上下車地址交換按鈕 --}}
-        <div class="col-md-4 mt-4">
-            <button type="button" class="btn btn-outline-info" id="swapAddressBtn">
-                交換上下車地址
-            </button>
-        </div>
-        </div>
-        <div class="row mb-3">
-            <div class="col-md-12">
-                <label>地址  (要有XX市XX區)</label>
-                <input type="text" name="dropoff_address" class="form-control">
-            </div>
-        </div>
-
-        {{-- 特殊需求 --}}
-        <h5 class="mt-4">乘車需求</h5>
-        <div class="row mb-3">
-            <div class="col-md-4">
-                <label>是否需要輪椅</label>
-                <select name="wheelchair" class="form-select">
-                    <option value="0" {{ old('wheelchair', $customer->wheelchair ?? false) ? '' : 'selected' }}>否</option>
-                    <option value="1" {{ old('wheelchair', $customer->wheelchair ?? false) ? 'selected' : '' }}>是</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label>是否需要爬梯機</label>
-                <select name="stair_machine" class="form-select">
-                    <option value="0" {{ old('wheelchair', $customer->stair_climbing_machine ?? false) ? '' : 'selected' }}>否</option>
-                    <option value="1" {{ old('wheelchair', $customer->stair_climbing_machine ?? false) ? 'selected' : '' }}>是</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label>陪同人數</label>
-                <input type="number" name="companions" class="form-control" min="0">
-            </div>
-        </div>
-
-        {{-- 額外資訊 --}}
-        <div class="mb-3">
-            <label>訂單類型</label>
-            <input type="text" name="order_type" class="form-control"
-                value="{{ old('order_type', $customer->county_care ?? '') }}">
-            
-        </div>
-        <div class="mb-3">
-            <label>服務單位</label>
-            <input type="text" name="service_company" class="form-control"
-                 value="{{ old('service_company', $customer->service_company ?? '') }}">
-        </div>
-        <div class="mb-3">
-            <label>是否為特別訂單</label>
-            <select name="special_order" class="form-select">
-                <option value="0">否</option>
-                <option value="1">是</option>
-            </select>
-        </div>
-        <div class="mb-3">
-            <label>訂單備註</label>
-            <textarea name="remark" rows="3" class="form-control"></textarea>
-        </div>
-        <div class="mb-3">
-            <label>乘客備註</label>
-            <p>{{ old('remark2', $customer->note ?? '') }}</p>
-        </div>
-
-        {{-- 提交按鈕 --}}
-        <div class="text-end">
-            <button type="submit" class="btn btn-success">送出訂單</button>
-        </div>
     </form>
+
+
+    
 </div>
+        {{-- 提交按鈕 --}}
+        <div class="mb-3 text-end">
+            <button type="submit" class="btn btn-success">&#10004送出訂單&#128203;</button>
+        </div>
 @endsection
 
 @push('scripts')

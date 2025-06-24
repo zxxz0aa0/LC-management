@@ -111,7 +111,7 @@
                 <select name="identity" class="form-control">
                     <option value="">請選擇</option>
                     @foreach(['市區-一般','市區-中低收','市區-低收','偏區-一般','偏區-中低收','偏區-低收'] as $option)
-                        <option value="{{ $option }}" {{ old('identity') == $option ? 'selected' : '' }}>{{ $option }}</option>
+                        <option value="{{ $option }}" {{ old('identity', $customer->identity) == $option ? 'selected' : '' }}>{{ $option }}</option>
                     @endforeach
                 </select>
             </div>
@@ -141,7 +141,7 @@
                 <select name="county_care" class="form-control">
                     <option value="">請選擇</option>
                     @foreach(['新北長照','台北長照','愛接送','新北復康'] as $option)
-                        <option value="{{ $option }}" {{ old('county_care') == $option ? 'selected' : '' }}>{{ $option }}</option>
+                        <option value="{{ $option }}" {{ old('county_care',$customer->county_care) == $option ? 'selected' : '' }}>{{ $option }}</option>
                     @endforeach
                 </select>
             </div>
