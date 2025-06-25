@@ -1,5 +1,5 @@
 {{-- resources/views/orders/partials/list.blade.php --}}
-<table class="table table-bordered table-hover align-middle">
+<table id="order-table" class="table table-bordered table-hover align-middle">
     <thead>
         <tr>
             <th>編號</th>
@@ -24,9 +24,7 @@
             </td>
         </tr>
         @empty
-        <tr>
-            <td colspan="6" class="text-center text-muted">目前尚無訂單資料</td>
-        </tr>
+
         @endforelse
     </tbody>
 </table>

@@ -147,20 +147,21 @@
             <div class="row">
                 {{-- 額外資訊 --}}
                 <div class="col-md-6 mb-3">
+                    <!--這邊的special_order指的是黑名單狀態-->
                     <label>是否為特別訂單</label>
                     <select name="special_order" class="form-select">
-                        <option value="0">否</option>
-                        <option value="1">是</option>
+                        <option value="0" >否</option>
+                        <option value="1" {{ old('order_type', $customer->special_status ?? '') == '黑名單' ? 'selected' : '' }}>是</option>
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label>特別狀態訂單 (說明:T9的粉紅色)</label>
                     <select name="special_status" class="form-select">
-                        <option value="一般">一般</option>
-                        <option value="個管單">個管單</option>
-                        <option value="VIP">VIP</option>
-                        <option value="黑名單">黑名單</option>
-                    </select>
+                    <option value="一般" {{ old('order_type', $customer->special_status ?? '') == '一般' ? 'selected' : '' }}>一般</option>
+                    <option value="黑名單" {{ old('order_type', $customer->special_status ?? '') == '黑名單' ? 'selected' : '' }}>黑名單</option>
+                    <option value="個管單" {{ old('order_type', $customer->special_status ?? '') == '個管單' ? 'selected' : '' }}>個管單</option>
+                    <option value="VIP" {{ old('order_type', $customer->special_status ?? '') == 'VIP' ? 'selected' : '' }}>VIP</option>
+                </select>
                 </div>
                 <div class="mb-3">
                     <label>訂單備註</label>

@@ -80,15 +80,23 @@
                     </tbody>
                 </table>
                 <div class="row ml-3 mt-3">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         狀態：
-                        @if(in_array($customer->status, ['結案暫停中', '已結案']))
-                            <span class="text-danger">{{ $customer->status }}</span>
+                        @if(in_array($customer->status, ['暫停中', '已結案']))
+                            <span class="h4 text-danger">{{ $customer->status }}</span>
                         @else
                             {{ $customer->status }}
                         @endif
                     </div>
-                    <div class="col-md-9">備註：{{ $customer->note }}</div>
+                    <div class="col-md-2">
+                        特殊狀態：
+                        @if(in_array($customer->special_status, ['黑名單', 'VIP']))
+                            <span class="h4 text-danger">{{ $customer->special_status }}</span>
+                        @else
+                            {{ $customer->special_status }}
+                        @endif
+                    </div>
+                    <div class="col-md-8">乘客備註：{{ $customer->note }}</div>
                 </div>
             @endif
             <hr>
@@ -122,6 +130,7 @@
                     <th>編號</th>
                     <th>客戶姓名</th>
                     <th>用車日期</th>
+                    <th>特殊狀態</th>
                     <th>訂單狀態</th>
                     <th>建單人員</th>
                     <th>操作</th>
@@ -133,6 +142,7 @@
                     <td>{{ $order->order_number }}</td>
                     <td>{{ $order->customer_name }}</td>
                     <td>{{ $order->ride_date }}</td>
+                    <td>{{ $order->special_order }}</td>
                     <td>{{ $order->status }}</td>
                     <td>{{ $order->created_by }}</td>
                     <td>
@@ -142,9 +152,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr>
-                    <td colspan="6" class="text-center text-muted">目前尚無訂單資料</td>
-                </tr>
+
                 @endforelse
             </tbody>
         </table>
@@ -157,6 +165,25 @@
 
 @push('scripts')
 <script>
+function initOrderTable() {
+    $('#order-table').DataTable({
+        language: {
+            lengthMenu: "每頁顯示 _MENU_ 筆資料",
+            zeroRecords: "查無資料",
+            info: "顯示第 _START_ 到 _END_ 筆，共 _TOTAL_ 筆資料",
+            infoEmpty: "目前沒有資料",
+            infoFiltered: "(從 _MAX_ 筆資料中篩選)",
+            search: "快速搜尋：",
+            paginate: {
+                first: "第一頁",
+                last: "最後一頁",
+                next: "下一頁",
+                previous: "上一頁"
+            }
+        }
+    });
+}
+
 const orderForm = document.getElementById('orderForm');
 if (orderForm) {
     orderForm.addEventListener('submit', function (e) {
@@ -174,7 +201,11 @@ if (orderForm) {
             body: formData
         }).then(response => response.text())
           .then(html => {
+                if ($.fn.DataTable.isDataTable('#order-table')) {
+                  $('#order-table').DataTable().destroy();
+                  }
               document.getElementById('orders-list').innerHTML = html; // 👈 更新訂單表格
+                initOrderTable();
               form.reset(); // 清空表單
               const modalInstance = bootstrap.Modal.getInstance(document.getElementById('createOrderModal'));
               if (modalInstance) {
@@ -189,22 +220,7 @@ if (orderForm) {
 </script>
 <script>
     $(document).ready(function () {
-        $('#order-table').DataTable({
-            language: {
-                lengthMenu: "每頁顯示 _MENU_ 筆資料",
-                zeroRecords: "查無資料",
-                info: "顯示第 _START_ 到 _END_ 筆，共 _TOTAL_ 筆資料",
-                infoEmpty: "目前沒有資料",
-                infoFiltered: "(從 _MAX_ 筆資料中篩選)",
-                search: "快速搜尋：",
-                paginate: {
-                    first: "第一頁",
-                    last: "最後一頁",
-                    next: "下一頁",
-                    previous: "上一頁"
-                }
-            }
-        });
+    initOrderTable();
     });
 
     // 全選 / 取消全選

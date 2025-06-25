@@ -125,7 +125,12 @@
 
             <div class="form-group">
                 <label>特殊狀態（如黑名單）</label>
-                <input type="text" name="special_status" class="form-control" value="{{ old('special_status') }}">
+                <select name="special_status" class="form-control" required>
+                    <option value="一般" {{ old('special_status') == '一般' ? 'selected' : '' }}>一般</option>
+                    <option value="黑名單" {{ old('special_status') == '黑名單' ? 'selected' : '' }}>黑名單</option>
+                    <option value="個管單" {{ old('special_status') == '個管單' ? 'selected' : '' }}>個管單</option>
+                    <option value="VIP" {{ old('special_status') == 'VIP' ? 'selected' : '' }}>VIP</option>
+                </select>
             </div>
 
             <div class="form-group">
@@ -162,7 +167,6 @@
     <div class="card-footer">
         <button type="submit" class="btn btn-primary" form="create-customer-form">儲存客戶</button>
         <a href="{{ route('customers.index') }}" class="btn btn-secondary">返回</a>
-        </form>
     </div>
 </div>
 
