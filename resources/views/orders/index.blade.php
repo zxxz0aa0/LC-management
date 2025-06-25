@@ -103,7 +103,7 @@
     </div>-->
     
     {{-- 訂單資料表格 --}}
-    <div class="table-responsive">
+    <div id="orders-list" class="table-responsive">
         <table class="table table-bordered table-hover align-middle">
             <thead>
                 <tr>
@@ -145,26 +145,29 @@
 
 @push('scripts')
 <script>
-document.getElementById('orderForm').addEventListener('submit', function (e) {
-    e.preventDefault();
+const orderForm = document.getElementById('orderForm');
+if (orderForm) {
+    orderForm.addEventListener('submit', function (e) {
+        e.preventDefault();
 
-    const form = this;
-    const formData = new FormData(form);
+        const form = this;
+        const formData = new FormData(form);
 
-    fetch(form.action, {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        body: formData
-    }).then(response => response.text())
-      .then(html => {
-          document.getElementById('orders-list').innerHTML = html; // 👈 更新訂單表格
-          form.reset(); // 清空表單
-      }).catch(error => {
-          console.error(error);
-          alert('發生錯誤，請稍後再試');
-      });
-});
+        fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: formData
+        }).then(response => response.text())
+          .then(html => {
+              document.getElementById('orders-list').innerHTML = html; // 👈 更新訂單表格
+              form.reset(); // 清空表單
+          }).catch(error => {
+              console.error(error);
+              alert('發生錯誤，請稍後再試');
+          });
+    });
+}
 </script>
 @endpush

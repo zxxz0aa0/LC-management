@@ -1,4 +1,4 @@
-    <form method="POST" action="{{ route('orders.store') }}">
+    <form id="orderForm" method="POST" action="{{ route('orders.store') }}">
         @csrf
 
         <div class="row mb-7">
@@ -268,7 +268,7 @@ document.getElementById('searchCarpoolBtn').addEventListener('click', function (
             // 如果是唯一身分證號，就直接帶入
             if (data.length === 1 && data[0].id_number === keyword) {
                 document.getElementById('carpool_with').value = data[0].name;
-                document.getElementById('carpool_addresses').value = c.addresses;
+                document.getElementById('carpool_addresses').value = data[0].addresses;
                 bootstrap.Modal.getInstance(document.getElementById('carpoolModal')).hide();
                 return;
             }
