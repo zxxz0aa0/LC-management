@@ -160,6 +160,10 @@ if (orderForm) {
           .then(html => {
               document.getElementById('orders-list').innerHTML = html; // 👈 更新訂單表格
               form.reset(); // 清空表單
+            const modalInstance = bootstrap.Modal.getInstance(document.getElementById('createOrderModal'));
+              if (modalInstance) {
+                  modalInstance.hide(); // 關閉 modal
+              }
           }).catch(error => {
               console.error(error);
               alert('發生錯誤，請稍後再試');
