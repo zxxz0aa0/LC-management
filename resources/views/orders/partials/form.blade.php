@@ -1,11 +1,10 @@
+    
     <form id="orderForm" method="POST" action="{{ route('orders.store') }}">
         @csrf
 
         <div class="row mb-7">
-            <div class="col-md-6">
-                <h3 class="">新增訂單</h3>
-            </div>
-            <div class="h4 col-md-6 text-danger text-end">
+
+            <div class="h4 col-md-6 text-danger">
                 <label class="form-label">訂單類型：</label>
                 <span>{{ old('order_type', $customer->county_care ?? '') }}</span>
                 <input type="hidden" name="order_type" value="{{ old('order_type', $customer->county_care ?? '') }}">
@@ -56,8 +55,7 @@
                         </button>
                     </div>
                 </div>
-
-                    <!-- Modale共乘對象 -->
+                                <!-- Modale共乘對象 -->
                     <div class="modal fade" id="carpoolModal" tabindex="-1" aria-labelledby="carpoolModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-xl">
                         <div class="modal-content">
@@ -78,6 +76,7 @@
                         </div>
                     </div>
                     </div>
+                    
                 <div class="col-md-2 mt-3">
                     <label>共乘身分證字號</label>
                     <div class="input-group">

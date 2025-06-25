@@ -61,17 +61,17 @@
                                 </button>
                                 <!-- Modal 本體 -->
                                 <div class="modal fade" id="createOrderModal" tabindex="-1" aria-labelledby="createOrderLabel" aria-hidden="true">
-                                <div class="modal-dialog modal-xl"> {{-- 可用 modal-lg 或 modal-xl 放大 --}}
-                                    <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="createOrderLabel">新增訂單</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+                                    <div class="modal-dialog modal-xl"> {{-- 使用 modal-fullscreen --}}
+                                        <div class="modal-content">
+                                            <div class="modal-header ">
+                                                <h5 class="modal-title" id="createOrderLabel">新增訂單</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                @include('orders.partials.form', ['user' => auth()->user()]){{-- 把 create 表單抽出來成共用 --}}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="modal-body">
-                                        @include('orders.partials.form', ['user' => auth()->user()]){{-- 把 create 表單抽出來成共用 --}}
-                                    </div>
-                                    </div>
-                                </div>
                                 </div>
                             </td>
                         </tr>
