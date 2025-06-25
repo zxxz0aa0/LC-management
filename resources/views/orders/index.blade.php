@@ -28,11 +28,13 @@
                 <table class="table table-bordered">
                     <thead>
                         <tr>
-                            <th>來源</th>
+                            <th>訂單來源</th>
                             <th>姓名</th>
-                            <th>電話</th>
                             <th>身分證字號</th>
+                            <th>電話</th>
                             <th>住址</th>
+                            <th>身份別</th>
+                            <th>可服務車隊</th>
                             <th>操作</th>
                         </tr>
                     </thead>
@@ -41,20 +43,22 @@
                         <tr>
                             <td>{{ $customer->county_care }}</td>
                             <td>{{ $customer->name }}</td>
+                            <td>{{ $customer->id_number }}</td>
                             <!--顯示第一支電話-->
                             <td>{{ $customer->phone_number[0]}}</td>
                             <!--可顯示全部電話-->
                             <!--<td>{{ is_array($customer->phone_number) ? implode(' / ', $customer->phone_number) : $customer->phone_number }}</td><-->
-                            <td>{{ $customer->id_number }}</td>
                             <td>{{ is_array($customer->addresses) ? implode(' / ', $customer->addresses) : $customer->addresses }}
+                            <td>{{ $customer->identity }}</td>
+                            <td>{{ $customer->service_company }}</td>
                             <td>
                                 {{-- 帶入 customer_id 前往建立訂單 --}}
-                                <a href="{{ route('orders.create', ['customer_id' => $customer->id,'id_number' => $customer->id_number]) }}" class="btn btn-sm btn-success">
+                                <!--<a href="{{ route('orders.create', ['customer_id' => $customer->id,'id_number' => $customer->id_number]) }}" class="btn btn-sm btn-success">
                                     建立訂單
-                                </a>
+                                </a>-->
                                 <!-- 觸發按鈕 -->
-                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createOrderModal">
-                                    ＋ 建立新訂單
+                                <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#createOrderModal">
+                                    建立訂單
                                 </button>
                                 <!-- Modal 本體 -->
                                 <div class="modal fade" id="createOrderModal" tabindex="-1" aria-labelledby="createOrderLabel" aria-hidden="true">
@@ -71,10 +75,21 @@
                                     </div>
                                 </div>
                             </td>
-                        </tr>
+                        </tr>                            
                         @endforeach
                     </tbody>
                 </table>
+                <div class="row ml-3 mt-3">
+                    <div class="col-md-3">
+                        狀態：
+                        @if(in_array($customer->status, ['結案暫停中', '已結案']))
+                            <span class="text-danger">{{ $customer->status }}</span>
+                        @else
+                            {{ $customer->status }}
+                        @endif
+                    </div>
+                    <div class="col-md-9">備註：{{ $customer->note }}</div>
+                </div>
             @endif
             <hr>
         @endif
@@ -100,8 +115,8 @@
     </div>-->
     
     {{-- 訂單資料表格 --}}
-    <div id="orders-list" class="table-responsive">
-        <table class="table table-bordered table-hover align-middle">
+    <div id="orders-list" class="table-responsive p-3">
+        <table id="order-table" class="table table-bordered table-hover align-middle">
             <thead>
                 <tr>
                     <th>編號</th>
@@ -153,14 +168,15 @@ if (orderForm) {
         fetch(form.action, {
             method: 'POST',
             headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: formData
         }).then(response => response.text())
           .then(html => {
               document.getElementById('orders-list').innerHTML = html; // 👈 更新訂單表格
               form.reset(); // 清空表單
-            const modalInstance = bootstrap.Modal.getInstance(document.getElementById('createOrderModal'));
+              const modalInstance = bootstrap.Modal.getInstance(document.getElementById('createOrderModal'));
               if (modalInstance) {
                   modalInstance.hide(); // 關閉 modal
               }
@@ -170,5 +186,30 @@ if (orderForm) {
           });
     });
 }
+</script>
+<script>
+    $(document).ready(function () {
+        $('#order-table').DataTable({
+            language: {
+                lengthMenu: "每頁顯示 _MENU_ 筆資料",
+                zeroRecords: "查無資料",
+                info: "顯示第 _START_ 到 _END_ 筆，共 _TOTAL_ 筆資料",
+                infoEmpty: "目前沒有資料",
+                infoFiltered: "(從 _MAX_ 筆資料中篩選)",
+                search: "快速搜尋：",
+                paginate: {
+                    first: "第一頁",
+                    last: "最後一頁",
+                    next: "下一頁",
+                    previous: "上一頁"
+                }
+            }
+        });
+    });
+
+    // 全選 / 取消全選
+    $('#select-all').click(function () {
+        $('input[name="ids[]"]').prop('checked', this.checked);
+    });
 </script>
 @endpush
