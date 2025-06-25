@@ -1,14 +1,17 @@
 @extends('layouts.app')
 
+
+
+
 @section('content')
 <div class="container-fluid">
 
 <div class="card">
     <div class="container-fluid">
-        <h3 class="mb-4">個案查詢</h3>
+        <h3 class="mt-2">個案查詢</h3>
 
         {{-- 🔍 客戶搜尋欄 --}}
-        <form method="GET" action="{{ route('orders.index') }}" class="mb-4">
+        <form method="GET" action="{{ route('orders.index') }}" class="mb-3">
             <div class="input-group">
                 <input type="text" name="keyword" class="form-control" placeholder="輸入姓名、電話或身分證字號查詢客戶"
                     value="{{ request('keyword') }}">
@@ -18,7 +21,7 @@
 
         {{-- 🔍 若有搜尋，顯示客戶資料表 --}}
         @if(request()->filled('keyword'))
-            <h5>搜尋結果：</h5>
+            
             @if($customers->isEmpty())
                 <div class="alert alert-warning">查無符合的客戶資料</div>
             @else
@@ -29,6 +32,7 @@
                             <th>姓名</th>
                             <th>電話</th>
                             <th>身分證字號</th>
+                            <th>住址</th>
                             <th>操作</th>
                         </tr>
                     </thead>
@@ -42,6 +46,7 @@
                             <!--可顯示全部電話-->
                             <!--<td>{{ is_array($customer->phone_number) ? implode(' / ', $customer->phone_number) : $customer->phone_number }}</td><-->
                             <td>{{ $customer->id_number }}</td>
+                            <td>{{ is_array($customer->addresses) ? implode(' / ', $customer->addresses) : $customer->addresses }}
                             <td>
                                 {{-- 帶入 customer_id 前往建立訂單 --}}
                                 <a href="{{ route('orders.create', [
@@ -50,6 +55,24 @@
                                 ]) }}" class="btn btn-sm btn-success">
                                     建立訂單
                                 </a>
+                                <!-- 觸發按鈕 -->
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createOrderModal">
+                                    ＋ 建立新訂單
+                                </button>
+                                <!-- Modal 本體 -->
+                                <div class="modal fade" id="createOrderModal" tabindex="-1" aria-labelledby="createOrderLabel" aria-hidden="true">
+                                <div class="modal-dialog modal-xl"> {{-- 可用 modal-lg 或 modal-xl 放大 --}}
+                                    <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="createOrderLabel">新增訂單</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        @include('orders.partials.form', ['user' => auth()->user()]){{-- 把 create 表單抽出來成共用 --}}
+                                    </div>
+                                    </div>
+                                </div>
+                                </div>
                             </td>
                         </tr>
                         @endforeach
@@ -64,8 +87,9 @@
     </div>
 </div>
 
+
 <div class="card">
-    <h3 class="mb-4">訂單列表</h3>
+    <h3 class="mt-2 ml-2">訂單列表</h3>
 
     {{-- 顯示成功訊息 --}}
     @if(session('success'))
@@ -77,7 +101,7 @@
     <!--<div class="mb-3 text-end">
         <a href="{{ route('orders.create') }}" class="btn btn-primary">＋ 新增訂單</a>
     </div>-->
-
+    
     {{-- 訂單資料表格 --}}
     <div class="table-responsive">
         <table class="table table-bordered table-hover align-middle">
@@ -113,6 +137,34 @@
             </tbody>
         </table>
     </div>
+    
 </div>
+
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.getElementById('orderForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const form = this;
+    const formData = new FormData(form);
+
+    fetch(form.action, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: formData
+    }).then(response => response.text())
+      .then(html => {
+          document.getElementById('orders-list').innerHTML = html; // 👈 更新訂單表格
+          form.reset(); // 清空表單
+      }).catch(error => {
+          console.error(error);
+          alert('發生錯誤，請稍後再試');
+      });
+});
+</script>
+@endpush
