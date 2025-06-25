@@ -19,7 +19,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('customers.update', $customer) }}">
+        <form id="edit-customer-form" method="POST" action="{{ route('customers.update', $customer) }}">
             @csrf
             @method('PUT')
 
@@ -159,10 +159,11 @@
                     @endforeach
                 </select>
             </div>
+        </form>
     </div>
 
     <div class="card-footer">
-        <button type="submit" class="btn btn-success">更新資料</button>
+        <button type="submit" class="btn btn-success" form="edit-customer-form">更新資料</button>
         <a href="{{ route('customers.index') }}" class="btn btn-secondary">返回</a>
         </form>
     </div>

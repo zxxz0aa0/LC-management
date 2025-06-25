@@ -19,7 +19,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('customers.store') }}">
+        <form id="create-customer-form" method="POST" action="{{ route('customers.store') }}">
             @csrf
 
             <div class="form-group">
@@ -156,10 +156,11 @@
                     <option value="已結案" {{ old('status') == '已結案' ? 'selected' : '' }}>已結案</option>
                 </select>
             </div>
+        </form>
     </div>
-
+    
     <div class="card-footer">
-        <button type="submit" class="btn btn-primary">儲存客戶</button>
+        <button type="submit" class="btn btn-primary" form="create-customer-form">儲存客戶</button>
         <a href="{{ route('customers.index') }}" class="btn btn-secondary">返回</a>
         </form>
     </div>

@@ -3,9 +3,8 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CustomerController;
-use App\Http\Controllers\CustomEreventController;
 use App\Http\Controllers\OrderController;
-use App\Http\Controllers\DriverController;
+use App\Http\Controllers\CustomerEventController;
 
 /*
 |--------------------------------------------------------------------------

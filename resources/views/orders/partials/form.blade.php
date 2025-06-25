@@ -46,37 +46,12 @@
                 <div class="col-md-3 mt-3">
                     <label>共乘對象</label>
                     <div class="input-group">
-                        <input type="text" name="carpool_with" id="carpool_with" class="form-control" placeholder="" readonly onfocus="this.blur();">
-                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#carpoolModal">
-                            查詢個案
-                        </button>
-                        <button type="button" class="btn btn-outline-danger" id="clearCarpoolBtn">
-                            清除
-                        </button>
+                        <input type="text" name="carpoolSearchInput" id="carpoolSearchInput" class="form-control" placeholder="名字、ID、電話">
+                        <button type="button" class="btn btn-success" id="searchCarpoolBtn">查詢</button>
+                        <button type="button" class="btn btn-outline-danger" id="clearCarpoolBtn">清除</button>
                     </div>
                 </div>
-                                <!-- Modale共乘對象 -->
-                    <div class="modal fade" id="carpoolModal" tabindex="-1" aria-labelledby="carpoolModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-xl">
-                        <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="carpoolModalLabel">查詢共乘對象</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
-                        </div>
-                        <div class="modal-body">
-                            {{-- 查詢欄 --}}
-                            <div class="input-group mb-3">
-                            <input type="text" id="carpoolSearchInput" class="form-control" placeholder="輸入姓名、身分證字號、電話查詢">
-                            <button class="btn btn-primary" type="button" id="searchCarpoolBtn">搜尋</button>
-                            </div>
 
-                            {{-- 查詢結果 --}}
-                            <div id="carpoolResults"></div>
-                        </div>
-                        </div>
-                    </div>
-                    </div>
-                    
                 <div class="col-md-2 mt-3">
                     <label>共乘身分證字號</label>
                     <div class="input-group">
@@ -95,7 +70,10 @@
                         <input type="text" name="carpool_addresses" id="carpool_addresses" class="form-control" placeholder="" readonly onfocus="this.blur();">
                     </div>
                 </div>
+                    <input type="hidden" name="carpool_with" id="carpool_with">
+                    <div class="mt-1" id="carpoolResults"></div>
             </div>
+            
     </div>
 
     
@@ -248,11 +226,12 @@
 
 
         @push('scripts')
+
+
+
 <script>
 document.getElementById('searchCarpoolBtn').addEventListener('click', function () {
     const keyword = document.getElementById('carpoolSearchInput').value;
-    
-
     fetch(`/carpool-search?keyword=${encodeURIComponent(keyword)}`)
         .then(res => res.json())
         .then(data => {
@@ -264,11 +243,13 @@ document.getElementById('searchCarpoolBtn').addEventListener('click', function (
                 return;
             }
 
-            // 如果是唯一身分證號，就直接帶入
+            // 如果唯一身分證號就直接帶入
             if (data.length === 1 && data[0].id_number === keyword) {
                 document.getElementById('carpool_with').value = data[0].name;
+                document.getElementById('carpool_id_number').value = data[0].id_number;
+                document.getElementById('carpool_phone_number').value = Array.isArray(data[0].phone_number) ? data[0].phone_number[0] : data[0].phone_number;
                 document.getElementById('carpool_addresses').value = data[0].addresses;
-                bootstrap.Modal.getInstance(document.getElementById('carpoolModal')).hide();
+                resultsDiv.innerHTML = '';
                 return;
             }
 
@@ -280,18 +261,24 @@ document.getElementById('searchCarpoolBtn').addEventListener('click', function (
                 const item = document.createElement('li');
                 item.className = 'list-group-item d-flex justify-content-between align-items-center';
                 item.innerHTML = `
-                    <div>
-                        <strong>${c.name}</strong> / ${(Array.isArray(c.phone_number) ? c.phone_number[0] : c.phone_number)} / ${c.id_number}/ ${c.addresses}
+                    <div class="row w-100 align-items-center">
+                        <div class="col-md-1 d-flex align-items-center">
+                            <button type="button" class="btn btn-sm btn-success">選擇</button>
+                        </div>
+                        <div class="col-md-11 d-flex align-items-center">
+                            <strong>${c.name}</strong> / ${(Array.isArray(c.phone_number) ? c.phone_number[0] : c.phone_number)} / ${c.id_number} / ${c.addresses}
+                        </div>
                     </div>
-                    <button type="button" class="btn btn-sm btn-success">選擇</button>
+                    
                 `;
 
                 item.querySelector('button').addEventListener('click', () => {
+                    document.getElementById('carpoolSearchInput').value = c.name;
                     document.getElementById('carpool_with').value = c.name;
                     document.getElementById('carpool_id_number').value = c.id_number;
-                    document.getElementById('carpool_phone_number').value = (Array.isArray(c.phone_number) ? c.phone_number[0] : c.phone_number);
-                    document.getElementById('carpool_addresses').value = c.addresses;
-                    bootstrap.Modal.getInstance(document.getElementById('carpoolModal')).hide();
+                    document.getElementById('carpool_phone_number').value = Array.isArray(c.phone_number) ? c.phone_number[0] : c.phone_number;
+                    document.getElementById('carpool_addresses').value = c.addresses[0];
+                    resultsDiv.innerHTML = ''; // 選擇後清空清單
                 });
 
                 list.appendChild(item);
@@ -305,13 +292,15 @@ document.getElementById('searchCarpoolBtn').addEventListener('click', function (
         });
 });
 
-        // ✅ 清除按鈕功能
-        document.getElementById('clearCarpoolBtn').addEventListener('click', function () {
-            document.getElementById('carpool_with').value = '';
-            document.getElementById('carpool_id_number').value = '';
-            document.getElementById('carpool_phone_number').value = '';
-            document.getElementById('carpool_addresses').value = '';
-        });
+// 清除按鈕
+document.getElementById('clearCarpoolBtn').addEventListener('click', function () {
+    document.getElementById('carpoolSearchInput').value = '';
+    document.getElementById('carpool_with').value = '';
+    document.getElementById('carpool_id_number').value = '';
+    document.getElementById('carpool_phone_number').value = '';
+    document.getElementById('carpool_addresses').value = '';
+    document.getElementById('carpoolResults').innerHTML = '';
+});
 </script>
 
 <!--交換上下車地址按鈕功能-->

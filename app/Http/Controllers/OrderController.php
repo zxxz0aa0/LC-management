@@ -5,9 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use App\Models\Customer;
-use Illuminate\Support\Str;
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Model;
+
 
 class OrderController extends Controller
 {
@@ -23,7 +22,7 @@ class OrderController extends Controller
         if ($keyword) {
             // 搜尋符合的客戶
             $customers = Customer::where('name', 'like', "%{$keyword}%")
-                ->orWhere('phone_number', 'like', "%{$keyword}%")
+                ->orWhereJsonContains('phone_number', $keyword)
                 ->orWhere('id_number', 'like', "%{$keyword}%")
                 ->get();
 

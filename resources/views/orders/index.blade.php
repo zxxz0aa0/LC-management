@@ -49,10 +49,7 @@
                             <td>{{ is_array($customer->addresses) ? implode(' / ', $customer->addresses) : $customer->addresses }}
                             <td>
                                 {{-- 帶入 customer_id 前往建立訂單 --}}
-                                <a href="{{ route('orders.create', [
-                                'customer_id' => $customer->id,
-                                'id_number' => $customer->id_number
-                                ]) }}" class="btn btn-sm btn-success">
+                                <a href="{{ route('orders.create', ['customer_id' => $customer->id,'id_number' => $customer->id_number]) }}" class="btn btn-sm btn-success">
                                     建立訂單
                                 </a>
                                 <!-- 觸發按鈕 -->
