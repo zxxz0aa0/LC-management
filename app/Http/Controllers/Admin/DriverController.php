@@ -68,4 +68,21 @@ class DriverController extends Controller
         $driver->delete();
         return redirect()->route('drivers.index')->with('success', '駕駛已刪除');
     }
+
+    public function searchByFleetNumber(Request $request)
+    {
+        $fleetNumber = $request->input('fleet_number');
+
+        $driver = \App\Models\Driver::where('fleet_number', $fleetNumber)->first();
+
+        if (!$driver) {
+            return response()->json(['error' => '查無此隊編'], 404);
+        }
+
+        return response()->json([
+            'id' => $driver->id,
+            'name' => $driver->name,
+            'plate_number' => $driver->plate_number,
+        ]);
+    }
 }

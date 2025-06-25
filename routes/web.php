@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomEreventController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\DriverController;
 
 /*
 |--------------------------------------------------------------------------
@@ -56,4 +57,7 @@ Route::resource('admin/drivers', App\Http\Controllers\Admin\DriverController::cl
 Route::resource('orders', OrderController::class);
 
 Route::get('/carpool-search', [CustomerController::class, 'carpoolSearch']);
+
+Route::get('/drivers/fleet-search', [App\Http\Controllers\Admin\DriverController::class, 'searchByFleetNumber']);
+
 

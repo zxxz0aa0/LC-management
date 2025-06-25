@@ -2,11 +2,11 @@
 
 @section('content')
 <div class="container-fluid">
-        <div class="row mb-6">
+        <div class="row mb-7">
             <div class="col-md-6">
-                <h3 class="mb-2">新增訂單</h3>
+                <h3 class="">新增訂單</h3>
             </div>
-            <div class="h4 col-md-6 mb-3 text-danger text-end">
+            <div class="h4 col-md-6 text-danger text-end">
                 <label class="form-label">訂單類型：</label>
                 <span>{{ old('order_type', $customer->county_care ?? '') }}</span>
                 <input type="hidden" name="order_type" value="{{ old('order_type', $customer->county_care ?? '') }}">
@@ -194,22 +194,28 @@
             </div>
 
         </div>
+
         {{-- 駕駛資訊 --}}
-        
         <div class="row mb-3">
             <div class="col-md-4">
-                <label>駕駛 ID</label>
-                <input type="number" name="driver_id" class="form-control">
+                <label>駕駛隊編</label>
+                <div class="input-group">
+                    <input type="text" id="fleet_number_input" class="form-control" placeholder="輸入隊編">
+                    <button type="button" class="btn btn-success" id="searchDriverBtn">查詢</button>
+                </div>
             </div>
             <div class="col-md-4">
                 <label>駕駛姓名</label>
-                <input type="text" name="driver_name" class="form-control">
+                <input type="text" name="driver_name" id="driver_name" class="form-control" readonly>
             </div>
             <div class="col-md-4">
                 <label>車牌號碼</label>
-                <input type="text" name="driver_plate_number" class="form-control">
+                <input type="text" name="driver_plate_number" id="driver_plate_number" class="form-control" readonly>
             </div>
+            {{-- 隱藏 driver_id --}}
+            <input type="hidden" name="driver_id" id="driver_id">
         </div>
+
        
 
                 {{-- 基本資料 --}}
@@ -323,6 +329,31 @@ document.getElementById('swapAddressBtn').addEventListener('click', function () 
     dropoffInput.value = temp;
 });
 </script>
+
+<script>
+document.getElementById('searchDriverBtn').addEventListener('click', function () {
+    const fleetNumber = document.getElementById('fleet_number_input').value;
+
+    if (!fleetNumber) return;
+
+    fetch(`/drivers/fleet-search?fleet_number=${encodeURIComponent(fleetNumber)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            document.getElementById('driver_id').value = data.id;
+            document.getElementById('driver_name').value = data.name;
+            document.getElementById('driver_plate_number').value = data.plate_number;
+        })
+        .catch(() => {
+            alert('查詢失敗，請稍後再試');
+        });
+});
+</script>
+
 
 @endpush
 
