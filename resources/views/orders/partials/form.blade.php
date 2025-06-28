@@ -46,7 +46,7 @@
                 <div class="col-md-3 mt-3">
                     <label>共乘對象</label>
                     <div class="input-group">
-                        <input type="text" name="carpoolSearchInput" id="carpoolSearchInput" class="form-control" placeholder="名字、ID、電話">
+                        <input type="text" name="carpoolSearchInput" id="carpoolSearchInput" class="form-control" placeholder="名字、ID、電話" value="{{ old('carpoolSearchInput') }}">
                         <button type="button" class="btn btn-success" id="searchCarpoolBtn">查詢</button>
                         <button type="button" class="btn btn-outline-danger" id="clearCarpoolBtn">清除</button>
                     </div>
@@ -55,22 +55,22 @@
                 <div class="col-md-2 mt-3">
                     <label>共乘身分證字號</label>
                     <div class="input-group">
-                        <input type="text" name="carpool_id_number" id="carpool_id_number" class="form-control" placeholder="" readonly onfocus="this.blur();">
+                        <input type="text" name="carpool_id_number" id="carpool_id_number" class="form-control" placeholder="" readonly onfocus="this.blur();" value="{{ old('carpool_id_number') }}">
                     </div>
                 </div>
                 <div class="col-md-2 mt-3">
                     <label>共乘電話</label>
                     <div class="input-group">
-                        <input type="text" name="carpool_phone_number" id="carpool_phone_number" class="form-control" placeholder="" readonly onfocus="this.blur();">
+                        <input type="text" name="carpool_phone_number" id="carpool_phone_number" class="form-control" placeholder="" readonly onfocus="this.blur();" value="{{ old('carpool_phone_number') }}">
                     </div>
                 </div>
                 <div class="col-md-5 mt-3">
                     <label>共乘乘客地址</label>
                     <div class="input-group">
-                        <input type="text" name="carpool_addresses" id="carpool_addresses" class="form-control" placeholder="" readonly onfocus="this.blur();">
+                        <input type="text" name="carpool_addresses" id="carpool_addresses" class="form-control" placeholder="" readonly onfocus="this.blur();" value="{{ old('carpool_addresses') }}">
                     </div>
                 </div>
-                    <input type="hidden" name="carpool_with" id="carpool_with">
+                    <input type="hidden" name="carpool_with" id="carpool_with" value="{{ old('carpool_with') }}">
                     <div class="mt-1" id="carpoolResults"></div>
             </div>
 
@@ -85,7 +85,7 @@
         <div class="row mb-3 mt-3">
                 <div class="col-md-3">
                     <label>用車日期</label>
-                    <input type="date" name="ride_date" class="form-control">
+                    <input type="date" name="ride_date" class="form-control" value="{{ old('ride_date', $order->ride_date ?? '') }}">
                 </div>
                 <div class="col-md-3">
                     <label>用車時間（格式： 時:分）</label>
@@ -96,7 +96,7 @@
                 </div>
                 <div class="col-md-2">
                     <label>陪同人數</label>
-                    <input type="number" name="companions" class="form-control" min="0">
+                    <input type="number" name="companions" class="form-control" min="0" value="{{ old('companions') }}">
                 </div>
 
                 <div class="col-md-2">
@@ -171,7 +171,7 @@
                 </div>
                 <div class="mb-3">
                     <label>訂單備註</label>
-                    <textarea name="remark" rows="3" class="form-control"></textarea>
+                    <textarea name="remark" rows="3" class="form-control">{{ old('remark') }}</textarea>
                 </div>
                 <div class="mb-1">
                     <label>乘客備註</label>
@@ -186,20 +186,20 @@
             <div class="col-md-4">
                 <label>駕駛隊編</label>
                 <div class="input-group">
-                    <input type="text" id="fleet_number_input" class="form-control" placeholder="輸入隊編">
+                    <input type="text" id="fleet_number_input" class="form-control" placeholder="輸入隊編" value="{{ old('fleet_number_input') }}">
                     <button type="button" class="btn btn-success" id="searchDriverBtn">查詢</button>
                 </div>
             </div>
             <div class="col-md-4">
                 <label>駕駛姓名</label>
-                <input type="text" name="driver_name" id="driver_name" class="form-control" readonly>
+                <input type="text" name="driver_name" id="driver_name" class="form-control" readonly value="{{ old('driver_name') }}">
             </div>
             <div class="col-md-4">
                 <label>車牌號碼</label>
-                <input type="text" name="driver_plate_number" id="driver_plate_number" class="form-control" readonly>
+                <input type="text" name="driver_plate_number" id="driver_plate_number" class="form-control" readonly value="{{ old('driver_plate_number') }}">
             </div>
             {{-- 隱藏 driver_id --}}
-            <input type="hidden" name="driver_id" id="driver_id">
+            <input type="hidden" name="driver_id" id="driver_id" value="{{ old('driver_id') }}">
         </div>
 
 
@@ -209,11 +209,11 @@
             <div class="col-md-4 mt-3">
                 <label>訂單狀態</label>
                 <select name="status" class="form-select">
-                    <option value="open">可派遣</option>
-                    <option value="assigned">已指派</option>
-                    <option value="replacement">候補派遣</option>
-                    <option value="blocked">黑名單</option>
-                    <option value="cancelled">已取消</option>
+                    <option value="open" {{ old('status') === 'open' ? 'selected' : '' }}>可派遣</option>
+                    <option value="assigned" {{ old('status') === 'assigned' ? 'selected' : '' }}>已指派</option>
+                    <option value="replacement" {{ old('status') === 'replacement' ? 'selected' : '' }}>候補派遣</option>
+                    <option value="blocked" {{ old('status') === 'blocked' ? 'selected' : '' }}>黑名單</option>
+                    <option value="cancelled" {{ old('status') === 'cancelled' ? 'selected' : '' }}>已取消</option>
                 </select>
             </div>
 
