@@ -11,8 +11,8 @@
         <h3 class="mt-2">個案查詢</h3>
 
         {{-- 🔍 客戶搜尋欄 --}}
-        <form method="GET" action="{{ route('orders.index') }}" class="mb-3">
-            <div class="input-group">
+        <form method="GET" action="{{ route('orders.index') }}" class="mb-3" style="width:100%">
+            <div class="input-group" style="width:100%">
                 <input type="text" name="keyword" class="form-control" placeholder="輸入姓名、電話或身分證字號查詢客戶"
                     value="{{ request('keyword') }}">
                 <button class="btn btn-primary" type="submit">搜尋客戶</button>
@@ -26,7 +26,7 @@
                 <div class="alert alert-warning">查無符合的客戶資料</div>
             @else
                 <table class="table table-bordered">
-                    <thead>
+                    <thead class="table-success">
                         <tr>
                             <th>訂單來源</th>
                             <th>姓名</th>
@@ -124,15 +124,18 @@
     
     {{-- 訂單資料表格 --}}
     <div id="orders-list" class="table-responsive p-3">
-        <table id="order-table" class="table table-bordered table-hover align-middle">
-            <thead>
+        <table id="order-table" class="table table-bordered table-hover align-middle" style="width:100%">
+            <thead class="table-success">
                 <tr>
-                    <th>編號</th>
-                    <th>客戶姓名</th>
-                    <th>用車日期</th>
-                    <th>特殊狀態</th>
-                    <th>訂單狀態</th>
-                    <th>建單人員</th>
+                    <th style="width:10%">編號</th>
+                    <th style="width:6%">客戶姓名</th>
+                    <th style="width:6%">用車日期</th>
+                    <th style="width:6%">用車時間</th>
+                    <th style="width:20%">上車地址</th>
+                    <th style="width:20%">下車地址</th>
+                    <th style="width:6%">特殊狀態</th>
+                    <th style="width:6%">訂單狀態</th>
+                    <th style="width:6%">建單人員</th>
                     <th>操作</th>
                 </tr>
             </thead>
@@ -142,6 +145,9 @@
                     <td>{{ $order->order_number }}</td>
                     <td>{{ $order->customer_name }}</td>
                     <td>{{ $order->ride_date }}</td>
+                    <td>{{ \Carbon\Carbon::parse($order->ride_time)->format('H:i') }}</td>
+                    <td>{{ $order->pickup_address }}</td>
+                    <td>{{ $order->dropoff_address }}</td>
                     <td>{{ $order->special_order }}</td>
                     <td>{{ $order->status }}</td>
                     <td>{{ $order->created_by }}</td>
@@ -166,6 +172,10 @@
 @push('scripts')
 <script>
 function initOrderTable() {
+    // 先檢查是否已經初始化過 DataTable，若有則先銷毀
+    if ($.fn.DataTable.isDataTable('#order-table')) {
+        $('#order-table').DataTable().destroy();
+    }
     $('#order-table').DataTable({
         language: {
             lengthMenu: "每頁顯示 _MENU_ 筆資料",
@@ -192,6 +202,11 @@ if (orderForm) {
         const form = this;
         const formData = new FormData(form);
 
+        // 送出前先銷毀 DataTable
+        if ($.fn.DataTable.isDataTable('#order-table')) {
+            $('#order-table').DataTable().destroy();
+        }
+
         fetch(form.action, {
             method: 'POST',
             headers: {
@@ -200,23 +215,30 @@ if (orderForm) {
             },
             body: formData
         }).then(response => response.text())
-          .then(html => {
-                if ($.fn.DataTable.isDataTable('#order-table')) {
-                  $('#order-table').DataTable().destroy();
-                  }
-              document.getElementById('orders-list').innerHTML = html; // 👈 更新訂單表格
-                initOrderTable();
-              form.reset(); // 清空表單
-              const modalInstance = bootstrap.Modal.getInstance(document.getElementById('createOrderModal'));
-              if (modalInstance) {
-                  modalInstance.hide(); // 關閉 modal
-              }
-          }).catch(error => {
-              console.error(error);
-              alert('發生錯誤，請稍後再試');
-          });
+        .then(html => {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            const newTable = tempDiv.querySelector('#order-table');
+            const oldTable = document.getElementById('order-table');
+            if (newTable && oldTable) {
+                oldTable.parentNode.replaceChild(newTable, oldTable);
+            }
+            initOrderTable();
+            form.reset();
+            const modalInstance = bootstrap.Modal.getInstance(document.getElementById('createOrderModal'));
+            if (modalInstance) {
+                modalInstance.hide();
+            }
+        }).catch(error => {
+            console.error(error);
+            alert('發生錯誤，請稍後再試');
+        });
     });
 }
+
+$(document).ready(function () {
+    initOrderTable();
+});
 </script>
 <script>
     $(document).ready(function () {

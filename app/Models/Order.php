@@ -23,7 +23,7 @@ class Order extends Model
         'dropoff_lat', 'dropoff_lng',
         'wheelchair', 'stair_machine', 'companions',
         'remark', 'created_by', 'identity', 'carpool_with',
-        'special_order', 'status',
+        'special_order', 'status','special_status','carpool_customer_id', 'carpool_name', 'carpool_id',
     ];
 
     // 關聯：每筆訂單屬於一位客戶

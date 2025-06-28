@@ -4,7 +4,7 @@
 <div class="card">
     <div class="card-header">
         <div class="d-flex justify-content-between align-items-center flex-wrap">
-            <h3 class="mb-0">客戶列表</h3>
+            <h3 class="mb-0">個案列表</h3>
             <div class="d-flex flex-wrap gap-2">
                 <a href="{{ route('customers.create') }}" class="btn btn-primary btn-sm me-2 d-flex align-items-center">新增個案</a>
                 <form action="{{ route('customers.import') }}" method="POST" enctype="multipart/form-data" class="d-inline-flex align-items-center">

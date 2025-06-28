@@ -56,12 +56,21 @@ class CreateOrdersTable extends Migration
             $table->boolean('stair_machine')->default(false); // 是否需要爬梯機
             $table->tinyInteger('companions')->default(0); // 陪同人數
 
+            $table->unsignedBigInteger('carpool_customer_id')->nullable(); // 客戶 ID（關聯 customers 表）
+            $table->foreign('carpool_customer_id')
+                ->references('id')->on('customers');
+            $table->string('carpool_name')->nullable();   // 共乘姓名
+            $table->string('carpool_id')->nullable();   // 共乘ID
+
+
+
             $table->text('remark')->nullable(); // 備註
 
             $table->string('created_by'); // 建單人員帳號或名稱
             $table->string('identity')->nullable(); // 身份別（例如 市區-低收 等）
             $table->string('carpool_with')->nullable(); // 共乘對象（可用文字紀錄）
             $table->boolean('special_order')->default(false); // 特別訂單（例如特殊處理）
+            $table->string('special_status')->nullable(); // 特殊狀態，例如黑名單、VIP等
 
             $table->enum('status', ['open', 'assigned', 'replacement',  'blocked','cancelled'])->default('open'); // 訂單狀態 open可派、ass已指派、repl已候補、block黑名單、can取消
 

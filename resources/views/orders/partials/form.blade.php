@@ -136,7 +136,7 @@
                 </button>
             </div>
             </div>
-            <div class="row mb-2 mt-1">
+            <div class="row mb-3 mt-1">
                 <div class="col-md-12">
                     <label>下車地址  (要有XX市XX區)</label>
                     <input type="text" name="dropoff_address" class="form-control">
@@ -226,7 +226,7 @@
 
 
 
-        @push('scripts')
+ @push('scripts')
 
 
 
