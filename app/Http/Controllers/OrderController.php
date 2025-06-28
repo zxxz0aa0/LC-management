@@ -38,7 +38,7 @@ class OrderController extends Controller
             $orders = Order::orderBy('ride_date', 'desc')->get();
         }
 
-        
+
 
         return view('orders.index', compact('customers', 'orders'));
     }
@@ -52,15 +52,15 @@ class OrderController extends Controller
         if ($request->filled('customer_id')) {
             $customer = Customer::find($request->input('customer_id'));
         }
-        
+
         $user = auth()->user(); // 🔹目前登入的使用者
 
-        
-        
+
+
 
         return view('orders.create', compact('customer','user'),);
 
-        
+
     }
 
 
@@ -70,18 +70,38 @@ class OrderController extends Controller
 
     public function store(Request $request)
     {
-        
+
         $pickupAddress = $request->input('pickup_address');
         $dropoffAddress = $request->input('dropoff_address');
 
         // ✅ 驗證 pickup 地址格式
         if (!preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $pickupAddress, $pickupMatches)) {
-            return back()->withErrors(['pickup_address' => '上車地址必須包含「市/縣」與「區/鄉/鎮」'])->withInput();
+            $errors = ['pickup_address' => '上車地址必須包含「市/縣」與「區/鄉/鎮」'];
+            if ($request->ajax()) {
+                session()->flashInput($request->all());
+                return response()->json([
+                    'html' => view('orders.partials.form', [
+                        'customer' => Customer::find($request->input('customer_id')),
+                        'user' => auth()->user(),
+                    ])->withErrors($errors)->render()
+                ], 422);
+            }
+            return back()->withErrors($errors)->withInput();
         }
 
         // ✅ 驗證 dropoff 地址格式
         if (!preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $dropoffAddress, $dropoffMatches)) {
-            return back()->withErrors(['dropoff_address' => '下車地址必須包含「市/縣」與「區/鄉/鎮」'])->withInput();
+            $errors = ['dropoff_address' => '下車地址必須包含「市/縣」與「區/鄉/鎮」'];
+            if ($request->ajax()) {
+                session()->flashInput($request->all());
+                return response()->json([
+                    'html' => view('orders.partials.form', [
+                        'customer' => Customer::find($request->input('customer_id')),
+                        'user' => auth()->user(),
+                    ])->withErrors($errors)->render()
+                ], 422);
+            }
+            return back()->withErrors($errors)->withInput();
         }
 
         // 拆出 pickup 地點
@@ -151,7 +171,7 @@ class OrderController extends Controller
             'carpool_with'       => $request->input('carpool_with'),//25. 共乘對象
             'special_order'      => $request->input('special_order'),//26. 特別訂單
             'status'             => $request->input('status'),//27. 訂單狀態
-            
+
             //資料表要新增：特別項目、共乘ID、少共乘對象、共乘身分證字號、共乘電話、共乘地址、共乘狀態、特別訂單種類
             // ... 其他欄位請自行加入
         ]);

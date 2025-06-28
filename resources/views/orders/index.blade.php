@@ -21,7 +21,7 @@
 
         {{-- 🔍 若有搜尋，顯示客戶資料表 --}}
         @if(request()->filled('keyword'))
-            
+
             @if($customers->isEmpty())
                 <div class="alert alert-warning">查無符合的客戶資料</div>
             @else
@@ -75,7 +75,7 @@
                                     </div>
                                 </div>
                             </td>
-                        </tr>                            
+                        </tr>
                         @endforeach
                     </tbody>
                 </table>
@@ -116,12 +116,12 @@
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
 
-    
+
     {{-- 建立新訂單按鈕 --}}
     <!--<div class="mb-3 text-end">
         <a href="{{ route('orders.create') }}" class="btn btn-primary">＋ 新增訂單</a>
     </div>-->
-    
+
     {{-- 訂單資料表格 --}}
     <div id="orders-list" class="table-responsive p-3">
         <table id="order-table" class="table table-bordered table-hover align-middle" style="width:100%">
@@ -163,7 +163,7 @@
             </tbody>
         </table>
     </div>
-    
+
 </div>
 
 </div>
@@ -194,18 +194,15 @@ function initOrderTable() {
     });
 }
 
-const orderForm = document.getElementById('orderForm');
-if (orderForm) {
+function attachFormSubmit() {
+    const orderForm = document.getElementById('orderForm');
+    if (!orderForm) return;
+
     orderForm.addEventListener('submit', function (e) {
         e.preventDefault();
 
         const form = this;
         const formData = new FormData(form);
-
-        // 送出前先銷毀 DataTable
-        if ($.fn.DataTable.isDataTable('#order-table')) {
-            $('#order-table').DataTable().destroy();
-        }
 
         fetch(form.action, {
             method: 'POST',
@@ -214,20 +211,32 @@ if (orderForm) {
                 'X-Requested-With': 'XMLHttpRequest'
             },
             body: formData
-        }).then(response => response.text())
-        .then(html => {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = html;
-            const newTable = tempDiv.querySelector('#order-table');
-            const oldTable = document.getElementById('order-table');
-            if (newTable && oldTable) {
-                oldTable.parentNode.replaceChild(newTable, oldTable);
+        }).then(response => {
+            if (response.status === 422) {
+                return response.json().then(data => ({ status: 422, data: data.html }));
             }
-            initOrderTable();
-            form.reset();
-            const modalInstance = bootstrap.Modal.getInstance(document.getElementById('createOrderModal'));
-            if (modalInstance) {
-                modalInstance.hide();
+            return response.text().then(html => ({ status: response.status, data: html }));
+        }).then(res => {
+            if (res.status === 422) {
+                document.querySelector('#createOrderModal .modal-body').innerHTML = res.data;
+                attachFormSubmit();
+            } else {
+                if ($.fn.DataTable.isDataTable('#order-table')) {
+                    $('#order-table').DataTable().destroy();
+                }
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = res.data;
+                const newTable = tempDiv.querySelector('#order-table');
+                const oldTable = document.getElementById('order-table');
+                if (newTable && oldTable) {
+                    oldTable.parentNode.replaceChild(newTable, oldTable);
+                }
+                initOrderTable();
+                form.reset();
+                const modalInstance = bootstrap.Modal.getInstance(document.getElementById('createOrderModal'));
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
             }
         }).catch(error => {
             console.error(error);
@@ -238,12 +247,11 @@ if (orderForm) {
 
 $(document).ready(function () {
     initOrderTable();
+    attachFormSubmit();
 });
 </script>
 <script>
-    $(document).ready(function () {
-    initOrderTable();
-    });
+
 
     // 全選 / 取消全選
     $('#select-all').click(function () {

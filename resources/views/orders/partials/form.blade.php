@@ -1,4 +1,4 @@
-    
+
     <form id="orderForm" method="POST" action="{{ route('orders.store') }}">
         @csrf
 
@@ -12,7 +12,7 @@
         </div>
         <!--個案資料表ID-->
         <input type="hidden" name="customer_id" value="{{ old('customer_id', $customer->id ?? '') }}">
-        
+
         <div class="card container-fluid" style="border:1px solid DodgerBlue;">
             {{-- 客戶資訊 --}}
             <!--<h5 class="mt-3 text-center">客戶資訊</h5>
@@ -63,7 +63,7 @@
                     <div class="input-group">
                         <input type="text" name="carpool_phone_number" id="carpool_phone_number" class="form-control" placeholder="" readonly onfocus="this.blur();">
                     </div>
-                </div>   
+                </div>
                 <div class="col-md-5 mt-3">
                     <label>共乘乘客地址</label>
                     <div class="input-group">
@@ -73,10 +73,10 @@
                     <input type="hidden" name="carpool_with" id="carpool_with">
                     <div class="mt-1" id="carpoolResults"></div>
             </div>
-            
+
     </div>
 
-    
+
 
         <div class="card container-fluid" style="border:1px solid Tomato;">
         {{-- 用車資訊 --}}
@@ -98,7 +98,7 @@
                     <label>陪同人數</label>
                     <input type="number" name="companions" class="form-control" min="0">
                 </div>
-            
+
                 <div class="col-md-2">
                     <label>是否需要輪椅</label>
                     <select name="wheelchair" class="form-select">
@@ -122,6 +122,9 @@
                     <label>上車地址 (要有XX市XX區)</label>
                     <input type="text" name="pickup_address" class="form-control"
                         value="{{ old('pickup_address', $customer->addresses[0] ?? '') }}">
+                        @error('pickup_address')
+                        <div class="text-danger">{{ $message }}</div>
+                    @enderror
                 </div>
             </div>
 
@@ -139,7 +142,10 @@
             <div class="row mb-3 mt-1">
                 <div class="col-md-12">
                     <label>下車地址  (要有XX市XX區)</label>
-                    <input type="text" name="dropoff_address" class="form-control">
+                    <input type="text" name="dropoff_address" class="form-control" value="{{ old('dropoff_address') }}">
+                    @error('dropoff_address')
+                        <div class="text-danger">{{ $message }}</div>
+                    @enderror
                 </div>
             </div>
 
@@ -196,7 +202,7 @@
             <input type="hidden" name="driver_id" id="driver_id">
         </div>
 
-       
+
 
                 {{-- 基本資料 --}}
         <div class="row mb-3">
@@ -210,10 +216,10 @@
                     <option value="cancelled">已取消</option>
                 </select>
             </div>
-        
+
             <div class="col-md-4 mt-3">
                 <label>建單人員</label>
-                <input type="text" name="created_by" class="form-control" 
+                <input type="text" name="created_by" class="form-control"
                     value="{{ $user->name }}" readonly>
             </div>
         </div>
@@ -270,7 +276,7 @@ document.getElementById('searchCarpoolBtn').addEventListener('click', function (
                             <strong>${c.name}</strong> / ${(Array.isArray(c.phone_number) ? c.phone_number[0] : c.phone_number)} / ${c.id_number} / ${c.addresses}
                         </div>
                     </div>
-                    
+
                 `;
 
                 item.querySelector('button').addEventListener('click', () => {
