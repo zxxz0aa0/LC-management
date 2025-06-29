@@ -151,6 +151,7 @@ class OrderController extends Controller
             'customer_id_number' => $request->input('customer_id_number'),//5. 個案身分證字號
             'customer_phone'     => $request->input('customer_phone'),//6. 個案電話
             'driver_name'        => $request->input('driver_name',null),//7. 駕駛姓名（可選填）
+            'driver_fleet_number' => $request->input('fleet_number_input',null),//7.1 駕駛姓名（可選填）
             'driver_plate_number'=> $request->input('driver_plate_number',null),//8. 車牌號碼（可選填）
             'order_type'         => $request->input('order_type'),// 9.訂單類型
             'service_company'    => $request->input('service_company'),//10. 服務單位
@@ -174,8 +175,6 @@ class OrderController extends Controller
             'special_status'     => $request->input('special_status', null),//28. 特別狀態（可選填）
             'carpool_customer_id' => $request->input('carpool_customer_id', null), //29. 共乘客戶ID（可選填）
 
-
-            //資料表要新增：特別項目、共乘ID、少共乘對象、共乘身分證字號、共乘電話、共乘地址、共乘狀態、特別訂單種類
             // ... 其他欄位請自行加入
         ]);
 

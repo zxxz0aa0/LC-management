@@ -127,30 +127,68 @@
         <table id="order-table" class="table table-bordered table-hover align-middle" style="width:100%">
             <thead class="table-success">
                 <tr>
-                    <th style="width:10%">編號</th>
-                    <th style="width:6%">客戶姓名</th>
-                    <th style="width:6%">用車日期</th>
-                    <th style="width:6%">用車時間</th>
-                    <th style="width:20%">上車地址</th>
-                    <th style="width:20%">下車地址</th>
-                    <th style="width:6%">特殊單</th>
-                    <th style="width:6%">訂單狀態</th>
-                    <th style="width:6%">建單人員</th>
-                    <th>操作</th>
+                    <th class="align-middle text-center" style="width:5%">客戶姓名</th>
+                    <th class="align-middle text-center" style="width:5%">用車日期</th>
+                    <th class="align-middle text-center" style="width:5%">用車時間</th>
+                    <th class="align-middle text-center" style="width:20%">上車地址</th>
+                    <th class="align-middle text-center" style="width:20%">下車地址</th>
+                    <th class="align-middle text-center" style="width:6%">爬梯機</th>
+                    <th class="align-middle text-center" style="width:5%">特殊單</th>
+                    <th class="align-middle text-center" style="width:5%">車隊編號</th>
+                    <th class="align-middle text-center" style="width:5%">訂單狀態</th>
+                    <th class="align-middle text-center" style="width:12%">操作</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($orders as $order)
                 <tr>
-                    <td>{{ $order->order_number }}</td>
                     <td>{{ $order->customer_name }}</td>
                     <td>{{ $order->ride_date ? \Carbon\Carbon::parse($order->ride_date)->format('m/d') : 'N/A' }}</td>
                     <td>{{ $order->ride_time ? \Carbon\Carbon::parse($order->ride_time)->format('H:i') : 'N/A' }}</td>
                     <td>{{ $order->pickup_address }}</td>
                     <td>{{ $order->dropoff_address }}</td>
-                    <td>{{ $order->special_status }}</td>
-                    <td>{{ $order->status }}</td>
-                    <td>{{ $order->created_by }}</td>
+                    <td>
+                        @if($order->stair_machine == 1)
+                            爬梯單
+                        @endif
+                    </td>
+                    <td>
+                        @switch($order->special_status)
+                        @case('一般')
+                            <span class="badge bg-success">一般</span>
+                            @break
+                        @case('VIP')
+                            <span class="badge bg-pink">VIP</span>
+                            @break
+                        @case('個管單')
+                            <span class="badge bg-pink">個管單</span>
+                            @break
+                        @default
+                            <span class="badge bg-light text-dark" >未知狀態</span>
+                    @endswitch
+                    </td>
+                    <td>{{ $order->driver_fleet_number }}</td>
+                    <td>
+                        @switch($order->status)
+                            @case('open')
+                                <span class="badge bg-success">可派遣</span>
+                                @break
+                            @case('assigned')
+                                <span class="badge bg-primary">已指派</span>
+                                @break
+                            @case('replacement')
+                                <span class="badge bg-warning">已後補</span>
+                                @break
+                            @case('blocked')
+                                <span class="badge bg-danger">黑名單</span>
+                                @break
+                            @case('cancelled')
+                                <span class="badge bg-danger">已取消</span>
+                                @break
+                            @default
+                                <span class="badge bg-light text-dark">未知狀態</span>
+                        @endswitch
+                    </td>
                     <td>
                         <a href="{{ route('orders.show', $order->id) }}" class="btn btn-sm btn-info">檢視</a>
                         <a href="{{ route('orders.edit', $order->id) }}" class="btn btn-sm btn-warning">編輯</a>
@@ -194,15 +232,19 @@ function initOrderTable() {
     });
 }
 
+let formSubmitAttached = false;
 function attachFormSubmit() {
-    const orderForm = document.getElementById('orderForm');
-    if (!orderForm) return;
+    if (formSubmitAttached) return; // 確保只綁定一次
+    document.addEventListener('submit', handleOrderFormSubmit);
+    formSubmitAttached = true;
+}
 
-    orderForm.addEventListener('submit', function (e) {
-        e.preventDefault();
+function handleOrderFormSubmit(e) {
+    const form = e.target;
+    if (!form.classList.contains('orderForm')) return;
+    e.preventDefault();
 
-        const form = this;
-        const formData = new FormData(form);
+    const formData = new FormData(form);
 
         fetch(form.action, {
             method: 'POST',
@@ -242,7 +284,7 @@ function attachFormSubmit() {
             console.error(error);
             alert('發生錯誤，請稍後再試');
         });
-    });
+
 }
 
 $(document).ready(function () {

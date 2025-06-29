@@ -1,5 +1,5 @@
+<form id="orderForm{{ $customer->id ?? '' }}" class="orderForm" method="POST" action="{{ route('orders.store') }}">
 
-    <form id="orderForm" method="POST" action="{{ route('orders.store') }}">
         @csrf
 
         <div class="row mb-7">
@@ -99,7 +99,7 @@
                 </div>
                 <div class="col-md-2">
                     <label>陪同人數</label>
-                    <input type="number" name="companions" class="form-control" min="0" value="{{ old('companions') }}">
+                    <input type="number" name="companions" class="form-control" min="0" value="{{ old('companions', 0) }}">
                 </div>
 
                 <div class="col-md-2">
@@ -157,7 +157,7 @@
                 {{-- 額外資訊 --}}
                 <div class="col-md-6 mb-3">
                     <!--這邊的special_order指的是黑名單狀態-->
-                    <label>是否為特別訂單</label>
+                    <label>黑名單個案</label>
                     <select name="special_order" class="form-select">
                         <option value="0" >否</option>
                         <option value="1" {{ old('order_type', $customer->special_status ?? '') == '黑名單' ? 'selected' : '' }}>是</option>
@@ -189,8 +189,9 @@
             <div class="col-md-4">
                 <label>駕駛隊編</label>
                 <div class="input-group">
-                    <input type="text" id="fleet_number_input" class="form-control" placeholder="輸入隊編" value="{{ old('fleet_number_input') }}">
+                    <input type="text" name ="fleet_number_input" id="fleet_number_input" class="form-control" placeholder="輸入隊編" value="{{ old('fleet_number_input') }}">
                     <button type="button" class="btn btn-success" id="searchDriverBtn">查詢</button>
+                    <button type="button" class="btn btn-outline-danger" id="clearDriverBtn">清除</button>
                 </div>
             </div>
             <div class="col-md-4">
@@ -350,7 +351,47 @@ document.getElementById('searchDriverBtn').addEventListener('click', function ()
             alert('查詢失敗，請稍後再試');
         });
 });
+
+    // 新增清除按鈕功能
+    document.getElementById('clearDriverBtn').addEventListener('click', function () {
+        // 清空所有相關欄位
+        document.getElementById('fleet_number_input').value = '';
+        document.getElementById('driver_id').value = '';
+        document.getElementById('driver_name').value = '';
+        document.getElementById('driver_plate_number').value = '';
+
+        // 將狀態回覆為可派遣
+        const statusSelect = document.querySelector('select[name="status"]');
+        if (statusSelect) {
+            statusSelect.value = 'open';
+            statusSelect.removeAttribute('readonly');
+        }
+    });
 </script>
 
+<script>
+    // 監聽 fleet_number_input 的變化
+    document.getElementById('fleet_number_input').addEventListener('input', function() {
+        const statusSelect = document.querySelector('select[name="status"]');
 
+        // 如果 fleet_number_input 有值，將 status 設為 assigned
+        if (this.value.trim() !== '') {
+            statusSelect.value = 'assigned';
+            statusSelect.setAttribute('readonly', true); // 可選：防止手動更改
+        } else {
+            statusSelect.value = 'open'; // 如果沒有值，設回預設值
+            statusSelect.removeAttribute('readonly');
+        }
+    });
+
+    // 表單提交前再次確認
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const fleetNumber = document.getElementById('fleet_number_input').value;
+        const statusSelect = document.querySelector('select[name="status"]');
+
+        if (fleetNumber.trim() !== '') {
+            statusSelect.value = 'assigned';
+        }
+    });
+    </script>
 @endpush

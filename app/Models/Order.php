@@ -12,7 +12,7 @@ class Order extends Model
 
         // 快照欄位
         'customer_name', 'customer_id_number', 'customer_phone',
-        'driver_name', 'driver_plate_number',
+        'driver_name', 'driver_plate_number','driver_fleet_number',
 
         // 其他欄位
         'order_type', 'service_company',

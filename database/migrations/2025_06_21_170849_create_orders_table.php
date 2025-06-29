@@ -28,7 +28,8 @@ class CreateOrdersTable extends Migration
 
             $table->string('driver_name')->nullable();
             $table->string('driver_plate_number')->nullable();
-            
+            $table->string('driver_fleet_number')->nullable();
+
 
 
             $table->string('order_type')->nullable();  // 訂單類型（新北長照、台北長照...）
