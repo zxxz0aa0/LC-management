@@ -188,7 +188,7 @@ class CustomerController extends Controller
             $query->where('name', 'like', "%{$keyword}%")
                 ->orWhere('id_number', 'like', "%{$keyword}%")
                 ->orWhereJsonContains('phone_number', $keyword);
-        })->get(['name', 'id_number', 'phone_number', 'addresses']);
+        })->get(['name', 'id_number', 'phone_number', 'addresses','id']);
 
         // 將 phone_number 改為只取第一個號碼
         $customers = $customers->map(function ($customer) {

@@ -68,7 +68,10 @@
                     <label>共乘乘客地址</label>
                     <div class="input-group">
                         <input type="text" name="carpool_addresses" id="carpool_addresses" class="form-control" placeholder="" readonly onfocus="this.blur();" value="{{ old('carpool_addresses') }}">
+                        <!-- 隱藏用於存儲客戶ID -->
+                        <input type="hidden" name="carpool_customer_id" id="carpool_customer_id" class="form-control" placeholder="" readonly onfocus="this.blur();" value="{{ old('carpool_customer_id') }}">
                     </div>
+
                 </div>
                     <input type="hidden" name="carpool_with" id="carpool_with" value="{{ old('carpool_with') }}">
                     <div class="mt-1" id="carpoolResults"></div>
@@ -220,7 +223,7 @@
             <div class="col-md-4 mt-3">
                 <label>建單人員</label>
                 <input type="text" name="created_by" class="form-control"
-                    value="{{ $user->name }}" readonly>
+                    value="{{ $user?->name }}" readonly>
             </div>
         </div>
 
@@ -285,6 +288,7 @@ document.getElementById('searchCarpoolBtn').addEventListener('click', function (
                     document.getElementById('carpool_id_number').value = c.id_number;
                     document.getElementById('carpool_phone_number').value = Array.isArray(c.phone_number) ? c.phone_number[0] : c.phone_number;
                     document.getElementById('carpool_addresses').value = c.addresses[0];
+                    document.getElementById('carpool_customer_id').value = c.id;
                     resultsDiv.innerHTML = ''; // 選擇後清空清單
                 });
 
@@ -306,6 +310,7 @@ document.getElementById('clearCarpoolBtn').addEventListener('click', function ()
     document.getElementById('carpool_id_number').value = '';
     document.getElementById('carpool_phone_number').value = '';
     document.getElementById('carpool_addresses').value = '';
+    document.getElementById('carpool_customer_id').value = '';
     document.getElementById('carpoolResults').innerHTML = '';
 });
 </script>

@@ -171,6 +171,9 @@ class OrderController extends Controller
             'carpool_with'       => $request->input('carpool_with'),//25. 共乘對象
             'special_order'      => $request->input('special_order'),//26. 特別訂單
             'status'             => $request->input('status'),//27. 訂單狀態
+            'special_status'     => $request->input('special_status', null),//28. 特別狀態（可選填）
+            'carpool_customer_id' => $request->input('carpool_customer_id', null), //29. 共乘客戶ID（可選填）
+
 
             //資料表要新增：特別項目、共乘ID、少共乘對象、共乘身分證字號、共乘電話、共乘地址、共乘狀態、特別訂單種類
             // ... 其他欄位請自行加入
