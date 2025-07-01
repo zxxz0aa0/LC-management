@@ -109,7 +109,52 @@
 
 
 <div class="card">
-    <h3 class="mt-2 ml-2">訂單列表</h3>
+    <div class="row mt-3">
+        <div class="col-md-4">
+            <h3 class="mt-2 ml-2">訂單列表</h3>
+        </div>
+        <div class="col-md-8">
+            {{-- 訂單日期區間篩選 --}}
+            <form method="GET" action="{{ route('orders.index') }}" class="row g-2 mb-0 align-items-end">
+                {{-- 開始日期 --}}
+                <div class="col-auto">
+                    <label for="start_date" class="form-label mb-0">開始日期</label>
+                    <input
+                        type="date"
+                        id="start_date"
+                        name="start_date"
+                        value="{{ request('start_date') ?? \Carbon\Carbon::today()->toDateString() }}"
+                        class="form-control">
+                </div>
+
+                {{-- 結束日期 --}}
+                <div class="col-auto">
+                    <label for="end_date" class="form-label mb-0">結束日期</label>
+                    <input
+                        type="date"
+                        id="end_date"
+                        name="end_date"
+                        value="{{ request('end_date') ?? \Carbon\Carbon::today()->toDateString() }}"
+                        class="form-control">
+                </div>
+
+                {{-- 若有客戶關鍵字也要保留 --}}
+                @if(request('keyword'))
+                    <input type="hidden" name="keyword" value="{{ request('keyword') }}">
+                @endif
+
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary">日期區間</button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <hr style="background-color: black; height: 2px; border: none;" class="mb-0">
+
+    {{-- 顯示訂單日期區間 --}}
+
 
     {{-- 顯示成功訊息 --}}
     @if(session('success'))

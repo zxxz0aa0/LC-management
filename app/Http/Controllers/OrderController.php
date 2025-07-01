@@ -10,37 +10,38 @@ use Carbon\Carbon;
 
 class OrderController extends Controller
 {
-    // 顯示所有訂單列表（預留）
     public function index(Request $request)
     {
-        $keyword = $request->input('keyword');
+        $query = Order::query();
 
-        $customers = collect();
-        $orders = collect();
-
-        // 🔍 如果有輸入搜尋關鍵字
-        if ($keyword) {
-            // 搜尋符合的客戶
-            $customers = Customer::where('name', 'like', "%{$keyword}%")
-                ->orWhereJsonContains('phone_number', $keyword)
-                ->orWhere('id_number', 'like', "%{$keyword}%")
-                ->get();
-
-            // 取得這些客戶的 ID 清單
-            $customerIds = $customers->pluck('id');
-
-            // 撈出這些客戶的訂單
-            $orders = Order::whereIn('customer_id', $customerIds)
-                ->orderBy('ride_date', 'desc')
-                ->get();
+        // 篩選日期（日期區間搜尋）
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('ride_date', [
+                $request->start_date,
+                $request->end_date
+            ]);
+        } elseif ($request->filled('start_date')) {
+            $query->whereDate('ride_date', $request->start_date);
+        } elseif ($request->filled('end_date')) {
+            $query->whereDate('ride_date', $request->end_date);
         } else {
-            // 沒有搜尋，就顯示所有訂單
-            $orders = Order::orderBy('ride_date', 'desc')->get();
+            // 預設顯示今天
+            $query->whereDate('ride_date', Carbon::today());
         }
 
+        // 排序 & 分頁
+        $orders = $query->latest()->paginate(50);
 
+        // 如果你有客戶搜尋邏輯，要一起撈
+        $customers = collect();
+        if ($request->filled('keyword')) {
+            $customers = Customer::where('name', 'like', '%'.$request->keyword.'%')
+                ->orWhere('id_number', 'like', '%'.$request->keyword.'%')
+                ->orWhere('phone_number', 'like', '%'.$request->keyword.'%')
+                ->get();
+        }
 
-        return view('orders.index', compact('customers', 'orders'));
+        return view('orders.index', compact('orders', 'customers'));
     }
 
 
