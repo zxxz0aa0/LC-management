@@ -1,4 +1,8 @@
 <form id="orderForm{{ $customer->id ?? '' }}" class="orderForm" method="POST" action="{{ isset($order) ? route('orders.update', $order->id) : route('orders.store') }}">
+    @csrf
+    @if(isset($order))
+        @method('PUT')
+    @endif
 
         @csrf
 
@@ -95,7 +99,7 @@
                     <input type="text" name="ride_time" class="form-control"
                         pattern="^([01]\d|2[0-3]):[0-5]\d$"
                         placeholder="例如：13:45"
-                        value="{{ old('ride_time', $order->ride_time ?? '') }}">
+                        value="{{ old('ride_time', isset($order) ? substr($order->ride_time, 0, 5) : '') }}">
                 </div>
                 <div class="col-md-2">
                     <label>陪同人數</label>
@@ -124,7 +128,7 @@
                 <div class="col-md-12 mt-3">
                     <label>上車地址 (要有XX市XX區)</label>
                     <input type="text" name="pickup_address" class="form-control"
-                        value="{{ old('pickup_address', $customer->addresses[0] ?? '') }}">
+                    value="{{ old('pickup_address', $order->pickup_address ?? ($customer->addresses[0] ?? '')) }}">
                         @error('pickup_address')
                         <div class="text-danger">{{ $message }}</div>
                     @enderror
@@ -145,7 +149,7 @@
             <div class="row mb-3 mt-1">
                 <div class="col-md-12">
                     <label>下車地址  (要有XX市XX區)</label>
-                    <input type="text" name="dropoff_address" class="form-control" value="{{ old('dropoff_address') }}">
+                    <input type="text" name="dropoff_address" class="form-control" value="{{ old('dropoff_address', $order->dropoff_address ?? '') }}">
                     @error('dropoff_address')
                         <div class="text-danger">{{ $message }}</div>
                     @enderror
@@ -385,7 +389,7 @@ document.getElementById('searchDriverBtn').addEventListener('click', function ()
     });
 
     // 表單提交前再次確認
-    document.querySelector('form').addEventListener('submit', function(e) {
+    document.querySelector('.orderForm').addEventListener('submit', function(e) {
         const fleetNumber = document.getElementById('fleet_number_input').value;
         const statusSelect = document.querySelector('select[name="status"]');
 
@@ -396,7 +400,7 @@ document.getElementById('searchDriverBtn').addEventListener('click', function ()
     </script>
 
 <script>
-    $(document).on('submit', '#orderForm', function(e) {
+    $(document).on('submit', '.orderForm', function(e) {
         e.preventDefault();
         let form = $(this);
         let url = form.attr('action');
@@ -410,7 +414,7 @@ document.getElementById('searchDriverBtn').addEventListener('click', function ()
             success: function(response) {
                 // 成功後更新訂單列表
                 $('#editOrderModal').modal('hide');
-                $('#orderList').html(response);
+                $('#order-list').html(response);
             },
             error: function(xhr) {
                 if (xhr.status === 422) {

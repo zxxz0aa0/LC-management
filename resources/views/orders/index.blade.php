@@ -57,23 +57,9 @@
                                     建立訂單
                                 </a>-->
                                 <!-- 觸發按鈕 -->
-                                <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#createOrderModal">
+                                <button class="btn btn-sm btn-success create-order-btn" data-customer-id="{{ $customer->id }}">
                                     建立訂單
                                 </button>
-                                <!-- Modal 本體 -->
-                                <div class="modal fade" id="createOrderModal" tabindex="-1" aria-labelledby="createOrderLabel" aria-hidden="true">
-                                    <div class="modal-dialog modal-xl"> {{-- 使用 modal-fullscreen --}}
-                                        <div class="modal-content">
-                                            <div class="modal-header ">
-                                                <h5 class="modal-title" id="createOrderLabel">新增訂單</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                @include('orders.partials.form', ['user' => auth()->user()]){{-- 把 create 表單抽出來成共用 --}}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
                             </td>
                         </tr>
                         @endforeach
@@ -361,7 +347,23 @@ $(document).ready(function () {
     });
     </script>
 
+<!-- 建立訂單 -->
+<script>
+    $(document).on('click', '.create-order-btn', function() {
+        const customerId = $(this).data('customer-id');
+        const url = '{{ route('orders.create') }}';
+        $('#createOrderModal .modal-body').html('<div class="text-center py-3">載入中...</div>');
+        $('#createOrderModal').modal('show');
+
+        $.get(url, { customer_id: customerId }, function(data) {
+            $('#createOrderModal .modal-body').html(data);
+            attachFormSubmit();
+        });
+    });
+    </script>
+
 <!--修改訂單-->
+
 <script>
     $(document).on('click', '.edit-order-btn', function() {
         const orderId = $(this).data('id');
@@ -412,3 +414,17 @@ $(document).ready(function () {
       </div>
     </div>
   </div>
+  <!-- 建立訂單 Modal -->
+<div class="modal fade" id="createOrderModal" tabindex="-1" aria-labelledby="createOrderLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createOrderLabel">新增訂單</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center py-3">載入中...</div>
+            </div>
+        </div>
+    </div>
+</div>

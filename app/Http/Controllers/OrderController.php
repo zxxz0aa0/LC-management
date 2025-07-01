@@ -56,8 +56,9 @@ class OrderController extends Controller
 
         $user = auth()->user(); // 🔹目前登入的使用者
 
-
-
+        if ($request->ajax()) {
+            return view('orders.partials.form', compact('customer', 'user'));
+        }
 
         return view('orders.create', compact('customer','user'),);
 
