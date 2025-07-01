@@ -1,4 +1,4 @@
-<form id="orderForm{{ $customer->id ?? '' }}" class="orderForm" method="POST" action="{{ route('orders.store') }}">
+<form id="orderForm{{ $customer->id ?? '' }}" class="orderForm" method="POST" action="{{ isset($order) ? route('orders.update', $order->id) : route('orders.store') }}">
 
         @csrf
 
@@ -392,6 +392,32 @@ document.getElementById('searchDriverBtn').addEventListener('click', function ()
         if (fleetNumber.trim() !== '') {
             statusSelect.value = 'assigned';
         }
+    });
+    </script>
+
+<script>
+    $(document).on('submit', '#orderForm', function(e) {
+        e.preventDefault();
+        let form = $(this);
+        let url = form.attr('action');
+        let method = form.find('input[name="_method"]').val() || 'POST';
+        let data = form.serialize();
+
+        $.ajax({
+            url: url,
+            method: method,
+            data: data,
+            success: function(response) {
+                // 成功後更新訂單列表
+                $('#editOrderModal').modal('hide');
+                $('#orderList').html(response);
+            },
+            error: function(xhr) {
+                if (xhr.status === 422) {
+                    $('#editOrderContent').html(xhr.responseJSON.html);
+                }
+            }
+        });
     });
     </script>
 @endpush

@@ -191,19 +191,42 @@ class OrderController extends Controller
     // 顯示單筆訂單資料（預留）
     public function show(Order $order)
     {
-        return view('orders.show', compact('order'));
+        $driver = null;
+        if ($order->driver_id) {
+            $driver = \App\Models\Driver::find($order->driver_id);
+        }
+        return view('orders.partials.show', compact('order', 'driver'));
     }
 
     // 顯示編輯表單（預留）
     public function edit(Order $order)
     {
+        // 如果是AJAX
+        if (request()->ajax()) {
+            return view('orders.partials.form', [
+                'order' => $order,
+                'customer' => $order->customer,
+                'user' => auth()->user()
+            ]);
+        }
+
+        // 如果直接進頁面
         return view('orders.edit', compact('order'));
     }
-
     // 更新訂單資料（預留）
     public function update(Request $request, Order $order)
     {
-        // 等等再補功能
+
+    // 驗證與邏輯（可依你store()做一樣的驗證）
+        $order->update($request->all());
+
+        if ($request->ajax()) {
+            $orders = Order::orderBy('ride_date', 'desc')->get();
+            return view('orders.partials.list', compact('orders'))->render();
+        }
+
+        return redirect()->route('orders.index')->with('success', '訂單更新成功');
+
     }
 
     // 刪除訂單（預留）

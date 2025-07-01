@@ -8,7 +8,7 @@
 
 <div class="card">
     <div class="container-fluid">
-        <h3 class="mt-2">個案查詢</h3>
+        <h3 class="mt-3">個案查詢</h3>
 
         {{-- 🔍 客戶搜尋欄 --}}
         <form method="GET" action="{{ route('orders.index') }}" class="mb-3" style="width:100%">
@@ -235,8 +235,8 @@
                         @endswitch
                     </td>
                     <td>
-                        <a href="{{ route('orders.show', $order->id) }}" class="btn btn-sm btn-info">檢視</a>
-                        <a href="{{ route('orders.edit', $order->id) }}" class="btn btn-sm btn-warning">編輯</a>
+                        <button type="button" class="btn btn-info btn-sm view-order-btn" data-order-id="{{ $order->id }}">檢視</button>
+                        <button type="button" class="btn btn-sm btn-primary edit-order-btn" data-id="{{ $order->id }}">編輯</button>
                         {{-- 刪除按鈕可以之後再補上 --}}
                     </td>
                 </tr>
@@ -345,4 +345,70 @@ $(document).ready(function () {
         $('input[name="ids[]"]').prop('checked', this.checked);
     });
 </script>
+
+<!-- 檢視訂單詳細資料 -->
+<script>
+    $(document).on('click', '.view-order-btn', function() {
+        var orderId = $(this).data('order-id');
+        var url = "{{ url('orders') }}/" + orderId;
+
+        $('#orderDetailContent').html('載入中...');
+        $('#orderDetailModal').modal('show');
+
+        $.get(url, function(data) {
+            $('#orderDetailContent').html(data);
+        });
+    });
+    </script>
+
+<!--修改訂單-->
+<script>
+    $(document).on('click', '.edit-order-btn', function() {
+        const orderId = $(this).data('id');
+        const url = '/orders/' + orderId + '/edit';
+
+        $('#editOrderContent').html('<div class="text-center py-3">載入中...</div>');
+        $('#editOrderModal').modal('show');
+
+        $.get(url, function(data) {
+            $('#editOrderContent').html(data);
+        });
+    });
+    </script>
 @endpush
+
+<!-- 訂單檢視Modal -->
+<div class="modal fade" id="orderDetailModal" tabindex="-1" aria-labelledby="orderDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="orderDetailModalLabel">訂單詳細資料</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+        </div>
+        <div class="modal-body">
+          <!-- AJAX會把資料放這 -->
+          <div id="orderDetailContent">載入中...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- 編輯訂單 Modal -->
+<div class="modal fade" id="editOrderModal" tabindex="-1" aria-labelledby="editOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editOrderModalLabel">編輯訂單</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+        </div>
+        <div class="modal-body">
+          {{-- AJAX載入表單 --}}
+          <div id="editOrderContent">
+            <div class="text-center py-3">
+              載入中...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
