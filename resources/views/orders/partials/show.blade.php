@@ -5,6 +5,7 @@
         <p><strong>是否輪椅：</strong>{{ $order->wheelchair == 1 ? '是' : '否' }}</p>
         <p><strong>陪同人數：</strong>{{ $order->companions }}</p>
         <p><strong>共乘對象：</strong>{{ $order->carpool_name }}</p>
+        <p><strong>共乘ID：</strong>{{ $order->carpool_id }}</p>
         <p><strong>備註：</strong>{{ $order->remark }}</p>
         <p><strong>建單人：</strong>{{ $order->created_by }}</p>
         <p><strong>建立時間：</strong>{{ $order->created_at }}</p>

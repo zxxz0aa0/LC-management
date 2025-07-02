@@ -21,9 +21,9 @@ class Order extends Model
         'pickup_lat', 'pickup_lng',
         'dropoff_county', 'dropoff_district', 'dropoff_address',
         'dropoff_lat', 'dropoff_lng',
-        'wheelchair', 'stair_machine', 'companions',
+        'wheelchair', 'stair_machine', 'companions','carpool_customer_id', 'carpool_name', 'carpool_id',
         'remark', 'created_by', 'identity', 'carpool_with',
-        'special_order', 'status','special_status','carpool_customer_id', 'carpool_name', 'carpool_id',
+        'special_order', 'status','special_status',
     ];
 
     // 關聯：每筆訂單屬於一位客戶
@@ -36,5 +36,35 @@ class Order extends Model
     public function driver()
     {
         return $this->belongsTo(Driver::class);
+    }
+
+    /**
+     * 根據請求參數篩選訂單。
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeFilter($query, $request)
+    {
+        // 關鍵字篩選
+        if ($request->filled('keyword')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('customer_name', 'like', '%' . $request->keyword . '%')
+                    ->orWhere('customer_id_number', 'like', '%' . $request->keyword . '%')
+                    ->orWhere('customer_phone', 'like', '%' . $request->keyword . '%');
+            });
+        }
+
+        // 日期區間篩選
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('ride_date', [$request->start_date, $request->end_date]);
+        } elseif ($request->filled('start_date')) {
+            $query->whereDate('ride_date', '>=', $request->start_date);
+        } elseif ($request->filled('end_date')) {
+            $query->whereDate('ride_date', '<=', $request->end_date);
+        }
+
+        return $query;
     }
 }

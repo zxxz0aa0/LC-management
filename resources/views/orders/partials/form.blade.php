@@ -4,18 +4,26 @@
         @method('PUT')
     @endif
 
-        @csrf
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <ul>
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
         <div class="row mb-7">
 
             <div class="h4 col-md-6 text-danger">
                 <label class="form-label">訂單類型：</label>
-                <span>{{ old('order_type', $customer->county_care ?? '') }}</span>
-                <input type="hidden" name="order_type" value="{{ old('order_type', $customer->county_care ?? '') }}">
+                <span>{{ old('order_type', $order->order_type ?? $customer->county_care ?? '') }}</span>
+                <input type="hidden" name="order_type" value="{{ old('order_type', $order->order_type ?? $customer->county_care ?? '') }}">
             </div>
         </div>
         <!--個案資料表ID-->
-        <input type="hidden" name="customer_id" value="{{ old('customer_id', $customer->id ?? '') }}">
+        <input type="hidden" name="customer_id" value="{{ old('customer_id', $order->customer_id ?? $customer->id ?? '') }}">
 
         <div class="card container-fluid" style="border:1px solid DodgerBlue;">
             {{-- 客戶資訊 --}}
@@ -25,32 +33,32 @@
                 <div class="col-md-1 mt-3">
                     <label>個案姓名</label>
                     <input type="text" name="customer_name" class="form-control"
-                        value="{{ old('customer_name', $customer->name ?? '') }}" readonly>
+                        value="{{ old('customer_name', $order->customer_name ?? $customer->name ?? '') }}" readonly>
                 </div>
                 <div class="col-md-3 mt-3">
                     <label>個案身分證字號</label>
                     <input type="text" name="customer_id_number" class="form-control"
-                        value="{{ old('customer_id_number', $customer->id_number ?? '') }}" readonly>
+                        value="{{ old('customer_id_number', $order->customer_id_number ?? $customer->id_number ?? '') }}" readonly>
                 </div>
                 <div class="col-md-3 mt-3">
                     <label>個案電話</label>
                     <input type="text" name="customer_phone" class="form-control"
-                        value="{{ old('customer_phone', $customer->phone_number[0] ?? '') }}">
+                        value="{{ old('customer_phone', $order->customer_phone ?? ($customer->phone_number[0] ?? '')) }}">
                 </div>
                 <div class="col-md-3 mt-3">
                     <label>個案身份別</label>
                     <input type="text" name="identity" class="form-control"
-                        value="{{ old('identity', $customer->identity ?? '') }}" readonly>
+                        value="{{ old('identity', $order->identity ?? $customer->identity ?? '') }}" readonly>
                 </div>
                 <div class="col-md-2 mt-3">
                 <label>交通公司</label>
                     <input type="text" name="service_company" class="form-control text-primary"
-                        value="{{ old('service_company', $customer->service_company ?? '') }}" readonly>
+                        value="{{ old('service_company', $order->service_company ?? $customer->service_company ?? '') }}" readonly>
                  </div>
                 <div class="col-md-3 mt-3">
                     <label>共乘對象</label>
                     <div class="input-group">
-                        <input type="text" name="carpoolSearchInput" id="carpoolSearchInput" class="form-control" placeholder="名字、ID、電話" value="{{ old('carpoolSearchInput') }}">
+                        <input type="text" name="carpoolSearchInput" id="carpoolSearchInput" class="form-control" placeholder="名字、ID、電話" value="{{ old('carpoolSearchInput', $order->carpool_name ?? '') }}">
                         <button type="button" class="btn btn-success" id="searchCarpoolBtn">查詢</button>
                         <button type="button" class="btn btn-outline-danger" id="clearCarpoolBtn">清除</button>
                     </div>
@@ -59,25 +67,25 @@
                 <div class="col-md-2 mt-3">
                     <label>共乘身分證字號</label>
                     <div class="input-group">
-                        <input type="text" name="carpool_id_number" id="carpool_id_number" class="form-control" placeholder="" readonly onfocus="this.blur();" value="{{ old('carpool_id_number') }}">
+                        <input type="text" name="carpool_id_number" id="carpool_id_number" class="form-control" placeholder="" readonly onfocus="this.blur();" value="{{ old('carpool_id_number', $order->carpool_id ?? '') }}">
                     </div>
                 </div>
                 <div class="col-md-2 mt-3">
                     <label>共乘電話</label>
                     <div class="input-group">
-                        <input type="text" name="carpool_phone_number" id="carpool_phone_number" class="form-control" placeholder="" readonly onfocus="this.blur();" value="{{ old('carpool_phone_number') }}">
+                        <input type="text" name="carpool_phone_number" id="carpool_phone_number" class="form-control" placeholder="" readonly onfocus="this.blur();" value="{{ old('carpool_phone_number', $order->carpool_phone ?? '') }}">
                     </div>
                 </div>
                 <div class="col-md-5 mt-3">
                     <label>共乘乘客地址</label>
                     <div class="input-group">
-                        <input type="text" name="carpool_addresses" id="carpool_addresses" class="form-control" placeholder="" readonly onfocus="this.blur();" value="{{ old('carpool_addresses') }}">
+                        <input type="text" name="carpool_addresses" id="carpool_addresses" class="form-control" placeholder="" readonly onfocus="this.blur();" value="{{ old('carpool_addresses', $order->carpool_addresses ?? '') }}">
                         <!-- 隱藏用於存儲客戶ID -->
-                        <input type="hidden" name="carpool_customer_id" id="carpool_customer_id" class="form-control" placeholder="" readonly onfocus="this.blur();" value="{{ old('carpool_customer_id') }}">
+                        <input type="hidden" name="carpool_customer_id" id="carpool_customer_id" class="form-control" placeholder="" readonly onfocus="this.blur();" value="{{ old('carpool_customer_id', $order->carpool_customer_id ?? '') }}">
                     </div>
 
                 </div>
-                    <input type="hidden" name="carpool_with" id="carpool_with" value="{{ old('carpool_with') }}">
+                    <input type="hidden" name="carpool_with" id="carpool_with" value="{{ old('carpool_with', $order->carpool_name ?? '') }}">
                     <div class="mt-1" id="carpoolResults"></div>
             </div>
 
@@ -103,21 +111,21 @@
                 </div>
                 <div class="col-md-2">
                     <label>陪同人數</label>
-                    <input type="number" name="companions" class="form-control" min="0" value="{{ old('companions', 0) }}">
+                    <input type="number" name="companions" class="form-control" min="0" value="{{ old('companions', $order->companions ?? 0) }}">
                 </div>
 
                 <div class="col-md-2">
                     <label>是否需要輪椅</label>
                     <select name="wheelchair" class="form-select">
-                        <option value="0" {{ old('wheelchair', $customer->wheelchair ?? false) ? '' : 'selected' }}>否</option>
-                        <option value="1" {{ old('wheelchair', $customer->wheelchair ?? false) ? 'selected' : '' }}>是</option>
+                        <option value="0" {{ old('wheelchair', $order->wheelchair ?? ($customer->wheelchair ?? 0)) == '否' ? 'selected' : '' }}>否</option>
+                        <option value="1" {{ old('wheelchair', $order->wheelchair ?? ($customer->wheelchair ?? 0)) == '是' ? 'selected' : '' }}>是</option>
                     </select>
                 </div>
                 <div class="col-md-2">
                     <label>是否需要爬梯機</label>
                     <select name="stair_machine" class="form-select">
-                        <option value="0" {{ old('wheelchair', $customer->stair_climbing_machine ?? false) ? '' : 'selected' }}>否</option>
-                        <option value="1" {{ old('wheelchair', $customer->stair_climbing_machine ?? false) ? 'selected' : '' }}>是</option>
+                        <option value="0" {{ old('stair_machine', $order->stair_machine ?? ($customer->stair_climbing_machine ?? 0)) == '否' ? 'selected' : '' }}>否</option>
+                        <option value="1" {{ old('stair_machine', $order->stair_machine ?? ($customer->stair_climbing_machine ?? 0)) == '是' ? 'selected' : '' }}>是</option>
                     </select>
                 </div>
 
@@ -163,22 +171,22 @@
                     <!--這邊的special_order指的是黑名單狀態-->
                     <label>黑名單個案</label>
                     <select name="special_order" class="form-select">
-                        <option value="0" >否</option>
-                        <option value="1" {{ old('order_type', $customer->special_status ?? '') == '黑名單' ? 'selected' : '' }}>是</option>
+                        <option value="0" {{ old('special_order', $order->special_order ?? 0) == 0 ? 'selected' : '' }}>否</option>
+                        <option value="1" {{ old('special_order', $order->special_order ?? 0) == 1 ? 'selected' : '' }}>是</option>
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label>特別狀態訂單 (說明:T9的粉紅色)</label>
                     <select name="special_status" class="form-select">
-                    <option value="一般" {{ old('order_type', $customer->special_status ?? '') == '一般' ? 'selected' : '' }}>一般</option>
-                    <option value="黑名單" {{ old('order_type', $customer->special_status ?? '') == '黑名單' ? 'selected' : '' }}>黑名單</option>
-                    <option value="個管單" {{ old('order_type', $customer->special_status ?? '') == '個管單' ? 'selected' : '' }}>個管單</option>
-                    <option value="VIP" {{ old('order_type', $customer->special_status ?? '') == 'VIP' ? 'selected' : '' }}>VIP</option>
+                    <option value="一般" {{ old('special_status', $order->special_status ?? '一般') == '一般' ? 'selected' : '' }}>一般</option>
+                    <option value="黑名單" {{ old('special_status', $order->special_status ?? '一般') == '黑名單' ? 'selected' : '' }}>黑名單</option>
+                    <option value="個管單" {{ old('special_status', $order->special_status ?? '一般') == '個管單' ? 'selected' : '' }}>個管單</option>
+                    <option value="VIP" {{ old('special_status', $order->special_status ?? '一般') == 'VIP' ? 'selected' : '' }}>VIP</option>
                 </select>
                 </div>
                 <div class="mb-3">
                     <label>訂單備註</label>
-                    <textarea name="remark" rows="3" class="form-control">{{ old('remark') }}</textarea>
+                    <textarea name="remark" rows="3" class="form-control">{{ old('remark', $order->remark ?? '') }}</textarea>
                 </div>
                 <div class="mb-1">
                     <label>乘客備註</label>
@@ -200,14 +208,14 @@
             </div>
             <div class="col-md-4">
                 <label>駕駛姓名</label>
-                <input type="text" name="driver_name" id="driver_name" class="form-control" readonly value="{{ old('driver_name') }}">
+                <input type="text" name="driver_name" id="driver_name" class="form-control" readonly value="{{ old('driver_name', $order->driver_name ?? '') }}">
             </div>
             <div class="col-md-4">
                 <label>車牌號碼</label>
-                <input type="text" name="driver_plate_number" id="driver_plate_number" class="form-control" readonly value="{{ old('driver_plate_number') }}">
+                <input type="text" name="driver_plate_number" id="driver_plate_number" class="form-control" readonly value="{{ old('driver_plate_number', $order->driver_plate_number ?? '') }}">
             </div>
             {{-- 隱藏 driver_id --}}
-            <input type="hidden" name="driver_id" id="driver_id" value="{{ old('driver_id') }}">
+            <input type="hidden" name="driver_id" id="driver_id" value="{{ old('driver_id', $order->driver_id ?? '') }}">
         </div>
 
 
@@ -217,18 +225,18 @@
             <div class="col-md-4 mt-3">
                 <label>訂單狀態</label>
                 <select name="status" class="form-select">
-                    <option value="open" {{ old('status') === 'open' ? 'selected' : '' }}>可派遣</option>
-                    <option value="assigned" {{ old('status') === 'assigned' ? 'selected' : '' }}>已指派</option>
-                    <option value="replacement" {{ old('status') === 'replacement' ? 'selected' : '' }}>候補派遣</option>
-                    <option value="blocked" {{ old('status') === 'blocked' ? 'selected' : '' }}>黑名單</option>
-                    <option value="cancelled" {{ old('status') === 'cancelled' ? 'selected' : '' }}>已取消</option>
+                    <option value="open" {{ old('status', $order->status ?? 'open') === 'open' ? 'selected' : '' }}>可派遣</option>
+                    <option value="assigned" {{ old('status', $order->status ?? 'open') === 'assigned' ? 'selected' : '' }}>已指派</option>
+                    <option value="replacement" {{ old('status', $order->status ?? 'open') === 'replacement' ? 'selected' : '' }}>候補派遣</option>
+                    <option value="blocked" {{ old('status', $order->status ?? 'open') === 'blocked' ? 'selected' : '' }}>黑名單</option>
+                    <option value="cancelled" {{ old('status', $order->status ?? 'open') === 'cancelled' ? 'selected' : '' }}>已取消</option>
                 </select>
             </div>
 
             <div class="col-md-4 mt-3">
                 <label>建單人員</label>
                 <input type="text" name="created_by" class="form-control"
-                    value="{{ $user?->name }}" readonly>
+                    value="{{ old('created_by', $order->created_by ?? ($user?->name ?? '')) }}" readonly>
             </div>
         </div>
 
@@ -240,4 +248,3 @@
 
 
 
- 
