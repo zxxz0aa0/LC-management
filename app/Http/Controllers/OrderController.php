@@ -144,7 +144,6 @@ class OrderController extends Controller
         $orderNumber = $typeCode . $idSuffix . $date . $time . $serial;
 
 
-        // ✅ 建立訂單（你可依實際欄位補齊其他欄位）
         Order::create([
             'order_number'       => $orderNumber,// 1.訂單編號
             'customer_id'        => $request->input('customer_id'),// 2.客戶 ID
@@ -153,7 +152,7 @@ class OrderController extends Controller
             'customer_id_number' => $request->input('customer_id_number'),//5. 個案身分證字號
             'customer_phone'     => $request->input('customer_phone'),//6. 個案電話
             'driver_name'        => $request->input('driver_name',null),//7. 駕駛姓名（可選填）
-            'driver_fleet_number' => $request->input('fleet_number_input',null),//7.1 駕駛姓名（可選填）
+            'driver_fleet_number' => $request->input('driver_fleet_number', null),//7.1 駕駛姓名（可選填）
             'driver_plate_number'=> $request->input('driver_plate_number',null),//8. 車牌號碼（可選填）
             'order_type'         => $request->input('order_type'),// 9.訂單類型
             'service_company'    => $request->input('service_company'),//10. 服務單位
@@ -171,18 +170,39 @@ class OrderController extends Controller
             'remark'             => $request->input('remark'),//22. 備註
             'created_by'         => $request->input('created_by'),//23. 建單人員
             'identity'           => $request->input('identity'),//24. 身份別
-            'carpool_with'       => $request->input('carpool_with'),//25. 共乘對象
+            'carpool_name'       => $request->input('carpoolSearchInput'),//25. 共乘對象
             'special_order'      => $request->input('special_order'),//26. 特別訂單
             'status'             => $request->input('status'),//27. 訂單狀態
             'special_status'     => $request->input('special_status', null),//28. 特別狀態（可選填）
             'carpool_customer_id' => $request->input('carpool_customer_id', null), //29. 共乘客戶ID（可選填）
+            'carpool_id' => $request->input('carpool_id_number', null), //30. 共乘客戶身分證（可選填）
 
             // ... 其他欄位請自行加入
         ]);
 
         if ($request->ajax()) {
-            $orders = Order::orderBy('ride_date', 'desc')->get();
-        return view('orders.partials.list', compact('orders'))->render(); // 回傳部分視圖
+            $query = Order::query();
+
+            // 關鍵字篩選
+            if ($request->filled('keyword')) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('customer_name', 'like', '%' . $request->keyword . '%')
+                        ->orWhere('customer_id_number', 'like', '%' . $request->keyword . '%')
+                        ->orWhere('customer_phone', 'like', '%' . $request->keyword . '%');
+                });
+            }
+
+            // 日期區間篩選
+            if ($request->filled('start_date') && $request->filled('end_date')) {
+                $query->whereBetween('ride_date', [$request->start_date, $request->end_date]);
+            } elseif ($request->filled('start_date')) {
+                $query->whereDate('ride_date', '>=', $request->start_date);
+            } elseif ($request->filled('end_date')) {
+                $query->whereDate('ride_date', '<=', $request->end_date);
+            }
+
+            $orders = $query->orderBy('ride_date', 'desc')->get();
+            return view('orders.partials.list', compact('orders'))->render(); // 回傳部分視圖
         }
 
         return redirect()->route('orders.index')->with('success', '訂單建立成功');
@@ -222,7 +242,27 @@ class OrderController extends Controller
         $order->update($request->all());
 
         if ($request->ajax()) {
-            $orders = Order::orderBy('ride_date', 'desc')->get();
+            $query = Order::query();
+
+            // 關鍵字篩選
+            if ($request->filled('keyword')) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('customer_name', 'like', '%' . $request->keyword . '%')
+                        ->orWhere('customer_id_number', 'like', '%' . $request->keyword . '%')
+                        ->orWhere('customer_phone', 'like', '%' . $request->keyword . '%');
+                });
+            }
+
+            // 日期區間篩選
+            if ($request->filled('start_date') && $request->filled('end_date')) {
+                $query->whereBetween('ride_date', [$request->start_date, $request->end_date]);
+            } elseif ($request->filled('start_date')) {
+                $query->whereDate('ride_date', '>=', $request->start_date);
+            } elseif ($request->filled('end_date')) {
+                $query->whereDate('ride_date', '<=', $request->end_date);
+            }
+
+            $orders = $query->orderBy('ride_date', 'desc')->get();
             return view('orders.partials.list', compact('orders'))->render();
         }
 

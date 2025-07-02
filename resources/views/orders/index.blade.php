@@ -263,120 +263,254 @@ function initOrderTable() {
     });
 }
 
-let formSubmitAttached = false;
-function attachFormSubmit() {
-    if (formSubmitAttached) return; // 確保只綁定一次
-    document.addEventListener('submit', handleOrderFormSubmit);
-    formSubmitAttached = true;
-}
-
 function handleOrderFormSubmit(e) {
-    const form = e.target;
-    if (!form.classList.contains('orderForm')) return;
     e.preventDefault();
+    const form = e.target;
+    const modalElement = form.closest('.modal'); // 動態尋找父層的 modal
+    if (!form.classList.contains('orderForm') || !modalElement) return;
 
     const formData = new FormData(form);
 
-        fetch(form.action, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: formData
-        }).then(response => {
-            if (response.status === 422) {
-                return response.json().then(data => ({ status: 422, data: data.html }));
-            }
-            return response.text().then(html => ({ status: response.status, data: html }));
-        }).then(res => {
-            if (res.status === 422) {
-                document.querySelector('#createOrderModal .modal-body').innerHTML = res.data;
-                attachFormSubmit();
-            } else {
-                if ($.fn.DataTable.isDataTable('#order-table')) {
-                    $('#order-table').DataTable().destroy();
-                }
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = res.data;
-                const newTable = tempDiv.querySelector('#order-table');
-                const oldTable = document.getElementById('order-table');
-                if (newTable && oldTable) {
-                    oldTable.parentNode.replaceChild(newTable, oldTable);
-                }
-                initOrderTable();
-                form.reset();
-                const modalInstance = bootstrap.Modal.getInstance(document.getElementById('createOrderModal'));
-                if (modalInstance) {
-                    modalInstance.hide();
-                }
-            }
-        }).catch(error => {
-            console.error(error);
-            alert('發生錯誤，請稍後再試');
-        });
+    // 將 keyword 和日期區間加入 formData
+    const keyword = document.querySelector('input[name="keyword"]').value;
+    const startDate = document.querySelector('input[name="start_date"]').value;
+    const endDate = document.querySelector('input[name="end_date"]').value;
 
+    if (keyword) {
+        formData.append('keyword', keyword);
+    }
+    if (startDate) {
+        formData.append('start_date', startDate);
+    }
+    if (endDate) {
+        formData.append('end_date', endDate);
+    }
+
+    fetch(form.action, {
+        method: 'POST', // Laravel 會透過 _method 欄位自動處理 PUT/PATCH
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    }).then(response => {
+        if (response.status === 422) {
+            return response.json().then(data => ({ status: 422, data: data.html }));
+        }
+        return response.text().then(html => ({ status: response.status, data: html }));
+    }).then(res => {
+        if (res.status === 422) {
+            // 驗證失敗，將包含錯誤訊息的表單內容填回 modal body
+            const contentContainer = modalElement.querySelector('#editOrderContent') || modalElement.querySelector('.modal-body');
+            if (contentContainer) {
+                contentContainer.innerHTML = res.data;
+            }
+        } else {
+            // 成功，更新訂單列表並關閉 modal
+            if ($.fn.DataTable.isDataTable('#order-table')) {
+                $('#order-table').DataTable().destroy();
+            }
+            // 後端應回傳更新後的整個表格 HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = res.data;
+            const newTable = tempDiv.querySelector('#order-table');
+            const oldTable = document.getElementById('order-table');
+            if (newTable && oldTable) {
+                oldTable.parentNode.replaceChild(newTable, oldTable);
+            } else {
+                // 如果回傳的不是完整的 table，則直接更新列表區域
+                $('#orders-list').html(res.data);
+            }
+
+            initOrderTable(); // 重新初始化 DataTable
+            form.reset();
+            const modalInstance = bootstrap.Modal.getInstance(modalElement);
+            if (modalInstance) {
+                modalInstance.hide(); // 關閉當前的 modal
+            }
+        }
+    }).catch(error => {
+        console.error('表單提交錯誤:', error);
+        alert('發生錯誤，請稍後再試');
+    });
 }
 
 $(document).ready(function () {
     initOrderTable();
-    attachFormSubmit();
+    // 使用事件委派，為所有透過 AJAX 載入的 .orderForm 表單綁定提交流程
+    $(document).on('submit', '.orderForm', handleOrderFormSubmit);
 });
+
+// 全選 / 取消全選
+$('#select-all').click(function () {
+    $('input[name="ids[]"]').prop('checked', this.checked);
+});
+
+// 檢視訂單詳細資料
+$(document).on('click', '.view-order-btn', function() {
+    var orderId = $(this).data('order-id');
+    var url = "{{ url('orders') }}/" + orderId;
+
+    $('#orderDetailContent').html('載入中...');
+    $('#orderDetailModal').modal('show');
+
+    $.get(url, function(data) {
+        $('#orderDetailContent').html(data);
+    });
+});
+
+// 建立訂單
+$(document).on('click', '.create-order-btn', function() {
+    const customerId = $(this).data('customer-id');
+    const url = '{{ route('orders.create') }}';
+    const modalBody = $('#createOrderModal .modal-body');
+
+    modalBody.html('<div class="text-center py-3">載入中...</div>');
+    $('#createOrderModal').modal('show');
+
+    $.get(url, { customer_id: customerId }, function(data) {
+        modalBody.html(data);
+    });
+});
+
+// 修改訂單
+$(document).on('click', '.edit-order-btn', function() {
+    const orderId = $(this).data('id');
+    const url = '/orders/' + orderId + '/edit';
+    const contentContainer = $('#editOrderContent');
+
+    contentContainer.html('<div class="text-center py-3">載入中...</div>');
+    $('#editOrderModal').modal('show');
+
+    $.get(url, function(data) {
+        contentContainer.html(data);
+    });
+});
+
+// --- 從 form.blade.php 移過來的 scripts ---
+
+// 共乘查詢
+$(document).on('click', '#searchCarpoolBtn', function () {
+    const keyword = $('#carpoolSearchInput').val();
+    fetch(`/carpool-search?keyword=${encodeURIComponent(keyword)}`)
+        .then(res => res.json())
+        .then(data => {
+            const resultsDiv = $('#carpoolResults');
+            resultsDiv.html('');
+
+            if (data.length === 0) {
+                resultsDiv.html('<div class="text-danger">查無資料</div>');
+                return;
+            }
+
+            if (data.length === 1 && data[0].id_number === keyword) {
+                $('#carpool_with').val(data[0].name);
+                $('#carpool_id_number').val(data[0].id_number);
+                $('#carpool_phone_number').val(Array.isArray(data[0].phone_number) ? data[0].phone_number[0] : data[0].phone_number);
+                $('#carpool_addresses').val(data[0].addresses);
+                resultsDiv.html('');
+                return;
+            }
+
+            const list = $('<ul>').addClass('list-group');
+            data.forEach(c => {
+                const item = $('<li>').addClass('list-group-item d-flex justify-content-between align-items-center');
+                item.html(`
+                    <div class="row w-100 align-items-center">
+                        <div class="col-md-1 d-flex align-items-center">
+                            <button type="button" class="btn btn-sm btn-success select-carpool-btn">選擇</button>
+                        </div>
+                        <div class="col-md-11 d-flex align-items-center">
+                            <strong>${c.name}</strong> / ${(Array.isArray(c.phone_number) ? c.phone_number[0] : c.phone_number)} / ${c.id_number} / ${c.addresses}
+                        </div>
+                    </div>
+                `);
+                item.find('.select-carpool-btn').on('click', () => {
+                    $('#carpoolSearchInput').val(c.name);
+                    $('#carpool_with').val(c.name);
+                    $('#carpool_id_number').val(c.id_number);
+                    $('#carpool_phone_number').val(Array.isArray(c.phone_number) ? c.phone_number[0] : c.phone_number);
+                    $('#carpool_addresses').val(c.addresses[0]);
+                    $('#carpool_customer_id').val(c.id);
+                    resultsDiv.html('');
+                });
+                list.append(item);
+            });
+            resultsDiv.append(list);
+        })
+        .catch(error => {
+            console.error('查詢錯誤：', error);
+            $('#carpoolResults').html('<div class="text-danger">查詢失敗，請稍後再試</div>');
+        });
+});
+
+// 清除共乘
+$(document).on('click', '#clearCarpoolBtn', function () {
+    $('#carpoolSearchInput').val('');
+    $('#carpool_with').val('');
+    $('#carpool_id_number').val('');
+    $('#carpool_phone_number').val('');
+    $('#carpool_addresses').val('');
+    $('#carpool_customer_id').val('');
+    $('#carpoolResults').html('');
+});
+
+// 交換地址
+$(document).on('click', '#swapAddressBtn', function () {
+    const pickupInput = $('input[name="pickup_address"]');
+    const dropoffInput = $('input[name="dropoff_address"]');
+    const temp = pickupInput.val();
+    pickupInput.val(dropoffInput.val());
+    dropoffInput.val(temp);
+});
+
+// 駕駛查詢
+$(document).on('click', '#searchDriverBtn', function () {
+    const fleetNumber = $('#driver_fleet_number').val();
+    if (!fleetNumber) return;
+
+    fetch(`/drivers/fleet-search?fleet_number=${encodeURIComponent(fleetNumber)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            $('#driver_id').val(data.id);
+            $('#driver_name').val(data.name);
+            $('#driver_plate_number').val(data.plate_number);
+        })
+        .catch(() => {
+            alert('查詢失敗，請稍後再試');
+        });
+});
+
+// 清除駕駛
+$(document).on('click', '#clearDriverBtn', function () {
+    $('#driver_fleet_number').val('');
+    $('#driver_id').val('');
+    $('#driver_name').val('');
+    $('#driver_plate_number').val('');
+    const statusSelect = $('select[name="status"]');
+    if (statusSelect) {
+        statusSelect.val('open');
+        statusSelect.prop('readonly', false);
+    }
+});
+
+// 監聽隊編輸入
+$(document).on('input', '#driver_fleet_number', function() {
+    const statusSelect = $('select[name="status"]');
+    if ($(this).val().trim() !== '') {
+        statusSelect.val('assigned');
+        statusSelect.prop('readonly', true);
+    } else {
+        statusSelect.val('open');
+        statusSelect.prop('readonly', false);
+    }
+});
+
 </script>
-<script>
-
-
-    // 全選 / 取消全選
-    $('#select-all').click(function () {
-        $('input[name="ids[]"]').prop('checked', this.checked);
-    });
-</script>
-
-<!-- 檢視訂單詳細資料 -->
-<script>
-    $(document).on('click', '.view-order-btn', function() {
-        var orderId = $(this).data('order-id');
-        var url = "{{ url('orders') }}/" + orderId;
-
-        $('#orderDetailContent').html('載入中...');
-        $('#orderDetailModal').modal('show');
-
-        $.get(url, function(data) {
-            $('#orderDetailContent').html(data);
-        });
-    });
-    </script>
-
-<!-- 建立訂單 -->
-<script>
-    $(document).on('click', '.create-order-btn', function() {
-        const customerId = $(this).data('customer-id');
-        const url = '{{ route('orders.create') }}';
-        $('#createOrderModal .modal-body').html('<div class="text-center py-3">載入中...</div>');
-        $('#createOrderModal').modal('show');
-
-        $.get(url, { customer_id: customerId }, function(data) {
-            $('#createOrderModal .modal-body').html(data);
-            attachFormSubmit();
-        });
-    });
-    </script>
-
-<!--修改訂單-->
-
-<script>
-    $(document).on('click', '.edit-order-btn', function() {
-        const orderId = $(this).data('id');
-        const url = '/orders/' + orderId + '/edit';
-
-        $('#editOrderContent').html('<div class="text-center py-3">載入中...</div>');
-        $('#editOrderModal').modal('show');
-
-        $.get(url, function(data) {
-            $('#editOrderContent').html(data);
-        });
-    });
-    </script>
 @endpush
 
 <!-- 訂單檢視Modal -->
