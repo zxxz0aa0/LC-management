@@ -22,15 +22,56 @@ class UpdateOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'customer_name' => 'required|string|max:255',
-            'customer_id_number' => 'required|string|max:255',
-            'customer_phone' => 'required|string|max:255',
-            'ride_date' => 'required|date',
-            'ride_time' => 'required|date_format:H:i',
-            'pickup_address' => 'required|string|max:255',
-            'dropoff_address' => 'required|string|max:255',
-            'status' => 'required|in:open,assigned,replacement,blocked,cancelled',
-            // 其他您認為需要驗證的欄位可以加在這裡
+            'customer_name'       => 'required|string|max:255',
+            'customer_id_number'  => 'required|string|max:255',
+            'customer_phone'      => 'required|string|max:255',
+            'customer_id'         => 'required|integer',
+            'ride_date'           => 'required|date',
+            'ride_time'           => 'required|date_format:H:i',
+            'pickup_address'  => [
+                'required',
+                'string',
+                'regex:/^(.+市|.+縣)(.+區|.+鄉|.+鎮).+$/u'
+            ],
+            'dropoff_address' => [
+                'required',
+                'string',
+                'regex:/^(.+市|.+縣)(.+區|.+鄉|.+鎮).+$/u'
+            ],
+            'status'              => 'required|in:open,assigned,replacement,blocked,cancelled',
+            'companions'          => 'required|integer|min:0',
+            'order_type'          => 'required|string',
+            'service_company'     => 'required|string',
+            'wheelchair'          => 'required|boolean',
+            'stair_machine'       => 'required|boolean',
+            'remark'              => 'nullable|string',
+            'created_by'          => 'required|string',
+            'identity'            => 'required|string',
+            'carpoolSearchInput'  => 'nullable|string',
+            'special_order'       => 'required|boolean',
+            'special_status'      => 'nullable|string',
+            'carpool_customer_id' => 'nullable|integer',
+            'carpool_id_number'   => 'nullable|string',
+            'driver_id'           => 'nullable|integer',
+            'driver_name'         => 'nullable|string',
+            'driver_plate_number' => 'nullable|string',
+            'driver_fleet_number' => 'nullable|string',
+            'carpool_phone_number' => 'nullable|string',
+            'carpool_addresses'    => 'nullable|string',
+            'carpool_with'         => 'nullable|string',
+        ];
+    }
+
+    /**
+     * Get the error messages for the defined validation rules.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'pickup_address.regex'  => '上車地址必須包含「市/縣」與「區/鄉/鎮」',
+            'dropoff_address.regex' => '下車地址必須包含「市/縣」與「區/鄉/鎮」',
         ];
     }
 }

@@ -98,34 +98,41 @@
         <!--<h5 class="mt-3 text-center">用車資訊</h5>
         <hr style="border-top: 1px solid #000;">-->
         <div class="row mb-3 mt-3">
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label>用車日期</label>
                     <input type="date" name="ride_date" class="form-control" value="{{ old('ride_date', $order->ride_date ?? '') }}">
                 </div>
                 <div class="col-md-3">
-                    <label>用車時間（格式： 時:分）</label>
+                    <label>用車時間（格式：時:分）</label>
                     <input type="text" name="ride_time" class="form-control"
                         pattern="^([01]\d|2[0-3]):[0-5]\d$"
                         placeholder="例如：13:45"
                         value="{{ old('ride_time', isset($order) ? substr($order->ride_time, 0, 5) : '') }}">
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
+                    <label>回程時間（格式：時:分）</label>
+                    <input type="text" name="back_time" class="form-control"
+                        pattern="^([01]\d|2[0-3]):[0-5]\d$"
+                        placeholder="例如：13:45"
+                        value="{{ old('ride_time') }}">
+                </div>
+                <div class="col-md-1">
                     <label>陪同人數</label>
                     <input type="number" name="companions" class="form-control" min="0" value="{{ old('companions', $order->companions ?? 0) }}">
                 </div>
 
-                <div class="col-md-2">
-                    <label>是否需要輪椅</label>
+                <div class="col-md-1">
+                    <label>是否輪椅</label>
                     <select name="wheelchair" class="form-select">
-                        <option value="0" {{ old('wheelchair', $order->wheelchair ?? ($customer->wheelchair ?? 0)) == '否' ? 'selected' : '' }}>否</option>
-                        <option value="1" {{ old('wheelchair', $order->wheelchair ?? ($customer->wheelchair ?? 0)) == '是' ? 'selected' : '' }}>是</option>
+                        <option value="0" {{ in_array(old('wheelchair', $order->wheelchair ?? ($customer->wheelchair ?? 0)) ,['0', '否']) ? 'selected' : '' }}>否</option>
+                        <option value="1" {{ in_array(old('wheelchair', $order->wheelchair ?? ($customer->wheelchair ?? 0)) ,['1', '是']) ? 'selected' : '' }}>是</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label>是否需要爬梯機</label>
+                <div class="col-md-1">
+                    <label>爬梯機</label>
                     <select name="stair_machine" class="form-select">
-                        <option value="0" {{ old('stair_machine', $order->stair_machine ?? ($customer->stair_climbing_machine ?? 0)) == '否' ? 'selected' : '' }}>否</option>
-                        <option value="1" {{ old('stair_machine', $order->stair_machine ?? ($customer->stair_climbing_machine ?? 0)) == '是' ? 'selected' : '' }}>是</option>
+                        <option value="0"{{ in_array(old('stair_machine', $order->stair_machine ?? ($customer->stair_climbing_machine ?? 0)),['0', '否']) ? 'selected' : '' }}>否</option>
+                        <option value="1"{{ in_array(old('stair_machine', $order->stair_machine ?? ($customer->stair_climbing_machine ?? 0)),['1', '是']) ? 'selected' : '' }}>是</option>
                     </select>
                 </div>
 

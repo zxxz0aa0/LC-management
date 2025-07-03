@@ -26,7 +26,14 @@ class OrderController extends Controller
 
         // 如果你有客戶搜尋邏輯，要一起撈
         $customers = collect();
-        if ($request->filled('keyword')) {
+        if ($request->filled('customer_id')) {
+            // 優先透過 ID 精確查找
+            $customer = Customer::find($request->customer_id);
+            if ($customer) {
+                $customers->push($customer);
+            }
+        } elseif ($request->filled('keyword')) {
+            // 其次透過關鍵字模糊搜尋
             $customers = Customer::where('name', 'like', '%'.$request->keyword.'%')
                 ->orWhere('id_number', 'like', '%'.$request->keyword.'%')
                 ->orWhere('phone_number', 'like', '%'.$request->keyword.'%')
@@ -72,14 +79,22 @@ class OrderController extends Controller
                 'customer_id' => 'required|integer',
                 'ride_date' => 'required|date',
                 'ride_time' => 'required|date_format:H:i',
-                'pickup_address' => 'required|string|max:255',
-                'dropoff_address' => 'required|string|max:255',
+                'pickup_address'  => [
+                    'required',
+                    'string',
+                    'regex:/^(.+市|.+縣)(.+區|.+鄉|.+鎮).+$/u'
+                ],
+                'dropoff_address' => [
+                    'required',
+                    'string',
+                    'regex:/^(.+市|.+縣)(.+區|.+鄉|.+鎮).+$/u'
+                ],
                 'status' => 'required|in:open,assigned,replacement,blocked,cancelled',
                 'companions' => 'required|integer|min:0',
                 'order_type' => 'required|string',
                 'service_company' => 'required|string',
-                'wheelchair' => 'required|boolean',
-                'stair_machine' => 'required|boolean',
+                'wheelchair' => 'required|string',
+                'stair_machine' => 'required|string',
                 'remark' => 'nullable|string',
                 'created_by' => 'required|string',
                 'identity' => 'required|string',
@@ -94,9 +109,14 @@ class OrderController extends Controller
                 'driver_fleet_number' => 'nullable|string',
                 'carpoolSearchInput' => 'nullable|string',
                 'carpool_id_number' => 'nullable|string',
-            ]);
+            ],[
+                'pickup_address.regex'  => '上車地址必須包含「市/縣」與「區/鄉/鎮」',
+                'dropoff_address.regex' => '下車地址必須包含「市/縣」與「區/鄉/鎮」',
+            ]
+        );
         } catch (ValidationException $e) {
             if ($request->ajax()) {
+                $request->flash(); // 保留使用者輸入的資料
                 return response()->json([
                     'html' => view('orders.partials.form', [
                         'customer' => Customer::find($request->input('customer_id')),
@@ -224,31 +244,51 @@ class OrderController extends Controller
     // 更新訂單資料（預留）
     public function update(UpdateOrderRequest $request, Order $order)
     {
-        $validated = $request->validated();
+        try {
+            $validated = $request->validated();
 
-        $pickupAddress = $validated['pickup_address'];
-        $dropoffAddress = $validated['dropoff_address'];
+            // 將表單中的共乘與駕駛資訊欄位轉成資料表對應欄位
+            $validated['carpool_name'] = $validated['carpoolSearchInput'] ?? null;
+            $validated['carpool_id'] = $validated['carpool_id_number'] ?? null;
 
-        // 拆出 pickup 地點
-        preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $pickupAddress, $pickupMatches);
-        $validated['pickup_county'] = $pickupMatches[1] ?? null;
-        $validated['pickup_district'] = $pickupMatches[2] ?? null;
+            $pickupAddress = $validated['pickup_address'];
+            $dropoffAddress = $validated['dropoff_address'];
 
-        // 拆出 dropoff 地點
-        preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $dropoffAddress, $dropoffMatches);
-        $validated['dropoff_county'] = $dropoffMatches[1] ?? null;
-        $validated['dropoff_district'] = $dropoffMatches[2] ?? null;
+            // 拆出 pickup 地點
+            preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $pickupAddress, $pickupMatches);
+            $validated['pickup_county'] = $pickupMatches[1] ?? null;
+            $validated['pickup_district'] = $pickupMatches[2] ?? null;
 
-        $order->update($validated);
+            // 拆出 dropoff 地點
+            preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $dropoffAddress, $dropoffMatches);
+            $validated['dropoff_county'] = $dropoffMatches[1] ?? null;
+            $validated['dropoff_district'] = $dropoffMatches[2] ?? null;
 
-        if ($request->ajax()) {
-            $query = Order::filter($request);
+            unset($validated['carpoolSearchInput'], $validated['carpool_id_number']);
 
-            $orders = $query->orderBy('ride_date', 'desc')->get();
-            return view('orders.partials.list', compact('orders'))->render();
+            $order->update($validated);
+
+            if ($request->ajax()) {
+                $query = Order::filter($request);
+
+                $orders = $query->orderBy('ride_date', 'desc')->get();
+                return view('orders.partials.list', compact('orders'))->render();
+            }
+
+            return redirect()->route('orders.index')->with('success', '訂單更新成功');
+        } catch (ValidationException $e) {
+            if ($request->ajax()) {
+                $request->flash(); // 保留使用者輸入的資料
+                return response()->json([
+                    'html' => view('orders.partials.form', [
+                        'order' => $order, // 傳入 order 物件
+                        'customer' => $order->customer,
+                        'user' => auth()->user(),
+                    ])->withErrors(new \Illuminate\Support\MessageBag($e->errors()))->render()
+                ], 422);
+            }
+            return back()->withErrors($e->errors())->withInput();
         }
-
-        return redirect()->route('orders.index')->with('success', '訂單更新成功');
 
     }
 

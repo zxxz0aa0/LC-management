@@ -19,12 +19,28 @@
             </div>
         </form>
 
-        {{-- 🔍 若有搜尋，顯示客戶資料表 --}}
-        @if(request()->filled('keyword'))
+        {{-- 🔍 若有搜尋，則根據結果數量顯示不同內容 --}}
+        @if(request()->filled('keyword') || request()->filled('customer_id'))
 
             @if($customers->isEmpty())
                 <div class="alert alert-warning">查無符合的客戶資料</div>
+
+            @elseif($customers->count() > 1)
+                {{-- 結果 > 1，顯示選擇列表 --}}
+                <div class="alert alert-info">找到多筆符合資料，請選擇一位客戶：</div>
+                <ul class="list-group">
+                    @foreach($customers as $customer)
+                        <li class="list-group-item">
+                            <a href="{{ route('orders.index', ['customer_id' => $customer->id, 'keyword' => request('keyword')]) }}">
+                                {{ $customer->name }} / {{ $customer->id_number }} / {{ is_array($customer->phone_number) ? $customer->phone_number[0] : $customer->phone_number }} / {{ is_array($customer->addresses) ? $customer->addresses[0] : $customer->addressess }}
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+
             @else
+                {{-- 結果 = 1，顯示詳細資料表 --}}
+                @php $customer = $customers->first(); @endphp
                 <table class="table table-bordered">
                     <thead class="table-success">
                         <tr>
@@ -39,30 +55,20 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($customers as $customer)
                         <tr>
                             <td>{{ $customer->county_care }}</td>
                             <td>{{ $customer->name }}</td>
                             <td>{{ $customer->id_number }}</td>
-                            <!--顯示第一支電話-->
-                            <td>{{ $customer->phone_number[0]}}</td>
-                            <!--可顯示全部電話-->
-                            <!--<td>{{ is_array($customer->phone_number) ? implode(' / ', $customer->phone_number) : $customer->phone_number }}</td><-->
-                            <td>{{ is_array($customer->addresses) ? implode(' / ', $customer->addresses) : $customer->addresses }}
+                            <td>{{ is_array($customer->phone_number) ? implode(' / ', $customer->phone_number) : $customer->phone_number }}</td>
+                            <td>{{ is_array($customer->addresses) ? implode(' / ', $customer->addresses) : $customer->addresses }}</td>
                             <td>{{ $customer->identity }}</td>
                             <td>{{ $customer->service_company }}</td>
                             <td>
-                                {{-- 帶入 customer_id 前往建立訂單 --}}
-                                <!--<a href="{{ route('orders.create', ['customer_id' => $customer->id,'id_number' => $customer->id_number]) }}" class="btn btn-sm btn-success">
-                                    建立訂單
-                                </a>-->
-                                <!-- 觸發按鈕 -->
                                 <button class="btn btn-sm btn-success create-order-btn" data-customer-id="{{ $customer->id }}">
                                     建立訂單
                                 </button>
                             </td>
                         </tr>
-                        @endforeach
                     </tbody>
                 </table>
                 <div class="row ml-3 mt-3">
@@ -269,7 +275,14 @@ function handleOrderFormSubmit(e) {
     const modalElement = form.closest('.modal'); // 動態尋找父層的 modal
     if (!form.classList.contains('orderForm') || !modalElement) return;
 
+    // Temporarily enable any disabled fields so their values are captured
+    const disabledFields = form.querySelectorAll(':disabled');
+    disabledFields.forEach(field => field.disabled = false);
+
     const formData = new FormData(form);
+
+    // Restore disabled state
+    disabledFields.forEach(field => field.disabled = true);
 
     // 將 keyword 和日期區間加入 formData
     const keyword = document.querySelector('input[name="keyword"]').value;
@@ -503,10 +516,10 @@ $(document).on('input', '#driver_fleet_number', function() {
     const statusSelect = $('select[name="status"]');
     if ($(this).val().trim() !== '') {
         statusSelect.val('assigned');
-        statusSelect.prop('readonly', true);
+        statusSelect.prop('disabled', true);
     } else {
         statusSelect.val('open');
-        statusSelect.prop('readonly', false);
+        statusSelect.prop('disabled', false);
     }
 });
 
