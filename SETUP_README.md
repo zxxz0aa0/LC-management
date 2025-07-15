@@ -61,7 +61,33 @@ chmod +x start-dev.sh stop-dev.sh
 ### 問題 1：Docker 未運行
 **解決方案**：啟動 Docker Desktop 應用程式
 
-### 問題 2：權限問題
+### 問題 2：Docker 執行速度慢（Windows）
+**原因**：
+- 虛擬化層級 (WSL2/Hyper-V)
+- 檔案系統 Volume 掛載較慢
+- 資源分配不足
+
+**優化方法**：
+1. **增加 Docker 資源**：
+   - 開啟 Docker Desktop → Settings → Resources
+   - 增加 CPU 核心數 (建議 4 核心以上)
+   - 增加記憶體 (建議 4GB 以上)
+
+2. **使用 WSL2 後端**：
+   - 確保 Docker Desktop 使用 WSL2 引擎
+   - 將專案放在 WSL2 檔案系統中 (`\\wsl$\Ubuntu\home\user\`)
+
+3. **關閉不必要的服務**：
+   ```bash
+   # 只啟動需要的容器
+   docker-compose up -d mysql redis
+   ```
+
+4. **檔案同步優化**：
+   - 避免在 Volume 掛載目錄下放大型檔案
+   - 使用 `.dockerignore` 排除不必要的檔案
+
+### 問題 3：權限問題
 **解決方案**：
 ```bash
 # macOS/Linux
@@ -71,7 +97,7 @@ chmod +x start-dev.sh stop-dev.sh
 git update-index --chmod=+x start-dev.sh stop-dev.sh
 ```
 
-### 問題 3：端口被佔用
+### 問題 4：端口被佔用
 **解決方案**：修改 `.env` 文件中的端口設置
 ```env
 APP_PORT=8000      # 改為其他端口
@@ -80,7 +106,7 @@ FORWARD_DB_PORT=3307        # 改為其他端口
 FORWARD_PHPMYADMIN_PORT=8081 # 改為其他端口
 ```
 
-### 問題 4：資料庫連接失敗
+### 問題 5：資料庫連接失敗
 **解決方案**：
 ```bash
 # Windows 用戶
@@ -91,7 +117,7 @@ docker exec lc-management-laravel.test-1 php artisan migrate
 ./start-dev.sh
 ```
 
-### 問題 5：Windows 下 Base table not found 錯誤
+### 問題 6：Windows 下 Base table not found 錯誤
 **解決方案**：
 ```bash
 # 在 Windows 下使用 Docker 執行遷移
