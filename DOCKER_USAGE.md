@@ -92,9 +92,15 @@
 ### 資料庫連線資訊
 - **Host**: mysql (容器內) / localhost (本機)
 - **Port**: 3306
-- **Database**: lc_management
+- **Database**: laravel
 - **Username**: sail
 - **Password**: password
+
+### phpMyAdmin 登入資訊
+訪問 http://localhost:8080 並使用以下資訊登入：
+- **伺服器**: mysql
+- **使用者名稱**: sail
+- **密碼**: password
 
 ## 開發工作流程
 

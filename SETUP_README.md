@@ -5,8 +5,11 @@
 ### 1. 前置需求
 - **Docker Desktop** - [下載安裝](https://www.docker.com/products/docker-desktop/)
 - **Git** - [下載安裝](https://git-scm.com/downloads)
+- **WSL2** (Windows用戶) - [安裝指南](https://learn.microsoft.com/zh-tw/windows/wsl/install)
 
 ### 2. 一鍵設置
+
+#### 方法 A：Git Clone（推薦）
 ```bash
 # 1. Clone 專案
 git clone <你的專案倉庫URL>
@@ -16,12 +19,27 @@ cd LC-management
 ./start-dev.sh
 ```
 
+#### 方法 B：下載 ZIP 檔
+```bash
+# 1. 下載並解壓縮 ZIP 檔
+# 2. 進入專案目錄
+cd LC-management
+
+# 3. 設定檔案權限（必須）
+chmod +x start-dev.sh stop-dev.sh
+
+# 4. 一鍵啟動
+./start-dev.sh
+```
+
+**Windows 用戶**：請在 WSL2 終端機中執行上述指令
+
 ### 3. 腳本會自動處理
 - ✅ 檢查 Docker 是否運行
 - ✅ 複製 `.env.example` 到 `.env`
 - ✅ 啟動 Docker 容器
-- ✅ 安裝 Composer 依賴
-- ✅ 安裝 npm 依賴
+- ✅ 容器內安裝 Composer 依賴
+- ✅ 容器內安裝 npm 依賴
 - ✅ 執行資料庫遷移
 - ✅ 生成 APP_KEY
 - ✅ 創建 storage link
@@ -29,7 +47,7 @@ cd LC-management
 
 ### 4. 完成後訪問
 - **應用程式**: http://localhost
-- **phpMyAdmin**: http://localhost:8080
+- **phpMyAdmin**: http://localhost:8080 (用戶: sail, 密碼: password)
 - **Mailpit**: http://localhost:8025
 - **前端開發服務器**: http://localhost:5173
 
@@ -65,9 +83,19 @@ FORWARD_PHPMYADMIN_PORT=8081 # 改為其他端口
 ### 問題 4：資料庫連接失敗
 **解決方案**：
 ```bash
-# 重新啟動容器
+# Windows 用戶
+docker exec lc-management-laravel.test-1 php artisan migrate
+
+# Linux/macOS 用戶
 ./vendor/bin/sail down
 ./start-dev.sh
+```
+
+### 問題 5：Windows 下 Base table not found 錯誤
+**解決方案**：
+```bash
+# 在 Windows 下使用 Docker 執行遷移
+docker exec lc-management-laravel.test-1 php artisan migrate
 ```
 
 ## 📁 重要文件說明
@@ -82,7 +110,7 @@ FORWARD_PHPMYADMIN_PORT=8081 # 改為其他端口
 
 ### 1. 新成員加入
 新成員只需要：
-1. 安裝 Docker Desktop
+1. 安裝 Docker Desktop（Windows 用戶需先安裝 WSL2）
 2. Clone 專案
 3. 執行 `./start-dev.sh`
 
@@ -105,6 +133,7 @@ git pull
 
 - **一鍵設置**：新電腦 5 分鐘內可開始開發
 - **環境一致**：Docker 確保所有人環境相同
+- **無需本機環境**：不用安裝 PHP、Composer、Node.js
 - **自動化**：腳本處理所有複雜設置
 - **易於維護**：更新 Docker 配置，所有人同步
 
