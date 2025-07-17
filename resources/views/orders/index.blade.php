@@ -276,6 +276,12 @@ function handleOrderFormSubmit(e) {
     const form = e.target;
     const modalElement = form.closest('.modal'); // 動態尋找父層的 modal
     if (!form.classList.contains('orderForm') || !modalElement) return;
+    
+    // 檢查是否正在進行地標選擇，如果是則阻止提交
+    if (form.hasAttribute('data-landmark-selecting')) {
+        console.log('地標選擇中，阻止表單提交');
+        return false;
+    }
 
     // Temporarily enable any disabled fields so their values are captured
     const disabledFields = form.querySelectorAll(':disabled');
@@ -385,6 +391,8 @@ $(document).on('click', '.create-order-btn', function() {
 
     $.get(url, { customer_id: customerId }, function(data) {
         modalBody.html(data);
+        // 重新初始化地標功能
+        initializeLandmarkInputsInModal();
     });
 });
 
@@ -399,6 +407,8 @@ $(document).on('click', '.edit-order-btn', function() {
 
     $.get(url, function(data) {
         contentContainer.html(data);
+        // 重新初始化地標功能
+        initializeLandmarkInputsInModal();
     });
 });
 
@@ -577,3 +587,170 @@ $(document).on('input', '#driver_fleet_number', function() {
         </div>
     </div>
 </div>
+
+<script>
+// 初始化 Modal 中的地標功能（使用 Dropdown）
+function initializeLandmarkInputsInModal() {
+    console.log('初始化 Modal 中的地標功能');
+    // 等待 DOM 載入完成
+    setTimeout(() => {
+        const modalElement = document.querySelector('#createOrderModal, #editOrderModal');
+        if (modalElement) {
+            console.log('找到 Modal 元素');
+            // 重新綁定 dropdown 事件
+            bindLandmarkDropdownEvents();
+        }
+    }, 100);
+}
+
+function bindLandmarkDropdownEvents() {
+    // 處理 * 觸發搜尋
+    const landmarkInputs = document.querySelectorAll('.landmark-input');
+    landmarkInputs.forEach(input => {
+        // 移除舊的監聽器
+        input.removeEventListener('input', handleLandmarkInput);
+        // 添加新的監聽器
+        input.addEventListener('input', handleLandmarkInput);
+    });
+    
+    // 綁定 dropdown 搜尋按鈕
+    document.querySelectorAll('.landmark-search-btn').forEach(btn => {
+        btn.removeEventListener('click', handleLandmarkSearch);
+        btn.addEventListener('click', handleLandmarkSearch);
+    });
+}
+
+function handleLandmarkInput(e) {
+    const inputValue = e.target.value;
+    if (inputValue.includes('*')) {
+        // 移除星號並觸發搜尋
+        const keyword = inputValue.replace('*', '');
+        e.target.value = keyword;
+        
+        // 開啟對應的 dropdown 並搜尋
+        const dropdown = e.target.closest('.landmark-input-group').querySelector('.dropdown');
+        if (dropdown) {
+            const dropdownToggle = dropdown.querySelector('.dropdown-toggle');
+            const searchInput = dropdown.querySelector('.landmark-search-input');
+            
+            // 設定搜尋關鍵字
+            searchInput.value = keyword;
+            
+            // 開啟 dropdown
+            const bsDropdown = new bootstrap.Dropdown(dropdownToggle);
+            bsDropdown.show();
+            
+            // 執行搜尋
+            setTimeout(() => {
+                searchLandmarksInDropdown(dropdown, keyword);
+            }, 100);
+        }
+    }
+}
+
+function handleLandmarkSearch() {
+    const dropdown = this.closest('.dropdown');
+    const searchInput = dropdown.querySelector('.landmark-search-input');
+    const keyword = searchInput.value.trim();
+    
+    if (keyword) {
+        searchLandmarksInDropdown(dropdown, keyword);
+    }
+}
+
+// 在 dropdown 中搜尋地標
+function searchLandmarksInDropdown(dropdown, keyword) {
+    const resultsContainer = dropdown.querySelector('.landmark-results');
+    resultsContainer.innerHTML = '<div class="text-center py-2">搜尋中...</div>';
+    
+    fetch(`/landmarks-search?keyword=${encodeURIComponent(keyword)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data.length > 0) {
+                displayLandmarkResults(resultsContainer, data.data, dropdown);
+            } else {
+                resultsContainer.innerHTML = '<div class="text-muted py-2">查無符合條件的地標</div>';
+            }
+        })
+        .catch(error => {
+            console.error('搜尋地標錯誤:', error);
+            resultsContainer.innerHTML = '<div class="text-danger py-2">搜尋失敗，請稍後再試</div>';
+        });
+}
+
+// 顯示搜尋結果
+function displayLandmarkResults(container, landmarks, dropdown) {
+    let html = '';
+    
+    landmarks.forEach(landmark => {
+        const fullAddress = landmark.city + landmark.district + landmark.address;
+        const categoryBadge = getCategoryBadge(landmark.category);
+        
+        html += `
+            <div class="landmark-item p-2 border-bottom" style="cursor: pointer;" 
+                 onclick="selectLandmarkFromDropdown('${fullAddress}', ${landmark.id}, this)">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="mb-1">
+                            <i class="fas fa-map-marker-alt text-danger"></i>
+                            ${landmark.name}
+                            ${categoryBadge}
+                        </h6>
+                        <small class="text-muted">${fullAddress}</small>
+                    </div>
+                    <small class="text-muted">${landmark.usage_count || 0}次</small>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// 獲取分類標籤
+function getCategoryBadge(category) {
+    const categories = {
+        'medical': { text: '醫療', class: 'bg-danger' },
+        'transport': { text: '交通', class: 'bg-primary' },
+        'education': { text: '教育', class: 'bg-success' },
+        'government': { text: '政府機關', class: 'bg-warning' },
+        'commercial': { text: '商業', class: 'bg-info' },
+        'general': { text: '一般', class: 'bg-secondary' }
+    };
+    
+    const cat = categories[category] || { text: category, class: 'bg-secondary' };
+    return `<span class="badge ${cat.class}">${cat.text}</span>`;
+}
+
+// 選擇地標（從 dropdown）
+function selectLandmarkFromDropdown(address, landmarkId, element) {
+    const dropdown = element.closest('.dropdown');
+    const inputGroup = dropdown.closest('.landmark-input-group');
+    const targetInput = inputGroup.querySelector('.landmark-input');
+    
+    // 填入地址
+    targetInput.value = address;
+    
+    // 儲存地標 ID
+    targetInput.setAttribute('data-landmark-id', landmarkId);
+    
+    // 關閉 dropdown
+    const dropdownToggle = dropdown.querySelector('.dropdown-toggle');
+    const bsDropdown = bootstrap.Dropdown.getInstance(dropdownToggle);
+    if (bsDropdown) {
+        bsDropdown.hide();
+    }
+    
+    // 更新使用次數
+    fetch('/landmarks-usage', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({ landmark_id: landmarkId })
+    }).catch(error => {
+        console.error('更新地標使用次數失敗:', error);
+    });
+}
+</script>

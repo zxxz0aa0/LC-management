@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\CustomerEventController;
+use App\Http\Controllers\LandmarkController;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,34 +30,39 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    
+    // 客戶管理
+    Route::post('customers/batch-delete', [CustomerController::class, 'batchDelete'])->name('customers.batchDelete');
+    Route::get('customers/export', [CustomerController::class, 'export'])->name('customers.export');
+    Route::post('customers/import', [CustomerController::class, 'import'])->name('customers.import');
+    Route::resource('customers', CustomerController::class)->except(['show']);
+    
+    // 客戶事件
+    Route::resource('customer-events', CustomerEventController::class)->only(['store', 'update', 'destroy']);
+    
+    // 司機管理
+    Route::resource('admin/drivers', App\Http\Controllers\Admin\DriverController::class);
+    Route::get('/drivers/fleet-search', [App\Http\Controllers\Admin\DriverController::class, 'searchByFleetNumber']);
+    
+    // 訂單管理
+    Route::resource('orders', OrderController::class);
+    Route::get('/carpool-search', [CustomerController::class, 'carpoolSearch']);
+    
+    // 地標管理路由
+    Route::resource('landmarks', LandmarkController::class);
+    Route::get('/landmarks-search', [LandmarkController::class, 'search'])->name('landmarks.search');
+    Route::post('/landmarks/batch-destroy', [LandmarkController::class, 'batchDestroy'])->name('landmarks.batchDestroy');
+    Route::post('/landmarks/batch-toggle', [LandmarkController::class, 'batchToggle'])->name('landmarks.batchToggle');
+    Route::post('/landmarks-usage', [OrderController::class, 'updateLandmarkUsage'])->name('landmarks.updateUsage');
 });
-
-
 
 require __DIR__.'/auth.php';
 
-
-
-
-
-Route::post('customers/batch-delete', [CustomerController::class, 'batchDelete'])->name('customers.batchDelete');
-
-
-// 匯出/匯入在前，避免被 resource route 蓋掉
-Route::get('customers/export', [CustomerController::class, 'export'])->name('customers.export');
-Route::post('customers/import', [CustomerController::class, 'import'])->name('customers.import');
-
-// 客戶 CRUD（排除 show 方法）
-Route::resource('customers', CustomerController::class)->except(['show']);
-
-Route::resource('customer-events', CustomerEventController::class)->only(['store', 'update', 'destroy']);
-
-Route::resource('admin/drivers', App\Http\Controllers\Admin\DriverController::class);
-
-Route::resource('orders', OrderController::class);
-
-Route::get('/carpool-search', [CustomerController::class, 'carpoolSearch']);
-
-Route::get('/drivers/fleet-search', [App\Http\Controllers\Admin\DriverController::class, 'searchByFleetNumber']);
-
-
+// 測試地標搜尋
+Route::get('/test-landmark-search', function() {
+    $landmarks = \App\Models\Landmark::where('name', 'like', '%台北%')->get();
+    return response()->json([
+        'count' => $landmarks->count(),
+        'landmarks' => $landmarks->toArray()
+    ]);
+});

@@ -142,9 +142,28 @@
             <div class="row mb-3">
                 <div class="col-md-12 mt-3">
                     <label>上車地址 (要有XX市XX區)</label>
-                    <input type="text" name="pickup_address" class="form-control"
-                    value="{{ old('pickup_address', $order->pickup_address ?? ($customer->addresses[0] ?? '')) }}">
-                        @error('pickup_address')
+                    <div class="landmark-input-group">
+                        <input type="text" name="pickup_address" class="form-control landmark-input"
+                               value="{{ old('pickup_address', $order->pickup_address ?? ($customer->addresses[0] ?? '')) }}"
+                               placeholder="輸入地址或搜尋地標（使用*觸發搜尋，如：台北*）">
+                        <div class="dropdown">
+                            <button type="button" class="btn btn-outline-secondary landmark-btn dropdown-toggle" 
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end landmark-dropdown" style="width: 400px; max-height: 400px; overflow-y: auto;">
+                                <div class="p-3">
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control landmark-search-input" placeholder="搜尋地標...">
+                                        <button class="btn btn-primary landmark-search-btn" type="button">搜尋</button>
+                                    </div>
+                                    <div class="landmark-results"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <small class="form-text text-muted">提示：輸入關鍵字後加上*可搜尋地標，如：台北*</small>
+                    @error('pickup_address')
                         <div class="text-danger">{{ $message }}</div>
                     @enderror
                 </div>
@@ -164,7 +183,27 @@
             <div class="row mb-3 mt-1">
                 <div class="col-md-12">
                     <label>下車地址  (要有XX市XX區)</label>
-                    <input type="text" name="dropoff_address" class="form-control" value="{{ old('dropoff_address', $order->dropoff_address ?? '') }}">
+                    <div class="landmark-input-group">
+                        <input type="text" name="dropoff_address" class="form-control landmark-input"
+                               value="{{ old('dropoff_address', $order->dropoff_address ?? '') }}"
+                               placeholder="輸入地址或搜尋地標（使用*觸發搜尋，如：台北*）">
+                        <div class="dropdown">
+                            <button type="button" class="btn btn-outline-secondary landmark-btn dropdown-toggle" 
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end landmark-dropdown" style="width: 400px; max-height: 400px; overflow-y: auto;">
+                                <div class="p-3">
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control landmark-search-input" placeholder="搜尋地標...">
+                                        <button class="btn btn-primary landmark-search-btn" type="button">搜尋</button>
+                                    </div>
+                                    <div class="landmark-results"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <small class="form-text text-muted">提示：輸入關鍵字後加上*可搜尋地標，如：台北*</small>
                     @error('dropoff_address')
                         <div class="text-danger">{{ $message }}</div>
                     @enderror
@@ -252,6 +291,202 @@
             <button type="submit" class="btn btn-success">&#10004送出訂單&#128203;</button>
         </div>
     </form>
+
+    {{-- 地標選擇功能已改為 Dropdown 方式 --}}
+
+    {{-- 地標功能的樣式和 JavaScript --}}
+    <style>
+    .landmark-input-group {
+        position: relative;
+    }
+
+    .landmark-btn {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 10;
+        border: none;
+        background: none;
+        padding: 5px 10px;
+    }
+
+    .landmark-btn:hover {
+        background-color: #f8f9fa;
+        border-radius: 4px;
+    }
+
+    .landmark-input {
+        padding-right: 45px;
+    }
+
+    .landmark-input:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+    </style>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeLandmarkDropdowns();
+        
+        function initializeLandmarkDropdowns() {
+            // 處理 * 觸發搜尋
+            const landmarkInputs = document.querySelectorAll('.landmark-input');
+            landmarkInputs.forEach(input => {
+                input.addEventListener('input', function(e) {
+                    const inputValue = e.target.value;
+                    if (inputValue.includes('*')) {
+                        // 移除星號並觸發搜尋
+                        const keyword = inputValue.replace('*', '');
+                        e.target.value = keyword;
+                        
+                        // 開啟對應的 dropdown 並搜尋
+                        const dropdown = e.target.closest('.landmark-input-group').querySelector('.dropdown');
+                        const dropdownToggle = dropdown.querySelector('.dropdown-toggle');
+                        const searchInput = dropdown.querySelector('.landmark-search-input');
+                        
+                        // 設定搜尋關鍵字
+                        searchInput.value = keyword;
+                        
+                        // 開啟 dropdown
+                        const bsDropdown = new bootstrap.Dropdown(dropdownToggle);
+                        bsDropdown.show();
+                        
+                        // 執行搜尋
+                        setTimeout(() => {
+                            searchLandmarksInDropdown(dropdown, keyword);
+                        }, 100);
+                    }
+                });
+            });
+            
+            // 綁定 dropdown 搜尋按鈕
+            document.querySelectorAll('.landmark-search-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const dropdown = this.closest('.dropdown');
+                    const searchInput = dropdown.querySelector('.landmark-search-input');
+                    const keyword = searchInput.value.trim();
+                    
+                    if (keyword) {
+                        searchLandmarksInDropdown(dropdown, keyword);
+                    }
+                });
+            });
+            
+            // 搜尋輸入框 Enter 鍵
+            document.querySelectorAll('.landmark-search-input').forEach(input => {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const dropdown = this.closest('.dropdown');
+                        const keyword = this.value.trim();
+                        
+                        if (keyword) {
+                            searchLandmarksInDropdown(dropdown, keyword);
+                        }
+                    }
+                });
+            });
+        }
+        
+        // 在 dropdown 中搜尋地標
+        function searchLandmarksInDropdown(dropdown, keyword) {
+            const resultsContainer = dropdown.querySelector('.landmark-results');
+            resultsContainer.innerHTML = '<div class="text-center py-2">搜尋中...</div>';
+            
+            fetch(`/landmarks-search?keyword=${encodeURIComponent(keyword)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.data.length > 0) {
+                        displayLandmarkResults(resultsContainer, data.data, dropdown);
+                    } else {
+                        resultsContainer.innerHTML = '<div class="text-muted py-2">查無符合條件的地標</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('搜尋地標錯誤:', error);
+                    resultsContainer.innerHTML = '<div class="text-danger py-2">搜尋失敗，請稍後再試</div>';
+                });
+        }
+        
+        // 顯示搜尋結果
+        function displayLandmarkResults(container, landmarks, dropdown) {
+            let html = '';
+            
+            landmarks.forEach(landmark => {
+                const fullAddress = landmark.city + landmark.district + landmark.address;
+                const categoryBadge = getCategoryBadge(landmark.category);
+                
+                html += `
+                    <div class="landmark-item p-2 border-bottom" style="cursor: pointer;" 
+                         onclick="selectLandmarkFromDropdown('${fullAddress}', ${landmark.id}, this)">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">
+                                    <i class="fas fa-map-marker-alt text-danger"></i>
+                                    ${landmark.name}
+                                    ${categoryBadge}
+                                </h6>
+                                <small class="text-muted">${fullAddress}</small>
+                            </div>
+                            <small class="text-muted">${landmark.usage_count || 0}次</small>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // 獲取分類標籤
+        function getCategoryBadge(category) {
+            const categories = {
+                'medical': { text: '醫療', class: 'bg-danger' },
+                'transport': { text: '交通', class: 'bg-primary' },
+                'education': { text: '教育', class: 'bg-success' },
+                'government': { text: '政府機關', class: 'bg-warning' },
+                'commercial': { text: '商業', class: 'bg-info' },
+                'general': { text: '一般', class: 'bg-secondary' }
+            };
+            
+            const cat = categories[category] || { text: category, class: 'bg-secondary' };
+            return `<span class="badge ${cat.class}">${cat.text}</span>`;
+        }
+    });
+    
+    // 選擇地標（從 dropdown）
+    function selectLandmarkFromDropdown(address, landmarkId, element) {
+        const dropdown = element.closest('.dropdown');
+        const inputGroup = dropdown.closest('.landmark-input-group');
+        const targetInput = inputGroup.querySelector('.landmark-input');
+        
+        // 填入地址
+        targetInput.value = address;
+        
+        // 儲存地標 ID
+        targetInput.setAttribute('data-landmark-id', landmarkId);
+        
+        // 關閉 dropdown
+        const dropdownToggle = dropdown.querySelector('.dropdown-toggle');
+        const bsDropdown = bootstrap.Dropdown.getInstance(dropdownToggle);
+        if (bsDropdown) {
+            bsDropdown.hide();
+        }
+        
+        // 更新使用次數
+        fetch('/landmarks-usage', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ landmark_id: landmarkId })
+        }).catch(error => {
+            console.error('更新地標使用次數失敗:', error);
+        });
+    }
+    </script>
 
 
 

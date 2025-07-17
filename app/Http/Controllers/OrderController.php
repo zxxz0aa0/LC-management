@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateOrderRequest;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use App\Models\Customer;
+use App\Models\Landmark;
 use Carbon\Carbon;
 
 
@@ -170,7 +171,7 @@ class OrderController extends Controller
         $orderNumber = $typeCode . $idSuffix . $date . $time . $serial;
 
 
-        Order::create([
+        $order = Order::create([
             'order_number'       => $orderNumber,// 1.訂單編號
             'customer_id'        => $validated['customer_id'],// 2.客戶 ID
             'driver_id'          => $validated['driver_id'] ?? null,// 3.駕駛 ID（可選填）
@@ -205,6 +206,10 @@ class OrderController extends Controller
 
             // ... 其他欄位請自行加入
         ]);
+
+        // 記錄地標使用次數
+        $this->recordLandmarkUsage($request->get('pickup_address'), $request->get('pickup_landmark_id'));
+        $this->recordLandmarkUsage($request->get('dropoff_address'), $request->get('dropoff_landmark_id'));
 
         if ($request->ajax()) {
             $query = Order::filter($request);
@@ -298,6 +303,34 @@ class OrderController extends Controller
         // 等等再補功能
     }
 
+    /**
+     * 記錄地標使用次數
+     */
+    private function recordLandmarkUsage($address, $landmarkId)
+    {
+        if ($landmarkId) {
+            $landmark = Landmark::find($landmarkId);
+            if ($landmark) {
+                $landmark->incrementUsage();
+            }
+        }
+    }
 
+    /**
+     * 更新地標使用次數 API
+     */
+    public function updateLandmarkUsage(Request $request)
+    {
+        $landmarkId = $request->get('landmark_id');
+        
+        if ($landmarkId) {
+            $landmark = Landmark::find($landmarkId);
+            if ($landmark) {
+                $landmark->incrementUsage();
+                return response()->json(['success' => true]);
+            }
+        }
 
+        return response()->json(['success' => false], 400);
+    }
 }

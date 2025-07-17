@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 專案概述
 
-LC-management 是一個基於 Laravel 10 框架的長照服務管理系統，主要用於客戶、訂單、司機管理和 Excel 匯入匯出功能。
+LC-management 是一個基於 Laravel 10 框架的長照服務管理系統，主要用於客戶、訂單、司機管理、地標管理和 Excel 匯入匯出功能。
 
 ## 個人偏好
 1. 使用繁體中文應答
@@ -37,6 +37,10 @@ php artisan test
 
 # 清除所有快取
 php artisan optimize:clear
+
+# 地標資料庫遷移和測試資料
+php artisan migrate
+php artisan db:seed --class=LandmarkSeeder
 ```
 
 ### 前端建置指令
@@ -59,17 +63,20 @@ composer install
 - **Order**: 訂單管理，具備智能編號生成和客戶快照功能
 - **Driver**: 司機管理，包含車輛資訊和服務能力
 - **CustomerEvent**: 客戶事件追蹤系統
+- **Landmark**: 地標管理，支援地址快速選擇和使用統計
 
 ### 控制器結構
 - **CustomerController**: 客戶 CRUD 操作，支援 Excel 匯入匯出
-- **OrderController**: 訂單管理，包含複雜篩選和共乘功能
+- **OrderController**: 訂單管理，包含複雜篩選和共乘功能，整合地標使用記錄
 - **DriverController**: 司機管理系統
+- **LandmarkController**: 地標 CRUD 操作，搜尋 API 和批量操作
 
 ### 資料庫關係
 - Customer 一對多 Orders
 - Driver 一對多 Orders (軟約束)
 - Customer 一對多 CustomerEvents
 - JSON 欄位：Customer 的 phone_number 和 addresses
+- Landmark 獨立表：支援地址搜尋和使用統計
 
 ### 前端架構
 - **AdminLTE 3.2**: 主要管理介面框架
@@ -93,6 +100,15 @@ composer install
 - 支援 JSON 欄位搜尋（使用 `whereJsonContains`）
 - AJAX 即時搜尋（共乘對象搜尋）
 - 複雜的日期區間和關鍵字篩選
+
+### 地標系統（新增功能）
+- **地標管理**：完整的 CRUD 操作介面
+- **智能搜尋**：輸入關鍵字+`*`觸發地標搜尋（如：台北*）
+- **分類管理**：醫療、交通、教育、政府、商業、一般
+- **使用統計**：記錄地標使用次數，熱門排序
+- **訂單整合**：上下車地址支援地標快速選擇
+- **Modal 介面**：美觀的地標選擇彈窗
+- **批量操作**：支援批量啟用/停用/刪除
 
 ## 記憶體管理架構分析
 
@@ -225,6 +241,13 @@ $orders = $query->latest()->paginate(50);
 - 使用分頁機制，每頁限制 50 筆記錄
 - 包含複雜的查詢邏輯和關聯載入
 
+**LandmarkController** (`app/Http/Controllers/LandmarkController.php:43`):
+```php
+$landmarks = $query->paginate(20);
+```
+- 使用分頁機制，每頁限制 20 筆記錄
+- 支援搜尋和分類篩選，減少記憶體佔用
+
 #### 資料模型記憶體最佳化
 
 **Customer Model** (`app/Models/Customer.php:36-39`):
@@ -236,6 +259,16 @@ protected $casts = [
 ```
 - 使用 JSON 欄位儲存複雜資料結構
 - 自動序列化/反序列化，減少記憶體佔用
+
+**Landmark Model** (`app/Models/Landmark.php:25-28`):
+```php
+protected $casts = [
+    'coordinates' => 'array',
+    'is_active' => 'boolean',
+];
+```
+- 使用 JSON 欄位儲存座標資訊
+- 支援 Scope 查詢優化，減少資料庫負擔
 
 ### 6. 檔案儲存管理
 
@@ -301,7 +334,12 @@ protected $casts = [
 - `OrderController` 中的複雜查詢可能消耗大量記憶體
 - 建議新增索引和使用 `chunk()` 方法
 
-### 3. Session 檔案堆積
+### 3. 地標搜尋最佳化
+- 地標搜尋 API 限制回傳 10 筆資料
+- 使用資料庫索引加速搜尋效能
+- 熱門地標優先顯示，減少搜尋時間
+
+### 4. Session 檔案堆積
 - 預設檔案 Session 可能造成檔案系統壓力
 - 建議定期清理或改用 Redis
 
@@ -321,4 +359,12 @@ protected $casts = [
 
 ## 總結
 
-此系統採用 Laravel 標準的記憶體管理架構，整體設計合理。主要記憶體管理透過檔案快取、Session 管理和資料庫連線池實現。建議優先實施 Redis 快取和查詢最佳化，以提升系統整體效能和記憶體使用效率。
+此系統採用 Laravel 標準的記憶體管理架構，整體設計合理。主要記憶體管理透過檔案快取、Session 管理和資料庫連線池實現。
+
+### 近期更新（地標系統）
+- **新增地標管理功能**：完整的 CRUD 操作，支援分類和搜尋
+- **智能地址輸入**：訂單建立時支援地標快速選擇
+- **使用統計追蹤**：記錄地標使用次數，優化常用地標排序
+- **記憶體優化**：搜尋結果限制、分頁機制、索引最佳化
+
+建議優先實施 Redis 快取和查詢最佳化，以提升系統整體效能和記憶體使用效率。地標系統已針對高頻使用場景進行最佳化，可有效提升訂單建立效率。

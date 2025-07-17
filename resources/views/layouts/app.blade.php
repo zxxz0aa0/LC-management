@@ -58,6 +58,12 @@
                             <p>訂單管理</p>
                         </a>
                     </li>
+                        <li class="nav-item">
+                        <a href="{{ route('landmarks.index') }}" class="nav-link">
+                            <i class="nav-icon fas fa-file-alt"></i>
+                            <p>地標管理</p>
+                        </a>
+                    </li>
                     {{-- 未來可加入：訂單管理、駕駛管理 --}}
                 </ul>
             </nav>
