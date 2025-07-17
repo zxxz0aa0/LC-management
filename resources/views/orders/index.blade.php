@@ -126,7 +126,7 @@
                         type="date"
                         id="end_date"
                         name="end_date"
-                        value="{{ request('end_date') ?? \Carbon\Carbon::today()->toDateString() }}"
+                        value="{{ request('end_date') ?? \Carbon\Carbon::now()->endOfMonth()->toDateString() }}"
                         class="form-control">
                 </div>
 
@@ -213,7 +213,7 @@
                             @case('assigned')
                                 <span class="badge bg-primary">已指派</span>
                                 @break
-                            @case('replacement')
+                            @case('bkorder')
                                 <span class="badge bg-warning">已後補</span>
                                 @break
                             @case('blocked')
@@ -265,7 +265,9 @@ function initOrderTable() {
                 next: "下一頁",
                 previous: "上一頁"
             }
-        }
+        },
+            order: [[1, 'asc']],
+            pageLength: 100,  // 預設每頁顯示 100 筆資料
     });
 }
 

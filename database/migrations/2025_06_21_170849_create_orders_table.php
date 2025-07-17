@@ -73,7 +73,7 @@ class CreateOrdersTable extends Migration
             $table->boolean('special_order')->default(false); // 特別訂單（例如特殊處理）
             $table->string('special_status')->nullable(); // 特殊狀態，例如黑名單、VIP等
 
-            $table->enum('status', ['open', 'assigned', 'replacement',  'blocked','cancelled'])->default('open'); // 訂單狀態 open可派、ass已指派、repl已候補、block黑名單、can取消
+            $table->enum('status', ['open', 'assigned', 'bkorder',  'blocked','cancelled'])->default('open'); // 訂單狀態 open可派、ass已指派、repl已候補、block黑名單、can取消
 
             $table->timestamps(); // 建立與更新時間（created_at / updated_at）
         });

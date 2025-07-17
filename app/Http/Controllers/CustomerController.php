@@ -38,6 +38,7 @@ class CustomerController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'id_number' => 'required|string|max:20',
+            'birthday' => 'nullable|date',
             'email' => 'nullable|email|unique:customers,email',
             'phone_number' => 'required|string',
             'addresses' => 'required|string',
@@ -57,13 +58,13 @@ class CustomerController extends Controller
         Customer::create([
             'name' => $validated['name'],
             'id_number' => $validated['id_number'],
+            'birthday' => $validated['birthday'],
             'email' => $validated['email'] ?? null,
             'phone_number' => $phones,
             'addresses' => $addressArray,
             'contact_person' => $request->contact_person,
             'contact_phone' => $request->contact_phone,
             'contact_relationship' => $request->contact_relationship,
-            'birthday' => $request->birthday,
             'gender' => $request->gender,
             'wheelchair' => $request->wheelchair,
             'stair_climbing_machine' => $request->stair_climbing_machine,

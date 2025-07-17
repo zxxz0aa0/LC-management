@@ -34,7 +34,10 @@
 
             <div class="form-group">
                 <label>生日</label>
-                <input type="date" name="birthday" class="form-control" value="{{ old('birthday') }}">
+                <div class="input-group">
+                    <input type="text" id="birthday-input" class="form-control" placeholder="可輸入民國年：077/07/07 或西元年：1988/07/07" value="{{ old('birthday') }}">
+                    <input type="hidden" name="birthday" id="birthday-hidden">
+                </div>           
             </div>
 
             <div class="form-group">
@@ -79,7 +82,7 @@
             <div class="form-group">
                 <label>輪椅</label>
                 <select name="wheelchair" class="form-control">
-                    <option value="">請選擇</option>
+                    <option value="否">請選擇</option>
                     <option value="是" {{ old('wheelchair') == '是' ? 'selected' : '' }}>是</option>
                     <option value="否" {{ old('wheelchair') == '否' ? 'selected' : '' }}>否</option>
                 </select>
@@ -88,9 +91,8 @@
             <div class="form-group">
                 <label>爬梯機</label>
                 <select name="stair_climbing_machine" class="form-control">
-                    <option value="">請選擇</option>
-                    <option value="是" {{ old('stair_climbing_machine') == '是' ? 'selected' : '' }}>是</option>
                     <option value="否" {{ old('stair_climbing_machine') == '否' ? 'selected' : '' }}>否</option>
+                    <option value="是" {{ old('stair_climbing_machine') == '是' ? 'selected' : '' }}>是</option>
                 </select>
             </div>
 
@@ -127,9 +129,10 @@
                 <label>特殊狀態（如黑名單）</label>
                 <select name="special_status" class="form-control" required>
                     <option value="一般" {{ old('special_status') == '一般' ? 'selected' : '' }}>一般</option>
-                    <option value="黑名單" {{ old('special_status') == '黑名單' ? 'selected' : '' }}>黑名單</option>
                     <option value="個管單" {{ old('special_status') == '個管單' ? 'selected' : '' }}>個管單</option>
-                    <option value="VIP" {{ old('special_status') == 'VIP' ? 'selected' : '' }}>VIP</option>
+                    <option value="網頁" {{ old('special_status') == '網頁' ? 'selected' : '' }}>網頁</option>
+                    <option value="黑名單" {{ old('special_status') == '黑名單' ? 'selected' : '' }}>黑名單</option>
+                    <option value="已往生" {{ old('special_status') == '已往生' ? 'selected' : '' }}>已往生</option>
                 </select>
             </div>
 
@@ -149,8 +152,12 @@
             </div>
 
             <div class="form-group">
-                <label>大豐或大立亨</label>
-                <input type="text" name="service_company" class="form-control" value="{{ old('service_company') }}">
+                <label>可服務交通公司</label>
+                <select name="service_company" class="form-control">
+                    <option value="太豐" {{ old('service_company') == '太豐' ? 'selected' : '' }}>太豐</option>
+                    <option value="太豐與大立亨" {{ old('service_company') == '太豐與大立亨' ? 'selected' : '' }}>太豐與大立亨</option>
+                </select>
+                
             </div>
 
             <div class="form-group">
@@ -170,4 +177,125 @@
     </div>
 </div>
 
+@endsection
+
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const birthdayInput = document.getElementById('birthday-input');
+    const birthdayHidden = document.getElementById('birthday-hidden');
+    
+    // 民國年轉西元年的函數
+    function convertToWesternDate(inputValue) {
+        // 移除所有空格
+        const cleanValue = inputValue.replace(/\s+/g, '');
+        
+        // 支援的格式：077/01/06, 077-01-06, 0770106
+        const rocPatterns = [
+            /^(\d{3})\/(\d{2})\/(\d{2})$/,  // 077/01/06
+            /^(\d{3})-(\d{2})-(\d{2})$/,   // 077-01-06  
+            /^(\d{6})$/                     // 0770106
+        ];
+        
+        // 西元年格式：1988/01/06, 1988-01-06, 19880106
+        const westernPatterns = [
+            /^(\d{4})\/(\d{2})\/(\d{2})$/,  // 1988/01/06
+            /^(\d{4})-(\d{2})-(\d{2})$/,   // 1988-01-06
+            /^(\d{8})$/                     // 19880106
+        ];
+        
+        // 檢查是否為民國年格式
+        for (let pattern of rocPatterns) {
+            const match = cleanValue.match(pattern);
+            if (match) {
+                let year, month, day;
+                
+                if (pattern.source.includes('(\\d{6})')) {
+                    // 格式：0770106
+                    year = parseInt(match[1].substring(0, 3));
+                    month = match[1].substring(3, 5);
+                    day = match[1].substring(5, 7);
+                } else {
+                    // 格式：077/01/06 或 077-01-06
+                    year = parseInt(match[1]);
+                    month = match[2];
+                    day = match[3];
+                }
+                
+                // 民國年轉西元年 (民國年 + 1911)
+                const westernYear = year + 1911;
+                return `${westernYear}-${month}-${day}`;
+            }
+        }
+        
+        // 檢查是否為西元年格式
+        for (let pattern of westernPatterns) {
+            const match = cleanValue.match(pattern);
+            if (match) {
+                let year, month, day;
+                
+                if (pattern.source.includes('(\\d{8})')) {
+                    // 格式：19880106
+                    year = match[1].substring(0, 4);
+                    month = match[1].substring(4, 6);
+                    day = match[1].substring(6, 8);
+                } else {
+                    // 格式：1988/01/06 或 1988-01-06
+                    year = match[1];
+                    month = match[2];
+                    day = match[3];
+                }
+                
+                return `${year}-${month}-${day}`;
+            }
+        }
+        
+        return null;
+    }
+    
+    // 輸入時即時轉換
+    birthdayInput.addEventListener('input', function() {
+        const inputValue = this.value;
+        const convertedDate = convertToWesternDate(inputValue);
+        
+        if (convertedDate) {
+            birthdayHidden.value = convertedDate;
+            this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+        } else if (inputValue.trim() === '') {
+            birthdayHidden.value = '';
+            this.classList.remove('is-invalid', 'is-valid');
+        } else {
+            birthdayHidden.value = '';
+            this.classList.remove('is-valid');
+            this.classList.add('is-invalid');
+        }
+    });
+    
+    // 失去焦點時格式化顯示
+    birthdayInput.addEventListener('blur', function() {
+        const convertedDate = convertToWesternDate(this.value);
+        if (convertedDate) {
+            // 將西元年格式轉換為顯示格式
+            const date = new Date(convertedDate);
+            if (!isNaN(date.getTime())) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                this.value = `${year}/${month}/${day}`;
+            }
+        }
+    });
+    
+    // 表單提交前確保日期格式正確
+    document.getElementById('create-customer-form').addEventListener('submit', function(e) {
+        const birthdayValue = birthdayInput.value;
+        if (birthdayValue && !birthdayHidden.value) {
+            e.preventDefault();
+            alert('請輸入正確的日期格式');
+            birthdayInput.focus();
+        }
+    });
+});
+</script>
 @endsection
