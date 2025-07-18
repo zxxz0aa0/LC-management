@@ -1,0 +1,262 @@
+<form method="POST" action="{{ isset($order) ? route('orders.update', $order) : route('orders.store') }}" 
+      class="order-form">
+    @csrf
+    @if(isset($order))
+        @method('PUT')
+    @endif
+    
+    {{-- 隱藏欄位 --}}
+    <input type="hidden" name="customer_id" value="{{ old('customer_id', $order->customer_id ?? $customer->id ?? '') }}">
+    
+    @if(request('keyword'))
+        <input type="hidden" name="keyword" value="{{ request('keyword') }}">
+    @endif
+    
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <h6>請修正以下錯誤：</h6>
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+    
+    {{-- 客戶資訊區塊 --}}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-user me-2"></i>客戶資訊
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">客戶姓名</label>
+                    <input type="text" name="customer_name" class="form-control" 
+                           value="{{ old('customer_name', $order->customer_name ?? $customer->name ?? '') }}" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">身分證字號</label>
+                    <input type="text" name="customer_id_number" class="form-control"
+                           value="{{ old('customer_id_number', $order->customer_id_number ?? $customer->id_number ?? '') }}" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">電話</label>
+                    <input type="text" name="customer_phone" class="form-control"
+                           value="{{ old('customer_phone', $order->customer_phone ?? '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">身份別</label>
+                    <input type="text" name="identity" class="form-control"
+                           value="{{ old('identity', $order->identity ?? $customer->identity ?? '') }}" readonly>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {{-- 共乘資訊區塊 --}}
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-users me-2"></i>共乘資訊
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">共乘對象搜尋</label>
+                    <div class="input-group">
+                        <input type="text" id="carpoolSearchInput" class="form-control"
+                               placeholder="輸入姓名、ID或電話">
+                        <button type="button" class="btn btn-success" id="searchCarpoolBtn">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" id="clearCarpoolBtn">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div id="carpoolResults"></div>
+                </div>
+            </div>
+            <div class="row g-3 mt-2">
+                <div class="col-md-3">
+                    <label class="form-label">共乘姓名</label>
+                    <input type="text" name="carpool_with" id="carpool_with" class="form-control" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">共乘身分證</label>
+                    <input type="text" name="carpool_id_number" id="carpool_id_number" class="form-control" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">共乘電話</label>
+                    <input type="text" name="carpool_phone_number" id="carpool_phone_number" class="form-control" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">共乘地址</label>
+                    <input type="text" name="carpool_addresses" id="carpool_addresses" class="form-control" readonly>
+                </div>
+            </div>
+            <input type="hidden" name="carpool_customer_id" id="carpool_customer_id">
+        </div>
+    </div>
+    
+    {{-- 用車資訊區塊 --}}
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">
+                <i class="fas fa-car me-2"></i>用車資訊
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label">用車日期</label>
+                    <input type="date" name="ride_date" class="form-control" required
+                           value="{{ old('ride_date', $order->ride_date ?? '') }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">用車時間</label>
+                    <input type="time" name="ride_time" class="form-control" required
+                           value="{{ old('ride_time', isset($order) ? substr($order->ride_time, 0, 5) : '') }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">回程時間</label>
+                    <input type="time" name="back_time" class="form-control"
+                           value="{{ old('back_time', isset($order) ? substr($order->back_time, 0, 5) : '') }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">陪同人數</label>
+                    <input type="number" name="companions" class="form-control" min="0"
+                           value="{{ old('companions', $order->companions ?? 0) }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">輪椅</label>
+                    <select name="wheelchair" class="form-select">
+                        <option value="0" {{ old('wheelchair', $order->wheelchair ?? 0) == 0 ? 'selected' : '' }}>否</option>
+                        <option value="1" {{ old('wheelchair', $order->wheelchair ?? 0) == 1 ? 'selected' : '' }}>是</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">爬梯機</label>
+                    <select name="stair_machine" class="form-select">
+                        <option value="0" {{ old('stair_machine', $order->stair_machine ?? 0) == 0 ? 'selected' : '' }}>否</option>
+                        <option value="1" {{ old('stair_machine', $order->stair_machine ?? 0) == 1 ? 'selected' : '' }}>是</option>
+                    </select>
+                </div>
+            </div>
+            
+            {{-- 地址資訊 --}}
+            <div class="row g-3 mt-3">
+                <div class="col-12">
+                    <label class="form-label">上車地址</label>
+                    <div class="input-group">
+                        <input type="text" name="pickup_address" id="pickup_address" class="form-control landmark-input" required
+                               value="{{ old('pickup_address', $order->pickup_address ?? '') }}"
+                               placeholder="輸入地址或使用*觸發地標搜尋">
+                        <button type="button" class="btn btn-outline-secondary" onclick="openLandmarkModal('pickup')">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-12 text-center">
+                    <button type="button" class="btn btn-outline-info" id="swapAddressBtn">
+                        <i class="fas fa-exchange-alt"></i> 交換地址
+                    </button>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">下車地址</label>
+                    <div class="input-group">
+                        <input type="text" name="dropoff_address" id="dropoff_address" class="form-control landmark-input" required
+                               value="{{ old('dropoff_address', $order->dropoff_address ?? '') }}"
+                               placeholder="輸入地址或使用*觸發地標搜尋">
+                        <button type="button" class="btn btn-outline-secondary" onclick="openLandmarkModal('dropoff')">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {{-- 駕駛資訊區塊 --}}
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-user-tie me-2"></i>駕駛資訊
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">駕駛隊編</label>
+                    <div class="input-group">
+                        <input type="text" name="driver_fleet_number" id="driver_fleet_number" class="form-control"
+                               value="{{ old('driver_fleet_number', $order->driver_fleet_number ?? '') }}">
+                        <button type="button" class="btn btn-success" id="searchDriverBtn">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" id="clearDriverBtn">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">駕駛姓名</label>
+                    <input type="text" name="driver_name" id="driver_name" class="form-control" readonly>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">車牌號碼</label>
+                    <input type="text" name="driver_plate_number" id="driver_plate_number" class="form-control" readonly>
+                </div>
+            </div>
+            <input type="hidden" name="driver_id" id="driver_id">
+        </div>
+    </div>
+    
+    {{-- 其他資訊區塊 --}}
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-info-circle me-2"></i>其他資訊
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">特殊狀態</label>
+                    <select name="special_status" class="form-select">
+                        <option value="一般" {{ old('special_status', $order->special_status ?? '一般') == '一般' ? 'selected' : '' }}>一般</option>
+                        <option value="VIP" {{ old('special_status', $order->special_status ?? '一般') == 'VIP' ? 'selected' : '' }}>VIP</option>
+                        <option value="個管單" {{ old('special_status', $order->special_status ?? '一般') == '個管單' ? 'selected' : '' }}>個管單</option>
+                        <option value="黑名單" {{ old('special_status', $order->special_status ?? '一般') == '黑名單' ? 'selected' : '' }}>黑名單</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">訂單狀態</label>
+                    <select name="status" class="form-select">
+                        <option value="open" {{ old('status', $order->status ?? 'open') == 'open' ? 'selected' : '' }}>可派遣</option>
+                        <option value="assigned" {{ old('status', $order->status ?? 'open') == 'assigned' ? 'selected' : '' }}>已指派</option>
+                        <option value="replacement" {{ old('status', $order->status ?? 'open') == 'replacement' ? 'selected' : '' }}>候補</option>
+                        <option value="cancelled" {{ old('status', $order->status ?? 'open') == 'cancelled' ? 'selected' : '' }}>已取消</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">訂單備註</label>
+                    <textarea name="remark" class="form-control" rows="3">{{ old('remark', $order->remark ?? '') }}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {{-- 提交按鈕 --}}
+    <div class="text-center py-4">
+        <button type="submit" class="btn btn-primary btn-lg px-5">
+            <i class="fas fa-save me-2"></i>
+            {{ isset($order) ? '更新訂單' : '建立訂單' }}
+        </button>
+    </div>
+</form>

@@ -55,7 +55,7 @@ class OrderController extends Controller
         $user = auth()->user(); // 🔹目前登入的使用者
 
         if ($request->ajax()) {
-            return view('orders.partials.form', compact('customer', 'user'));
+            return view('orders.create', compact('customer', 'user'));
         }
 
         return view('orders.create', compact('customer', 'user'));
@@ -113,7 +113,7 @@ class OrderController extends Controller
                 $request->flash(); // 保留使用者輸入的資料
 
                 return response()->json([
-                    'html' => view('orders.partials.form', [
+                    'html' => view('orders.components.order-form', [
                         'customer' => Customer::find($request->input('customer_id')),
                         'user' => auth()->user(),
                     ])->withErrors(new \Illuminate\Support\MessageBag($e->errors()))->render(),
@@ -209,7 +209,7 @@ class OrderController extends Controller
             $query = Order::filter($request);
             $orders = $query->orderBy('ride_date', 'desc')->get();
 
-            return view('orders.partials.list', compact('orders'))->render(); // 回傳部分視圖
+            return view('orders.components.order-table', compact('orders'))->render(); // 回傳部分視圖
         }
 
         // 頁面式提交，成功後返回訂單列表並保持搜尋關鍵字
@@ -229,7 +229,7 @@ class OrderController extends Controller
             $driver = \App\Models\Driver::find($order->driver_id);
         }
 
-        return view('orders.partials.show', compact('order', 'driver'));
+        return view('orders.show', compact('order', 'driver'));
     }
 
     // 顯示編輯表單（預留）
@@ -237,7 +237,7 @@ class OrderController extends Controller
     {
         // 如果是AJAX
         if (request()->ajax()) {
-            return view('orders.partials.form', [
+            return view('orders.edit', [
                 'order' => $order,
                 'customer' => $order->customer,
                 'user' => auth()->user(),
@@ -280,7 +280,7 @@ class OrderController extends Controller
 
                 $orders = $query->orderBy('ride_date', 'desc')->get();
 
-                return view('orders.partials.list', compact('orders'))->render();
+                return view('orders.components.order-table', compact('orders'))->render();
             }
 
             return redirect()->route('orders.index')->with('success', '訂單更新成功');
@@ -289,7 +289,7 @@ class OrderController extends Controller
                 $request->flash(); // 保留使用者輸入的資料
 
                 return response()->json([
-                    'html' => view('orders.partials.form', [
+                    'html' => view('orders.components.order-form', [
                         'order' => $order, // 傳入 order 物件
                         'customer' => $order->customer,
                         'user' => auth()->user(),

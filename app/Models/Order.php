@@ -16,7 +16,7 @@ class Order extends Model
 
         // 其他欄位
         'order_type', 'service_company',
-        'ride_date', 'ride_time',
+        'ride_date', 'ride_time', 'back_time',
         'pickup_county', 'pickup_district', 'pickup_address',
         'pickup_lat', 'pickup_lng',
         'dropoff_county', 'dropoff_district', 'dropoff_address',
@@ -24,6 +24,21 @@ class Order extends Model
         'wheelchair', 'stair_machine', 'companions', 'carpool_customer_id', 'carpool_name', 'carpool_id',
         'remark', 'created_by', 'identity', 'carpool_with',
         'special_order', 'status', 'special_status',
+        'carpool_id_number', 'carpool_phone_number', 'carpool_addresses',
+    ];
+
+    // 資料類型轉換
+    protected $casts = [
+        'ride_date' => 'date',
+        'ride_time' => 'datetime:H:i',
+        'back_time' => 'datetime:H:i',
+        'wheelchair' => 'boolean',
+        'stair_machine' => 'boolean',
+        'companions' => 'integer',
+        'pickup_lat' => 'decimal:8',
+        'pickup_lng' => 'decimal:8',
+        'dropoff_lat' => 'decimal:8',
+        'dropoff_lng' => 'decimal:8',
     ];
 
     // 關聯：每筆訂單屬於一位客戶

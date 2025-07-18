@@ -113,7 +113,6 @@
         </div>
         
 
-
         <!-- 用車資訊區塊 -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-gradient-warning text-dark py-3">
@@ -181,109 +180,13 @@
                             <small class="text-muted">(要有XX市XX區)</small>
                         </label>
                         <div class="landmark-input-group">
-                            <input type="text" name="pickup_address" class="form-control landmark-input rounded-pill"
+                            <input type="text" name="pickup_address" id="pickup_address" class="form-control landmark-input rounded-pill"
                                    value="{{ old('pickup_address', $order->pickup_address ?? ($customer->addresses[0] ?? '')) }}"
                                    placeholder="輸入地址或搜尋地標（使用*觸發搜尋，如：台北*）">
-                            <div class="dropdown">
-                                <button type="button" class="btn btn-outline-secondary landmark-btn dropdown-toggle" 
-                                        data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                </button>
-                                <div class="dropdown-menu dropdown-menu-end landmark-dropdown shadow-lg border-0" style="width: 500px; max-height: 600px; overflow: hidden;">
-                                    <!-- 地標彈出視窗標題 -->
-                                    <div class="landmark-header bg-gradient-success text-white p-3">
-                                        <h6 class="mb-0 d-flex align-items-center">
-                                            <i class="fas fa-play-circle me-2"></i>
-                                            選擇地標
-                                            <span class="badge bg-light text-success ms-auto">上車地址</span>
-                                        </h6>
-                                    </div>
-
-                                    <!-- 搜尋區域 -->
-                                    <div class="landmark-search-area p-3 bg-light">
-                                        <div class="input-group">
-                                            <span class="input-group-text bg-white border-end-0">
-                                                <i class="fas fa-search text-muted"></i>
-                                            </span>
-                                            <input type="text" class="form-control landmark-search-input border-start-0 border-end-0" placeholder="搜尋地標名稱或地址...">
-                                            <button class="btn btn-success landmark-search-btn" type="button">
-                                                <i class="fas fa-search me-1"></i>搜尋
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <!-- 分類篩選區域 -->
-                                    <div class="landmark-categories px-3 py-2 border-bottom">
-                                        <div class="d-flex flex-wrap gap-1">
-                                            <button type="button" class="btn btn-outline-secondary btn-sm category-filter active" data-category="all">
-                                                <i class="fas fa-th me-1"></i>全部
-                                            </button>
-                                            <button type="button" class="btn btn-outline-danger btn-sm category-filter" data-category="medical">
-                                                <i class="fas fa-hospital me-1"></i>醫療
-                                            </button>
-                                            <button type="button" class="btn btn-outline-primary btn-sm category-filter" data-category="transport">
-                                                <i class="fas fa-bus me-1"></i>交通
-                                            </button>
-                                            <button type="button" class="btn btn-outline-success btn-sm category-filter" data-category="education">
-                                                <i class="fas fa-school me-1"></i>教育
-                                            </button>
-                                            <button type="button" class="btn btn-outline-warning btn-sm category-filter" data-category="government">
-                                                <i class="fas fa-building me-1"></i>政府
-                                            </button>
-                                            <button type="button" class="btn btn-outline-info btn-sm category-filter" data-category="commercial">
-                                                <i class="fas fa-store me-1"></i>商業
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <!-- 分頁標籤 -->
-                                    <div class="landmark-tabs">
-                                        <ul class="nav nav-pills nav-justified bg-light" role="tablist">
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link active small" id="pickup-search-tab" data-bs-toggle="pill" data-bs-target="#pickup-search-content" type="button" role="tab">
-                                                    <i class="fas fa-search me-1"></i>搜尋結果
-                                                </button>
-                                            </li>
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link small" id="pickup-popular-tab" data-bs-toggle="pill" data-bs-target="#pickup-popular-content" type="button" role="tab">
-                                                    <i class="fas fa-fire me-1"></i>熱門地標
-                                                </button>
-                                            </li>
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link small" id="pickup-recent-tab" data-bs-toggle="pill" data-bs-target="#pickup-recent-content" type="button" role="tab">
-                                                    <i class="fas fa-history me-1"></i>最近使用
-                                                </button>
-                                            </li>
-                                        </ul>
-                                    </div>
-
-                                    <!-- 內容區域 -->
-                                    <div class="landmark-content" style="max-height: 350px; overflow-y: auto;">
-                                        <div class="tab-content">
-                                            <!-- 搜尋結果 -->
-                                            <div class="tab-pane fade show active" id="pickup-search-content" role="tabpanel">
-                                                <div class="landmark-results p-2"></div>
-                                            </div>
-                                            <!-- 熱門地標 -->
-                                            <div class="tab-pane fade" id="pickup-popular-content" role="tabpanel">
-                                                <div class="landmark-popular p-2"></div>
-                                            </div>
-                                            <!-- 最近使用 -->
-                                            <div class="tab-pane fade" id="pickup-recent-content" role="tabpanel">
-                                                <div class="landmark-recent p-2"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- 底部提示 -->
-                                    <div class="landmark-footer text-center py-2 border-top bg-light">
-                                        <small class="text-muted">
-                                            <i class="fas fa-lightbulb me-1"></i>
-                                            提示：點擊地標快速填入地址
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
+                            <button type="button" class="btn btn-outline-secondary landmark-btn" 
+                                    onclick="openOrderLandmarkModal('pickup')">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </button>
                         </div>
                         @error('pickup_address')
                             <div class="text-danger">{{ $message }}</div>
@@ -304,109 +207,13 @@
                             <small class="text-muted">(要有XX市XX區)</small>
                         </label>
                         <div class="landmark-input-group">
-                            <input type="text" name="dropoff_address" class="form-control landmark-input rounded-pill"
+                            <input type="text" name="dropoff_address" id="dropoff_address" class="form-control landmark-input rounded-pill"
                                    value="{{ old('dropoff_address', $order->dropoff_address ?? '') }}"
                                    placeholder="輸入地址或搜尋地標（使用*觸發搜尋，如：台北*）">
-                            <div class="dropdown">
-                                <button type="button" class="btn btn-outline-secondary landmark-btn dropdown-toggle" 
-                                        data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                </button>
-                                <div class="dropdown-menu dropdown-menu-end landmark-dropdown shadow-lg border-0" style="width: 500px; max-height: 600px; overflow: hidden;">
-                                    <!-- 地標彈出視窗標題 -->
-                                    <div class="landmark-header bg-gradient-danger text-white p-3">
-                                        <h6 class="mb-0 d-flex align-items-center">
-                                            <i class="fas fa-stop-circle me-2"></i>
-                                            選擇地標
-                                            <span class="badge bg-light text-danger ms-auto">下車地址</span>
-                                        </h6>
-                                    </div>
-
-                                    <!-- 搜尋區域 -->
-                                    <div class="landmark-search-area p-3 bg-light">
-                                        <div class="input-group">
-                                            <span class="input-group-text bg-white border-end-0">
-                                                <i class="fas fa-search text-muted"></i>
-                                            </span>
-                                            <input type="text" class="form-control landmark-search-input border-start-0 border-end-0" placeholder="搜尋地標名稱或地址...">
-                                            <button class="btn btn-danger landmark-search-btn" type="button">
-                                                <i class="fas fa-search me-1"></i>搜尋
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <!-- 分類篩選區域 -->
-                                    <div class="landmark-categories px-3 py-2 border-bottom">
-                                        <div class="d-flex flex-wrap gap-1">
-                                            <button type="button" class="btn btn-outline-secondary btn-sm category-filter active" data-category="all">
-                                                <i class="fas fa-th me-1"></i>全部
-                                            </button>
-                                            <button type="button" class="btn btn-outline-danger btn-sm category-filter" data-category="medical">
-                                                <i class="fas fa-hospital me-1"></i>醫療
-                                            </button>
-                                            <button type="button" class="btn btn-outline-primary btn-sm category-filter" data-category="transport">
-                                                <i class="fas fa-bus me-1"></i>交通
-                                            </button>
-                                            <button type="button" class="btn btn-outline-success btn-sm category-filter" data-category="education">
-                                                <i class="fas fa-school me-1"></i>教育
-                                            </button>
-                                            <button type="button" class="btn btn-outline-warning btn-sm category-filter" data-category="government">
-                                                <i class="fas fa-building me-1"></i>政府
-                                            </button>
-                                            <button type="button" class="btn btn-outline-info btn-sm category-filter" data-category="commercial">
-                                                <i class="fas fa-store me-1"></i>商業
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <!-- 分頁標籤 -->
-                                    <div class="landmark-tabs">
-                                        <ul class="nav nav-pills nav-justified bg-light" role="tablist">
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link active small" id="dropoff-search-tab" data-bs-toggle="pill" data-bs-target="#dropoff-search-content" type="button" role="tab">
-                                                    <i class="fas fa-search me-1"></i>搜尋結果
-                                                </button>
-                                            </li>
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link small" id="dropoff-popular-tab" data-bs-toggle="pill" data-bs-target="#dropoff-popular-content" type="button" role="tab">
-                                                    <i class="fas fa-fire me-1"></i>熱門地標
-                                                </button>
-                                            </li>
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link small" id="dropoff-recent-tab" data-bs-toggle="pill" data-bs-target="#dropoff-recent-content" type="button" role="tab">
-                                                    <i class="fas fa-history me-1"></i>最近使用
-                                                </button>
-                                            </li>
-                                        </ul>
-                                    </div>
-
-                                    <!-- 內容區域 -->
-                                    <div class="landmark-content" style="max-height: 350px; overflow-y: auto;">
-                                        <div class="tab-content">
-                                            <!-- 搜尋結果 -->
-                                            <div class="tab-pane fade show active" id="dropoff-search-content" role="tabpanel">
-                                                <div class="landmark-results p-2"></div>
-                                            </div>
-                                            <!-- 熱門地標 -->
-                                            <div class="tab-pane fade" id="dropoff-popular-content" role="tabpanel">
-                                                <div class="landmark-popular p-2"></div>
-                                            </div>
-                                            <!-- 最近使用 -->
-                                            <div class="tab-pane fade" id="dropoff-recent-content" role="tabpanel">
-                                                <div class="landmark-recent p-2"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- 底部提示 -->
-                                    <div class="landmark-footer text-center py-2 border-top bg-light">
-                                        <small class="text-muted">
-                                            <i class="fas fa-lightbulb me-1"></i>
-                                            提示：點擊地標快速填入地址
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
+                            <button type="button" class="btn btn-outline-secondary landmark-btn" 
+                                    onclick="openOrderLandmarkModal('dropoff')">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </button>
                         </div>
                         @error('dropoff_address')
                             <div class="text-danger">{{ $message }}</div>
@@ -415,7 +222,6 @@
                 </div>
             </div>
         </div>
-
 
         <!-- 特殊資訊區塊 -->
         <div class="card border-0 shadow-sm mb-4">
@@ -553,7 +359,125 @@
         </div>
     </form>
 
-    {{-- 地標選擇功能已改為 Dropdown 方式 --}}
+    <!-- 地標選擇 Modal -->
+    <div class="modal fade" id="orderLandmarkModal" tabindex="-1" aria-labelledby="orderLandmarkModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header text-white" id="orderLandmarkModalHeader">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-map-marker-alt me-3 fs-4"></i>
+                        <div>
+                            <h5 class="modal-title mb-0" id="orderLandmarkModalLabel">選擇地標</h5>
+                            <small class="text-light opacity-75" id="orderLandmarkModalSubtitle">快速填入常用地址</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="關閉"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <!-- 搜尋區域 -->
+                    <div class="landmark-search-area p-3 bg-light border-bottom">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0">
+                                <i class="fas fa-search text-muted"></i>
+                            </span>
+                            <input type="text" id="orderModalLandmarkSearch" class="form-control border-start-0 border-end-0" 
+                                   placeholder="搜尋地標名稱或地址...">
+                            <button class="btn btn-primary" type="button" onclick="searchOrderLandmarksInModal()">
+                                <i class="fas fa-search me-1"></i>搜尋
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 分類篩選區域 -->
+                    <div class="landmark-categories px-3 py-2 border-bottom bg-light">
+                        <div class="d-flex flex-wrap gap-1">
+                            <button type="button" class="btn btn-outline-secondary btn-sm category-filter active" 
+                                    data-category="all" onclick="filterLandmarksByCategory('all', this)">
+                                <i class="fas fa-th me-1"></i>全部
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm category-filter" 
+                                    data-category="medical" onclick="filterLandmarksByCategory('medical', this)">
+                                <i class="fas fa-hospital me-1"></i>醫療
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm category-filter" 
+                                    data-category="transport" onclick="filterLandmarksByCategory('transport', this)">
+                                <i class="fas fa-bus me-1"></i>交通
+                            </button>
+                            <button type="button" class="btn btn-outline-success btn-sm category-filter" 
+                                    data-category="education" onclick="filterLandmarksByCategory('education', this)">
+                                <i class="fas fa-school me-1"></i>教育
+                            </button>
+                            <button type="button" class="btn btn-outline-warning btn-sm category-filter" 
+                                    data-category="government" onclick="filterLandmarksByCategory('government', this)">
+                                <i class="fas fa-building me-1"></i>政府
+                            </button>
+                            <button type="button" class="btn btn-outline-info btn-sm category-filter" 
+                                    data-category="commercial" onclick="filterLandmarksByCategory('commercial', this)">
+                                <i class="fas fa-store me-1"></i>商業
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 分頁標籤 -->
+                    <div class="landmark-tabs">
+                        <ul class="nav nav-pills nav-justified bg-light" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="modal-search-tab" data-bs-toggle="pill" 
+                                        data-bs-target="#modal-search-content" type="button" role="tab">
+                                    <i class="fas fa-search me-1"></i>搜尋結果
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="modal-popular-tab" data-bs-toggle="pill" 
+                                        data-bs-target="#modal-popular-content" type="button" role="tab"
+                                        onclick="loadOrderPopularLandmarksInModal()">
+                                    <i class="fas fa-fire me-1"></i>熱門地標
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="modal-recent-tab" data-bs-toggle="pill" 
+                                        data-bs-target="#modal-recent-content" type="button" role="tab"
+                                        onclick="loadOrderRecentLandmarksInModal()">
+                                    <i class="fas fa-history me-1"></i>最近使用
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- 內容區域 -->
+                    <div class="landmark-content" style="max-height: 400px; overflow-y: auto;">
+                        <div class="tab-content">
+                            <!-- 搜尋結果 -->
+                            <div class="tab-pane fade show active" id="modal-search-content" role="tabpanel">
+                                <div id="orderModalLandmarkResults" class="p-3">
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-search text-muted mb-2" style="font-size: 2rem;"></i>
+                                        <p class="text-muted mb-0">請輸入關鍵字搜尋地標</p>
+                                        <small class="text-muted">或直接在地址欄輸入關鍵字加上 * 觸發搜尋</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- 熱門地標 -->
+                            <div class="tab-pane fade" id="modal-popular-content" role="tabpanel">
+                                <div id="orderModalPopularLandmarks" class="p-3"></div>
+                            </div>
+                            <!-- 最近使用 -->
+                            <div class="tab-pane fade" id="modal-recent-content" role="tabpanel">
+                                <div id="orderModalRecentLandmarks" class="p-3"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <small class="text-muted me-auto">
+                        <i class="fas fa-lightbulb me-1"></i>
+                        提示：點擊地標快速填入地址
+                    </small>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     {{-- 優化樣式 --}}
     <style>
@@ -846,11 +770,43 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
+    /* Modal 動畫簡化 */
+    #orderLandmarkModal .modal-dialog {
+        transition: none;
+    }
+
+    /* 地標項目選擇效果 - 簡化版本 */
+    .landmark-item {
+        cursor: pointer;
+    }
+
+    .landmark-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    /* Modal 載入動畫 */
+    .modal-loading {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    /* 簡化過渡效果 */
+    .modal-header {
+        transition: none;
+    }
+
+    .nav-pills .nav-link {
+        transition: none;
+    }
+
+    .category-filter {
+        transition: none;
+    }
+
     /* 手機版優化 */
     @media (max-width: 768px) {
-        .landmark-dropdown {
-            width: 450px !important;
-            max-height: 500px !important;
+        #orderLandmarkModal .modal-dialog {
+            margin: 0.5rem;
         }
         
         .landmark-categories .btn {
@@ -859,14 +815,13 @@
         }
         
         .landmark-content {
-            max-height: 300px !important;
+            max-height: 350px !important;
         }
     }
 
     @media (max-width: 576px) {
-        .landmark-dropdown {
-            width: 350px !important;
-            max-height: 450px !important;
+        #orderLandmarkModal .modal-dialog {
+            margin: 0.25rem;
         }
         
         .landmark-card {
@@ -881,154 +836,223 @@
     </style>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        initializeLandmarkDropdowns();
+    // 全域變數
+    let currentAddressType = ''; // 'pickup' 或 'dropoff'
+    let landmarkModalInstance = null; // 單例 Modal 實例
+    let landmarkModalElement = null; // Modal DOM 元素
+
+    // 初始化函數
+    function initializeLandmarkModal() {
+        landmarkModalElement = document.getElementById('orderLandmarkModal');
+        if (!landmarkModalElement) {
+            console.error('找不到地標 Modal 元素: #orderLandmarkModal');
+            return;
+        }
+
+        // 創建單一 Modal 實例
+        landmarkModalInstance = new bootstrap.Modal(landmarkModalElement);
+
+        // 綁定事件監聽器
+        addEventListeners();
+    }
+
+    // 統一管理事件監聽器
+    function addEventListeners() {
+        // 處理地址輸入框的 * 觸發搜尋
+        document.querySelectorAll('.landmark-input').forEach(input => {
+            input.removeEventListener('input', handleLandmarkInputStar);
+            input.addEventListener('input', handleLandmarkInputStar);
+        });
+
+        // Modal 搜尋輸入框 Enter 鍵
+        const modalSearchInput = document.getElementById('orderModalLandmarkSearch');
+        if (modalSearchInput) {
+            modalSearchInput.removeEventListener('keypress', handleModalSearchKeypress);
+            modalSearchInput.addEventListener('keypress', handleModalSearchKeypress);
+        }
+
+        // Modal 顯示時的處理
+        landmarkModalElement.addEventListener('show.bs.modal', function (event) {
+            updateModalUI();
+        });
+
+        // Modal 隱藏後的清理
+        landmarkModalElement.addEventListener('hidden.bs.modal', function () {
+            resetModalState();
+        });
+    }
+
+    // 開啟地標 Modal
+    function openOrderLandmarkModal(addressType) {
+        if (!landmarkModalInstance) {
+            console.error('Modal 實例未初始化');
+            return;
+        }
+        currentAddressType = addressType;
+        landmarkModalInstance.show();
+    }
+
+    // 更新 Modal 介面
+    function updateModalUI() {
+        const modalHeader = document.getElementById('orderLandmarkModalHeader');
+        const modalTitle = document.getElementById('orderLandmarkModalLabel');
+        const modalSubtitle = document.getElementById('orderLandmarkModalSubtitle');
+
+        if (currentAddressType === 'pickup') {
+            modalHeader.className = 'modal-header text-white bg-gradient-success';
+            modalTitle.innerHTML = '<i class="fas fa-play-circle me-2"></i>選擇上車地標';
+            modalSubtitle.textContent = '選擇常用的上車地點';
+        } else {
+            modalHeader.className = 'modal-header text-white bg-gradient-danger';
+            modalTitle.innerHTML = '<i class="fas fa-stop-circle me-2"></i>選擇下車地標';
+            modalSubtitle.textContent = '選擇常用的下車地點';
+        }
+    }
+
+    // 重設 Modal 狀態
+    function resetModalState() {
+        currentAddressType = '';
+        // 清空搜尋框和結果
+        const searchInput = document.getElementById('orderModalLandmarkSearch');
+        if (searchInput) searchInput.value = '';
         
-        function initializeLandmarkDropdowns() {
-            // 處理 * 觸發搜尋
-            const landmarkInputs = document.querySelectorAll('.landmark-input');
-            landmarkInputs.forEach(input => {
-                input.addEventListener('input', function(e) {
-                    const inputValue = e.target.value;
-                    if (inputValue.includes('*')) {
-                        // 移除星號並觸發搜尋
-                        const keyword = inputValue.replace('*', '');
-                        e.target.value = keyword;
-                        
-                        // 開啟對應的 dropdown 並搜尋
-                        const dropdown = e.target.closest('.landmark-input-group').querySelector('.dropdown');
-                        const dropdownToggle = dropdown.querySelector('.dropdown-toggle');
-                        const searchInput = dropdown.querySelector('.landmark-search-input');
-                        
-                        // 設定搜尋關鍵字
-                        searchInput.value = keyword;
-                        
-                        // 開啟 dropdown
-                        const bsDropdown = new bootstrap.Dropdown(dropdownToggle);
-                        bsDropdown.show();
-                        
-                        // 執行搜尋
-                        setTimeout(() => {
-                            searchLandmarksInDropdown(dropdown, keyword);
-                        }, 100);
-                    }
-                });
-            });
+        const resultsContainer = document.getElementById('orderModalLandmarkResults');
+        if (resultsContainer) {
+            resultsContainer.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-search text-muted mb-2" style="font-size: 2rem;"></i>
+                    <p class="text-muted mb-0">請輸入關鍵字搜尋地標</p>
+                </div>
+            `;
+        }
+        // 重設分頁到第一個
+        const firstTab = document.querySelector('#modal-search-tab');
+        if (firstTab) {
+            new bootstrap.Tab(firstTab).show();
+        }
+    }
+
+    // 處理地址輸入框星號觸發
+    function handleLandmarkInputStar(e) {
+        const inputValue = e.target.value;
+        if (inputValue.includes('*')) {
+            const keyword = inputValue.replace('*', '').trim();
+            e.target.value = keyword;
             
-            // 綁定 dropdown 搜尋按鈕
-            document.querySelectorAll('.landmark-search-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const dropdown = this.closest('.dropdown');
-                    const searchInput = dropdown.querySelector('.landmark-search-input');
-                    const keyword = searchInput.value.trim();
-                    
-                    if (keyword) {
-                        searchLandmarksInDropdown(dropdown, keyword);
-                    }
-                });
-            });
-            
-            // 搜尋輸入框 Enter 鍵
-            document.querySelectorAll('.landmark-search-input').forEach(input => {
-                input.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        const dropdown = this.closest('.dropdown');
-                        const keyword = this.value.trim();
-                        
-                        if (keyword) {
-                            searchLandmarksInDropdown(dropdown, keyword);
-                        }
-                    }
-                });
-            });
+            const addressType = e.target.name === 'pickup_address' ? 'pickup' : 'dropoff';
+            openOrderLandmarkModal(addressType);
+
+            // 等待 Modal 顯示後再搜尋
+            landmarkModalElement.addEventListener('shown.bs.modal', () => {
+                const modalSearchInput = document.getElementById('orderModalLandmarkSearch');
+                if (modalSearchInput) {
+                    modalSearchInput.value = keyword;
+                    searchOrderLandmarksInModal();
+                }
+            }, { once: true });
+        }
+    }
+
+    // 處理 Modal 搜尋輸入框按鍵
+    function handleModalSearchKeypress(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            searchOrderLandmarksInModal();
+        }
+    }
+
+    // 在 Modal 中搜尋地標
+    function searchOrderLandmarksInModal() {
+        const keyword = document.getElementById('orderModalLandmarkSearch').value.trim();
+        const resultsContainer = document.getElementById('orderModalLandmarkResults');
+        
+        // 確保搜尋結果 tab 是 active
+        new bootstrap.Tab(document.getElementById('modal-search-tab')).show();
+
+        if (!keyword) {
+            resultsContainer.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-search text-muted mb-2" style="font-size: 2rem;"></i>
+                    <p class="text-muted mb-0">請輸入關鍵字以搜尋地標</p>
+                </div>
+            `;
+            return;
         }
         
-        // 在 dropdown 中搜尋地標
-        function searchLandmarksInDropdown(dropdown, keyword) {
-            const resultsContainer = dropdown.querySelector('.landmark-results');
-            resultsContainer.innerHTML = '<div class="text-center py-2">搜尋中...</div>';
-            
-            fetch(`/landmarks-search?keyword=${encodeURIComponent(keyword)}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.data.length > 0) {
-                        displayLandmarkResults(resultsContainer, data.data, dropdown);
-                    } else {
-                        resultsContainer.innerHTML = '<div class="text-muted py-2">查無符合條件的地標</div>';
-                    }
-                })
-                .catch(error => {
-                    console.error('搜尋地標錯誤:', error);
-                    resultsContainer.innerHTML = '<div class="text-danger py-2">搜尋失敗，請稍後再試</div>';
-                });
-        }
+        resultsContainer.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">搜尋中...</p></div>';
         
-        // 顯示搜尋結果
-        function displayLandmarkResults(container, landmarks, dropdown) {
-            let html = '';
-            
-            landmarks.forEach(landmark => {
-                const fullAddress = landmark.city + landmark.district + landmark.address;
-                const categoryBadge = getCategoryBadge(landmark.category);
-                
-                html += `
-                    <div class="landmark-item p-2 border-bottom" style="cursor: pointer;" 
-                         onclick="selectLandmarkFromDropdown('${fullAddress}', ${landmark.id}, this)">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <h6 class="mb-1">
-                                    <i class="fas fa-map-marker-alt text-danger"></i>
-                                    ${landmark.name}
-                                    ${categoryBadge}
-                                </h6>
-                                <small class="text-muted">${fullAddress}</small>
-                            </div>
-                            <small class="text-muted">${landmark.usage_count || 0}次</small>
+        fetch(`/landmarks-search?keyword=${encodeURIComponent(keyword)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data.length > 0) {
+                    displayLandmarkResultsInModal(resultsContainer, data.data);
+                } else {
+                    resultsContainer.innerHTML = `
+                        <div class="text-center py-4">
+                            <i class="fas fa-search text-muted mb-2" style="font-size: 2rem;"></i>
+                            <p class="text-muted mb-0">查無符合條件的地標</p>
                         </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('搜尋地標錯誤:', error);
+                resultsContainer.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-exclamation-triangle text-danger mb-2" style="font-size: 2rem;"></i>
+                        <p class="text-danger mb-0">搜尋失敗</p>
                     </div>
                 `;
             });
-            
-            container.innerHTML = html;
+    }
+
+    // 顯示搜尋結果
+    function displayLandmarkResultsInModal(container, landmarks) {
+        let html = landmarks.map(landmark => {
+            const fullAddress = (landmark.city || '') + (landmark.district || '') + (landmark.address || '');
+            const categoryBadge = getCategoryBadge(landmark.category);
+            const categoryIcon = getCategoryIcon(landmark.category);
+            const usageCount = landmark.usage_count || 0;
+
+            return `
+                <div class="landmark-item border rounded-3 mb-2 p-3 landmark-card" 
+                     data-category="${landmark.category}"
+                     onclick="selectLandmarkFromModal('${fullAddress}', ${landmark.id})">
+                    <div class="d-flex align-items-start">
+                        <div class="landmark-icon me-3 d-flex align-items-center justify-content-center rounded-circle bg-light" style="width: 40px; height: 40px;">
+                            <i class="${categoryIcon} text-primary"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <h6 class="mb-1 fw-bold text-dark">${landmark.name}</h6>
+                                <div class="d-flex align-items-center">
+                                    ${categoryBadge}
+                                    <small class="text-muted ms-2"><i class="fas fa-chart-bar me-1"></i>${usageCount}</small>
+                                </div>
+                            </div>
+                            <p class="text-muted mb-0 small"><i class="fas fa-map-marker-alt me-1"></i>${fullAddress}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        container.innerHTML = html || '<p class="text-center text-muted">沒有結果</p>';
+    }
+
+    // 選擇地標
+    function selectLandmarkFromModal(address, landmarkId) {
+        const targetInput = document.getElementById(currentAddressType + '_address');
+        if (targetInput) {
+            targetInput.value = address;
+            targetInput.setAttribute('data-landmark-id', landmarkId);
         }
-        
-        // 獲取分類標籤
-        function getCategoryBadge(category) {
-            const categories = {
-                'medical': { text: '醫療', class: 'bg-danger' },
-                'transport': { text: '交通', class: 'bg-primary' },
-                'education': { text: '教育', class: 'bg-success' },
-                'government': { text: '政府機關', class: 'bg-warning' },
-                'commercial': { text: '商業', class: 'bg-info' },
-                'general': { text: '一般', class: 'bg-secondary' }
-            };
-            
-            const cat = categories[category] || { text: category, class: 'bg-secondary' };
-            return `<span class="badge ${cat.class}">${cat.text}</span>`;
-        }
-    });
-    
-    // 選擇地標（從 dropdown）
-    function selectLandmarkFromDropdown(address, landmarkId, element) {
-        const dropdown = element.closest('.dropdown');
-        const inputGroup = dropdown.closest('.landmark-input-group');
-        const targetInput = inputGroup.querySelector('.landmark-input');
-        
-        // 填入地址
-        targetInput.value = address;
-        
-        // 儲存地標 ID
-        targetInput.setAttribute('data-landmark-id', landmarkId);
-        
-        // 關閉 dropdown
-        const dropdownToggle = dropdown.querySelector('.dropdown-toggle');
-        const bsDropdown = bootstrap.Dropdown.getInstance(dropdownToggle);
-        if (bsDropdown) {
-            bsDropdown.hide();
-        }
-        
-        // 更新使用次數
+        landmarkModalInstance.hide();
+        updateLandmarkUsage(landmarkId);
+        saveToRecentLandmarks(landmarkId, address);
+    }
+
+    // 更新使用次數
+    function updateLandmarkUsage(landmarkId) {
         fetch('/landmarks-usage', {
             method: 'POST',
             headers: {
@@ -1036,11 +1060,112 @@
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
             body: JSON.stringify({ landmark_id: landmarkId })
-        }).catch(error => {
-            console.error('更新地標使用次數失敗:', error);
-        });
+        }).catch(console.error);
     }
-    </script>
 
+    // 分類篩選
+    function filterLandmarksByCategory(category, button) {
+        document.querySelectorAll('.category-filter').forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        
+        const allItems = document.querySelectorAll('#orderModalLandmarkResults .landmark-item');
+        let hasVisibleItems = false;
+        allItems.forEach(item => {
+            const isVisible = category === 'all' || item.dataset.category === category;
+            item.style.display = isVisible ? 'block' : 'none';
+            if (isVisible) hasVisibleItems = true;
+        });
+
+        const resultsContainer = document.getElementById('orderModalLandmarkResults');
+        if (!hasVisibleItems) {
+            resultsContainer.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-filter text-muted mb-2" style="font-size: 2rem;"></i>
+                    <p class="text-muted mb-0">此分類下暫無地標</p>
+                </div>
+            `;
+        }
+    }
+
+    // 載入熱門地標
+    function loadOrderPopularLandmarksInModal() {
+        const container = document.getElementById('orderModalPopularLandmarks');
+        container.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-primary"></div></div>';
+        fetch('/landmarks-popular')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data.length > 0) {
+                    displayLandmarkResultsInModal(container, data.data);
+                } else {
+                    container.innerHTML = '<p class="text-center text-muted p-3">暫無熱門地標</p>';
+                }
+            }).catch(() => container.innerHTML = '<p class="text-center text-danger p-3">載入失敗</p>');
+    }
+
+    // 載入最近使用
+    function loadOrderRecentLandmarksInModal() {
+        const container = document.getElementById('orderModalRecentLandmarks');
+        const recentLandmarks = JSON.parse(localStorage.getItem('recentLandmarks') || '[]');
+        if (recentLandmarks.length === 0) {
+            container.innerHTML = '<p class="text-center text-muted p-3">暫無最近使用記錄</p>';
+            return;
+        }
+        
+        container.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-primary"></div></div>';
+        const landmarkIds = recentLandmarks.map(item => item.id);
+        
+        fetch('/landmarks-by-ids', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ ids: landmarkIds })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data.length > 0) {
+                displayLandmarkResultsInModal(container, data.data);
+            } else {
+                container.innerHTML = '<p class="text-center text-muted p-3">無法載入最近使用記錄</p>';
+            }
+        }).catch(() => container.innerHTML = '<p class="text-center text-danger p-3">載入失敗</p>');
+    }
+
+    // 保存到最近使用
+    function saveToRecentLandmarks(landmarkId, address) {
+        let recent = JSON.parse(localStorage.getItem('recentLandmarks') || '[]');
+        recent = recent.filter(item => item.id !== landmarkId);
+        recent.unshift({ id: landmarkId, address: address, timestamp: Date.now() });
+        localStorage.setItem('recentLandmarks', JSON.stringify(recent.slice(0, 20)));
+    }
+
+    // 輔助函數
+    function getCategoryBadge(category) {
+        const categories = {
+            'medical': { text: '醫療', class: 'bg-danger' },
+            'transport': { text: '交通', class: 'bg-primary' },
+            'education': { text: '教育', class: 'bg-success' },
+            'government': { text: '政府', class: 'bg-warning' },
+            'commercial': { text: '商業', class: 'bg-info' }
+        };
+        const cat = categories[category] || { text: '一般', class: 'bg-secondary' };
+        return `<span class="badge ${cat.class} rounded-pill">${cat.text}</span>`;
+    }
+
+    function getCategoryIcon(category) {
+        const icons = {
+            'medical': 'fas fa-hospital',
+            'transport': 'fas fa-bus',
+            'education': 'fas fa-school',
+            'government': 'fas fa-building',
+            'commercial': 'fas fa-store'
+        };
+        return icons[category] || 'fas fa-map-marker-alt';
+    }
+
+    // DOM 載入完成後初始化
+    document.addEventListener('DOMContentLoaded', initializeLandmarkModal);
+    </script>
 
 
