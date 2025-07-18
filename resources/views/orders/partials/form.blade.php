@@ -14,19 +14,7 @@
         </div>
     @endif
 
-        <!-- 訂單類型區塊 -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="alert alert-info border-0 rounded-3 d-flex align-items-center">
-                    <i class="fas fa-info-circle me-3 fs-4"></i>
-                    <div>
-                        <h6 class="mb-1">訂單類型</h6>
-                        <span class="fw-bold text-primary">{{ old('order_type', $order->order_type ?? $customer->county_care ?? '') }}</span>
-                        <input type="hidden" name="order_type" value="{{ old('order_type', $order->order_type ?? $customer->county_care ?? '') }}">
-                    </div>
-                </div>
-            </div>
-        </div>
+
         <!--個案資料表ID-->
         <input type="hidden" name="customer_id" value="{{ old('customer_id', $order->customer_id ?? $customer->id ?? '') }}">
         
@@ -45,35 +33,35 @@
             </div>
             <div class="card-body p-4">
                 <div class="row g-3">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label fw-bold">
                             <i class="fas fa-id-card text-primary me-2"></i>個案姓名
                         </label>
                         <input type="text" name="customer_name" class="form-control rounded-pill bg-light"
                             value="{{ old('customer_name', $order->customer_name ?? $customer->name ?? '') }}" readonly>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label fw-bold">
                             <i class="fas fa-id-badge text-info me-2"></i>個案身分證字號
                         </label>
                         <input type="text" name="customer_id_number" class="form-control rounded-pill bg-light"
                             value="{{ old('customer_id_number', $order->customer_id_number ?? $customer->id_number ?? '') }}" readonly>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label fw-bold">
                             <i class="fas fa-phone text-success me-2"></i>個案電話
                         </label>
-                        <input type="text" name="customer_phone" class="form-control rounded-pill"
-                            value="{{ old('customer_phone', $order->customer_phone ?? ($customer->phone_number[0] ?? '')) }}">
+                        <input type="text" name="customer_phone" class="form-control rounded-pill">
+                            
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label fw-bold">
                             <i class="fas fa-user-tag text-warning me-2"></i>個案身份別
                         </label>
                         <input type="text" name="identity" class="form-control rounded-pill bg-light"
                             value="{{ old('identity', $order->identity ?? $customer->identity ?? '') }}" readonly>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-2">
                         <label class="form-label fw-bold">
                             <i class="fas fa-building text-purple me-2"></i>交通公司
                         </label>
@@ -81,19 +69,8 @@
                             value="{{ old('service_company', $order->service_company ?? $customer->service_company ?? '') }}" readonly>
                     </div>
                 </div>
-            </div>
-        </div>
-        <!-- 共乘資訊區塊 -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-gradient-success text-white py-3">
-                <h5 class="mb-0 d-flex align-items-center">
-                    <i class="fas fa-users me-2"></i>
-                    共乘資訊
-                </h5>
-            </div>
-            <div class="card-body p-4">
-                <div class="row g-3">
-                    <div class="col-md-4">
+                <div class="row g-3 mt-2">
+                    <div class="col-md-2">
                         <label class="form-label fw-bold">
                             <i class="fas fa-search text-primary me-2"></i>共乘對象
                         </label>
@@ -107,19 +84,19 @@
                             </button>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label fw-bold">
                             <i class="fas fa-id-badge text-info me-2"></i>共乘身分證字號
                         </label>
                         <input type="text" name="carpool_id_number" id="carpool_id_number" class="form-control rounded-pill bg-light" readonly onfocus="this.blur();" value="{{ old('carpool_id_number', $order->carpool_id ?? '') }}">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label fw-bold">
                             <i class="fas fa-phone text-success me-2"></i>共乘電話
                         </label>
                         <input type="text" name="carpool_phone_number" id="carpool_phone_number" class="form-control rounded-pill bg-light" readonly onfocus="this.blur();" value="{{ old('carpool_phone_number', $order->carpool_phone ?? '') }}">
                     </div>
-                    <div class="col-md-12">
+                    <div class="col-md-6">
                         <label class="form-label fw-bold">
                             <i class="fas fa-map-marker-alt text-warning me-2"></i>共乘乘客地址
                         </label>
@@ -134,7 +111,7 @@
                 </div>
             </div>
         </div>
-
+        
 
 
         <!-- 用車資訊區塊 -->
@@ -147,13 +124,13 @@
             </div>
             <div class="card-body p-4">
                 <div class="row g-3">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label fw-bold">
                             <i class="fas fa-calendar text-primary me-2"></i>用車日期
                         </label>
                         <input type="date" name="ride_date" class="form-control rounded-pill" value="{{ old('ride_date', $order->ride_date ?? '') }}">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label fw-bold">
                             <i class="fas fa-clock text-info me-2"></i>用車時間
                         </label>
@@ -162,7 +139,7 @@
                             placeholder="例如：13:45"
                             value="{{ old('ride_time', isset($order) ? substr($order->ride_time, 0, 5) : '') }}">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label fw-bold">
                             <i class="fas fa-undo text-success me-2"></i>回程時間
                         </label>
@@ -171,13 +148,13 @@
                             placeholder="例如：13:45"
                             value="{{ old('ride_time') }}">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label fw-bold">
                             <i class="fas fa-user-friends text-warning me-2"></i>陪同人數
                         </label>
                         <input type="number" name="companions" class="form-control rounded-pill" min="0" value="{{ old('companions', $order->companions ?? 0) }}">
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-2">
                         <label class="form-label fw-bold">
                             <i class="fas fa-wheelchair text-danger me-2"></i>是否輪椅
                         </label>
@@ -186,7 +163,7 @@
                             <option value="1" {{ in_array(old('wheelchair', $order->wheelchair ?? ($customer->wheelchair ?? 0)) ,['1', '是']) ? 'selected' : '' }}>是</option>
                         </select>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-2">
                         <label class="form-label fw-bold">
                             <i class="fas fa-tools text-purple me-2"></i>爬梯機
                         </label>
@@ -196,20 +173,7 @@
                         </select>
                     </div>
                 </div>
-            </div>
-        </div>
-
-
-        <!-- 地址資訊區塊 -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-gradient-info text-white py-3">
-                <h5 class="mb-0 d-flex align-items-center">
-                    <i class="fas fa-map-marked-alt me-2"></i>
-                    地址資訊
-                </h5>
-            </div>
-            <div class="card-body p-4">
-                <div class="row g-3">
+                <div class="row g-3 mt-2">
                     <!-- 上車地址 -->
                     <div class="col-12">
                         <label class="form-label fw-bold">
@@ -321,9 +285,6 @@
                                 </div>
                             </div>
                         </div>
-                        <small class="form-text text-muted">
-                            <i class="fas fa-info-circle me-1"></i>提示：輸入關鍵字後加上*可搜尋地標，如：台北*
-                        </small>
                         @error('pickup_address')
                             <div class="text-danger">{{ $message }}</div>
                         @enderror
@@ -447,9 +408,6 @@
                                 </div>
                             </div>
                         </div>
-                        <small class="form-text text-muted">
-                            <i class="fas fa-info-circle me-1"></i>提示：輸入關鍵字後加上*可搜尋地標，如：台北*
-                        </small>
                         @error('dropoff_address')
                             <div class="text-danger">{{ $message }}</div>
                         @enderror
