@@ -53,12 +53,15 @@ class OrderController extends Controller
         }
 
         $user = auth()->user(); // 🔹目前登入的使用者
+        
+        // 保留搜尋參數，讓返回按鈕能維持搜尋狀態
+        $searchParams = $request->only(['keyword', 'start_date', 'end_date', 'customer_id']);
 
         if ($request->ajax()) {
-            return view('orders.create', compact('customer', 'user'));
+            return view('orders.create', compact('customer', 'user', 'searchParams'));
         }
 
-        return view('orders.create', compact('customer', 'user'));
+        return view('orders.create', compact('customer', 'user', 'searchParams'));
     }
 
     // 儲存新訂單資料（之後會補功能）
@@ -229,23 +232,30 @@ class OrderController extends Controller
             $driver = \App\Models\Driver::find($order->driver_id);
         }
 
-        return view('orders.show', compact('order', 'driver'));
+        // 保留搜尋參數，讓返回按鈕能維持搜尋狀態
+        $searchParams = request()->only(['keyword', 'start_date', 'end_date', 'customer_id']);
+
+        return view('orders.show', compact('order', 'driver', 'searchParams'));
     }
 
     // 顯示編輯表單（預留）
     public function edit(Order $order)
     {
+        // 保留搜尋參數，讓返回按鈕能維持搜尋狀態
+        $searchParams = request()->only(['keyword', 'start_date', 'end_date', 'customer_id']);
+
         // 如果是AJAX
         if (request()->ajax()) {
             return view('orders.edit', [
                 'order' => $order,
                 'customer' => $order->customer,
                 'user' => auth()->user(),
+                'searchParams' => $searchParams,
             ]);
         }
 
         // 如果直接進頁面
-        return view('orders.edit', compact('order'));
+        return view('orders.edit', compact('order', 'searchParams'));
     }
 
     // 更新訂單資料（預留）

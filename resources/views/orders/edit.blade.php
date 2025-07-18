@@ -9,10 +9,10 @@
                     <i class="fas fa-edit me-2"></i>編輯訂單 - {{ $order->order_number }}
                 </h3>
                 <div>
-                    <a href="{{ route('orders.show', $order) }}" class="btn btn-info btn-sm">
+                    <a href="{{ route('orders.show', array_merge(['order' => $order], $searchParams ?? [])) }}" class="btn btn-info btn-sm">
                         <i class="fas fa-eye me-2"></i>檢視詳細
                     </a>
-                    <a href="{{ route('orders.index') }}" class="btn btn-secondary btn-sm">
+                    <a href="{{ route('orders.index', $searchParams ?? []) }}" class="btn btn-secondary btn-sm">
                         <i class="fas fa-arrow-left me-2"></i>返回列表
                     </a>
                 </div>

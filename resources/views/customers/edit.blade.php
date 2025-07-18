@@ -30,7 +30,7 @@
 
             <div class="form-group">
                 <label>身分證字號 *</label>
-                <input type="text" name="id_number" class="form-control" value="{{ old('id_number', $customer->id_number) }}" required>
+                <input type="text" name="id_number" class="form-control" value="{{ old('id_number', $customer->id_number) }}" required pattern="^[A-Z][12]\d{8}$" placeholder="請輸入正確的身分證字號格式（如：A123456789）">
             </div>
 
             <div class="form-group">

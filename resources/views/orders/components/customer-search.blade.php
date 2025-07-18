@@ -20,7 +20,7 @@
             <div class="col-md-3">
                 <label for="end_date" class="form-label">結束日期</label>
                 <input type="date" name="end_date" id="end_date" class="form-control"
-                       value="{{ request('end_date') ?? \Carbon\Carbon::now()->endOfMonth()->toDateString() }}">
+                       value="{{ request('end_date') ?? \Carbon\Carbon::now()->addMonth()->endOfMonth()->toDateString() }}">
             </div>
             <div class="col-12">
                 <button type="submit" class="btn btn-primary">
@@ -108,7 +108,7 @@
                             </div>
                             <div class="col-md-3">
                                 <strong>特殊狀態：</strong>
-                                @if(in_array($customer->special_status, ['黑名單', 'VIP']))
+                                @if(in_array($customer->special_status, ['黑名單', '網頁']))
                                     <span class="badge bg-warning">{{ $customer->special_status }}</span>
                                 @else
                                     <span class="badge bg-secondary">{{ $customer->special_status }}</span>

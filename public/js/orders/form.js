@@ -471,10 +471,10 @@ class OrderForm {
                         </div>
                         <div class="flex-grow-1">
                             <div class="d-flex justify-content-between align-items-start mb-1">
-                                <h6 class="mb-1">${landmark.name}</h6>
+                                <h5 class="mb-1">${landmark.name}：${fullAddress}</h5>
                                 <div>${categoryBadge}</div>
                             </div>
-                            <p class="text-muted mb-0 small">${fullAddress}</p>
+                            <!--<p class="text-muted mb-0" style="font-size: 20px;">${fullAddress}</p>-->
                         </div>
                     </div>
                 </div>

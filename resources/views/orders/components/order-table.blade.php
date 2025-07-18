@@ -4,9 +4,9 @@
             <h5 class="mb-0">
                 <i class="fas fa-list me-2"></i>訂單列表
             </h5>
-            <a href="{{ route('orders.create') }}" class="btn btn-primary" id="createOrderBtn">
+            <!--<a href="{{ route('orders.create') }}" class="btn btn-primary" id="createOrderBtn">
                 <i class="fas fa-plus me-2"></i>新增訂單
-            </a>
+            </a>-->
         </div>
     </div>
     <div class="card-body">
@@ -50,8 +50,8 @@
                                 @case('一般')
                                     <span class="badge bg-success">一般</span>
                                     @break
-                                @case('VIP')
-                                    <span class="badge bg-danger">VIP</span>
+                                @case('網頁')
+                                    <span class="badge bg-danger">網頁</span>
                                     @break
                                 @case('個管單')
                                     <span class="badge bg-info">個管單</span>

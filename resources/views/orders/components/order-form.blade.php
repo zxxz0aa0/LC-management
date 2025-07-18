@@ -33,6 +33,11 @@
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-3">
+                    <label class="form-label">電話</label>
+                    <input type="text" name="customer_phone" class="form-control"
+                           value="{{ old('customer_phone', $order->customer_phone ?? '') }}">
+                </div>
+                <div class="col-md-3">
                     <label class="form-label">客戶姓名</label>
                     <input type="text" name="customer_name" class="form-control" 
                            value="{{ old('customer_name', $order->customer_name ?? $customer->name ?? '') }}" readonly>
@@ -41,11 +46,6 @@
                     <label class="form-label">身分證字號</label>
                     <input type="text" name="customer_id_number" class="form-control"
                            value="{{ old('customer_id_number', $order->customer_id_number ?? $customer->id_number ?? '') }}" readonly>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">電話</label>
-                    <input type="text" name="customer_phone" class="form-control"
-                           value="{{ old('customer_phone', $order->customer_phone ?? '') }}">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">身份別</label>
@@ -230,7 +230,7 @@
                     <label class="form-label">特殊狀態</label>
                     <select name="special_status" class="form-select">
                         <option value="一般" {{ old('special_status', $order->special_status ?? '一般') == '一般' ? 'selected' : '' }}>一般</option>
-                        <option value="VIP" {{ old('special_status', $order->special_status ?? '一般') == 'VIP' ? 'selected' : '' }}>VIP</option>
+                        <option value="網頁" {{ old('special_status', $order->special_status ?? '一般') == '網頁' ? 'selected' : '' }}>網頁</option>
                         <option value="個管單" {{ old('special_status', $order->special_status ?? '一般') == '個管單' ? 'selected' : '' }}>個管單</option>
                         <option value="黑名單" {{ old('special_status', $order->special_status ?? '一般') == '黑名單' ? 'selected' : '' }}>黑名單</option>
                     </select>

@@ -1,5 +1,5 @@
 <div class="modal fade" id="landmarkModal" tabindex="-1" aria-labelledby="landmarkModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header" id="landmarkModalHeader">
                 <div class="d-flex align-items-center">

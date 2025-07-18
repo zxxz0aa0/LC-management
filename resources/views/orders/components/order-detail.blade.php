@@ -26,6 +26,14 @@
                         <td>{{ $order->back_time ? (is_string($order->back_time) ? $order->back_time : $order->back_time->format('H:i')) : 'N/A' }}</td>
                     </tr>
                     <tr>
+                        <td><strong>上車地址：</strong></td>
+                        <td>{{ $order->pickup_address }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>下車地址：</strong></td>
+                        <td>{{ $order->dropoff_address }}</td>
+                    </tr>
+                    <tr>
                         <td><strong>是否輪椅：</strong></td>
                         <td>
                             @if($order->wheelchair)
@@ -53,8 +61,8 @@
                         <td><strong>特殊狀態：</strong></td>
                         <td>
                             @switch($order->special_status)
-                                @case('VIP')
-                                    <span class="badge bg-warning">VIP</span>
+                                @case('網頁')
+                                    <span class="badge bg-warning">網頁</span>
                                     @break
                                 @case('個管單')
                                     <span class="badge bg-info">個管單</span>
@@ -92,6 +100,9 @@
             </div>
         </div>
         
+    </div>
+    
+    <div class="col-md-6">
         {{-- 客戶資訊 --}}
         <div class="card mb-4">
             <div class="card-header bg-success text-white">
@@ -116,29 +127,6 @@
                     <tr>
                         <td><strong>身份別：</strong></td>
                         <td>{{ $order->identity }}</td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-6">
-        {{-- 地址資訊 --}}
-        <div class="card mb-4">
-            <div class="card-header bg-info text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-map-marker-alt me-2"></i>地址資訊
-                </h5>
-            </div>
-            <div class="card-body">
-                <table class="table table-borderless">
-                    <tr>
-                        <td><strong>上車地址：</strong></td>
-                        <td>{{ $order->pickup_address }}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>下車地址：</strong></td>
-                        <td>{{ $order->dropoff_address }}</td>
                     </tr>
                 </table>
             </div>
