@@ -33,7 +33,7 @@ class LandmarkController extends Controller
         // 排序
         $sortBy = $request->get('sort', 'name');
         $sortDirection = $request->get('direction', 'asc');
-        
+
         if ($sortBy === 'usage_count') {
             $query->orderBy('usage_count', 'desc');
         } else {
@@ -69,8 +69,8 @@ class LandmarkController extends Controller
         ]);
 
         // 檢查地址格式（需包含"市"與"區"）
-        $fullAddress = $validated['city'] . $validated['district'] . $validated['address'];
-        if (!preg_match('/市.+區/', $fullAddress)) {
+        $fullAddress = $validated['city'].$validated['district'].$validated['address'];
+        if (! preg_match('/市.+區/', $fullAddress)) {
             return back()->withErrors(['address' => '地址必須包含「市」與「區」'])->withInput();
         }
 
@@ -114,8 +114,8 @@ class LandmarkController extends Controller
         ]);
 
         // 檢查地址格式（需包含"市"與"區"）
-        $fullAddress = $validated['city'] . $validated['district'] . $validated['address'];
-        if (!preg_match('/市.+區/', $fullAddress)) {
+        $fullAddress = $validated['city'].$validated['district'].$validated['address'];
+        if (! preg_match('/市.+區/', $fullAddress)) {
             return back()->withErrors(['address' => '地址必須包含「市」與「區」'])->withInput();
         }
 
@@ -142,11 +142,11 @@ class LandmarkController extends Controller
     public function search(Request $request)
     {
         $keyword = $request->get('keyword', '');
-        
+
         if (empty($keyword)) {
             return response()->json([
                 'success' => false,
-                'message' => '請輸入搜尋關鍵字'
+                'message' => '請輸入搜尋關鍵字',
             ]);
         }
 
@@ -158,7 +158,7 @@ class LandmarkController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $landmarks
+            'data' => $landmarks,
         ]);
     }
 
@@ -168,7 +168,7 @@ class LandmarkController extends Controller
     public function batchDestroy(Request $request)
     {
         $ids = $request->get('ids', []);
-        
+
         if (empty($ids)) {
             return back()->with('error', '請選擇要刪除的地標');
         }
@@ -185,7 +185,7 @@ class LandmarkController extends Controller
     {
         $ids = $request->get('ids', []);
         $status = $request->get('status', true);
-        
+
         if (empty($ids)) {
             return back()->with('error', '請選擇要修改的地標');
         }
@@ -193,6 +193,7 @@ class LandmarkController extends Controller
         Landmark::whereIn('id', $ids)->update(['is_active' => $status]);
 
         $message = $status ? '批量啟用成功' : '批量停用成功';
+
         return back()->with('success', $message);
     }
 }

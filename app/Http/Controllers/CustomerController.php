@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\CustomersExport;
 use App\Models\Customer;
 use Illuminate\Http\Request;
-use App\Exports\CustomersExport;
-use App\Imports\CustomersImport;
 use Maatwebsite\Excel\Facades\Excel;
 
 class CustomerController extends Controller
@@ -18,8 +17,8 @@ class CustomerController extends Controller
             $keyword = $request->keyword;
             $query->where(function ($q) use ($keyword) {
                 $q->where('name', 'like', "%{$keyword}%")
-                ->orWhere('id_number', 'like', "%{$keyword}%")
-                ->orWhereJsonContains('phone_number', $keyword);
+                    ->orWhere('id_number', 'like', "%{$keyword}%")
+                    ->orWhereJsonContains('phone_number', $keyword);
             });
         }
 
@@ -48,7 +47,7 @@ class CustomerController extends Controller
         // 檢查地址格式（每一筆都需包含“市”與“區”）
         $addressArray = array_map('trim', explode(',', $validated['addresses']));
         foreach ($addressArray as $address) {
-            if (!preg_match('/市.+區/', $address)) {
+            if (! preg_match('/市.+區/', $address)) {
                 return back()->withErrors(['addresses' => '每筆地址必須包含「市」與「區」'])->withInput();
             }
         }
@@ -93,7 +92,7 @@ class CustomerController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'id_number' => 'required|string|max:20',
-            'email' => 'nullable|email|unique:customers,email,' . $customer->id,
+            'email' => 'nullable|email|unique:customers,email,'.$customer->id,
             'phone_number' => 'required|string',
             'addresses' => 'required|string',
             'status' => 'required|in:開案中,暫停中,已結案',
@@ -101,7 +100,7 @@ class CustomerController extends Controller
 
         $addressArray = array_map('trim', explode(',', $validated['addresses']));
         foreach ($addressArray as $address) {
-            if (!preg_match('/市.+區/', $address)) {
+            if (! preg_match('/市.+區/', $address)) {
                 return back()->withErrors(['addresses' => '每筆地址必須包含「市」與「區」'])->withInput();
             }
         }
@@ -139,10 +138,11 @@ class CustomerController extends Controller
     public function destroy(Customer $customer)
     {
         $customer->delete();
+
         return redirect()->route('customers.index')->with('success', '客戶已刪除');
     }
 
-        // 匯出 Excel
+    // 匯出 Excel
     public function export()
     {
         return Excel::download(new CustomersExport, 'customers.xlsx');
@@ -155,7 +155,7 @@ class CustomerController extends Controller
             'file' => 'required|file|mimes:xlsx,xls',
         ]);
 
-        $importer = new \App\Imports\CustomersImport();
+        $importer = new \App\Imports\CustomersImport;
         \Maatwebsite\Excel\Facades\Excel::import($importer, $request->file('file'));
 
         $success = $importer->successCount;
@@ -169,18 +169,19 @@ class CustomerController extends Controller
     }
 
     public function batchDelete(Request $request)
-{
-    $ids = $request->input('ids', []);
+    {
+        $ids = $request->input('ids', []);
 
-    if (!empty($ids)) {
-        Customer::whereIn('id', $ids)->delete();
-        return redirect()->route('customers.index')->with('success', '已成功刪除選取的客戶');
+        if (! empty($ids)) {
+            Customer::whereIn('id', $ids)->delete();
+
+            return redirect()->route('customers.index')->with('success', '已成功刪除選取的客戶');
+        }
+
+        return redirect()->route('customers.index')->with('error', '請先勾選要刪除的資料');
     }
 
-    return redirect()->route('customers.index')->with('error', '請先勾選要刪除的資料');
-}
-
-    //共乘對象查詢
+    // 共乘對象查詢
     public function carpoolSearch(Request $request)
     {
         $keyword = $request->input('keyword');
@@ -189,18 +190,17 @@ class CustomerController extends Controller
             $query->where('name', 'like', "%{$keyword}%")
                 ->orWhere('id_number', 'like', "%{$keyword}%")
                 ->orWhereJsonContains('phone_number', $keyword);
-        })->get(['name', 'id_number', 'phone_number', 'addresses','id']);
+        })->get(['name', 'id_number', 'phone_number', 'addresses', 'id']);
 
         // 將 phone_number 改為只取第一個號碼
         $customers = $customers->map(function ($customer) {
             $customer->phone_number = is_array($customer->phone_number)
                 ? ($customer->phone_number[0] ?? '')
                 : $customer->phone_number;
+
             return $customer;
         });
 
         return response()->json($customers);
     }
-
-
 }

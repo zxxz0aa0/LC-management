@@ -12,7 +12,7 @@ class Order extends Model
 
         // 快照欄位
         'customer_name', 'customer_id_number', 'customer_phone',
-        'driver_name', 'driver_plate_number','driver_fleet_number',
+        'driver_name', 'driver_plate_number', 'driver_fleet_number',
 
         // 其他欄位
         'order_type', 'service_company',
@@ -21,9 +21,9 @@ class Order extends Model
         'pickup_lat', 'pickup_lng',
         'dropoff_county', 'dropoff_district', 'dropoff_address',
         'dropoff_lat', 'dropoff_lng',
-        'wheelchair', 'stair_machine', 'companions','carpool_customer_id', 'carpool_name', 'carpool_id',
+        'wheelchair', 'stair_machine', 'companions', 'carpool_customer_id', 'carpool_name', 'carpool_id',
         'remark', 'created_by', 'identity', 'carpool_with',
-        'special_order', 'status','special_status',
+        'special_order', 'status', 'special_status',
     ];
 
     // 關聯：每筆訂單屬於一位客戶
@@ -41,8 +41,8 @@ class Order extends Model
     /**
      * 根據請求參數篩選訂單。
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param \Illuminate\Http\Request $request
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeFilter($query, $request)
@@ -50,9 +50,9 @@ class Order extends Model
         // 關鍵字篩選
         if ($request->filled('keyword')) {
             $query->where(function ($q) use ($request) {
-                $q->where('customer_name', 'like', '%' . $request->keyword . '%')
-                    ->orWhere('customer_id_number', 'like', '%' . $request->keyword . '%')
-                    ->orWhere('customer_phone', 'like', '%' . $request->keyword . '%');
+                $q->where('customer_name', 'like', '%'.$request->keyword.'%')
+                    ->orWhere('customer_id_number', 'like', '%'.$request->keyword.'%')
+                    ->orWhere('customer_phone', 'like', '%'.$request->keyword.'%');
             });
         }
 

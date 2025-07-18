@@ -64,9 +64,9 @@
                             <td>{{ $customer->identity }}</td>
                             <td>{{ $customer->service_company }}</td>
                             <td>
-                                <button class="btn btn-sm btn-success create-order-btn" data-customer-id="{{ $customer->id }}">
+                                <a href="{{ route('orders.create', ['customer_id' => $customer->id, 'keyword' => request('keyword')]) }}" class="btn btn-sm btn-success">
                                     建立訂單
-                                </button>
+                                </a>
                             </td>
                         </tr>
                     </tbody>
@@ -358,8 +358,41 @@ function handleOrderFormSubmit(e) {
 
 $(document).ready(function () {
     initOrderTable();
+    initializeCategoryFilters();
+    
     // 使用事件委派，為所有透過 AJAX 載入的 .orderForm 表單綁定提交流程
     $(document).on('submit', '.orderForm', handleOrderFormSubmit);
+    
+    // 分頁切換事件
+    $(document).on('shown.bs.tab', 'button[data-bs-toggle="pill"]', function (e) {
+        const target = $(e.target).data('bs-target');
+        const dropdown = $(e.target).closest('.landmark-dropdown');
+        
+        if (target.includes('popular-content')) {
+            const container = dropdown.find('.landmark-popular');
+            loadPopularLandmarks(container);
+        } else if (target.includes('recent-content')) {
+            const container = dropdown.find('.landmark-recent');
+            loadRecentLandmarks(container);
+        }
+    });
+    
+    // 地標選擇器打開時載入預設內容
+    $(document).on('shown.bs.dropdown', '.landmark-dropdown', function () {
+        const dropdown = $(this);
+        const searchResults = dropdown.find('.landmark-results');
+        
+        // 如果搜尋結果為空，顯示提示
+        if (searchResults.is(':empty')) {
+            searchResults.html(`
+                <div class="text-center py-4">
+                    <i class="fas fa-search text-muted mb-2" style="font-size: 2rem;"></i>
+                    <p class="text-muted mb-0">請輸入關鍵字搜尋地標</p>
+                    <small class="text-muted">或直接在地址欄輸入關鍵字加上 * 觸發搜尋</small>
+                </div>
+            `);
+        }
+    });
 });
 
 // 全選 / 取消全選
@@ -380,21 +413,7 @@ $(document).on('click', '.view-order-btn', function() {
     });
 });
 
-// 建立訂單
-$(document).on('click', '.create-order-btn', function() {
-    const customerId = $(this).data('customer-id');
-    const url = '{{ route('orders.create') }}';
-    const modalBody = $('#createOrderModal .modal-body');
-
-    modalBody.html('<div class="text-center py-3">載入中...</div>');
-    $('#createOrderModal').modal('show');
-
-    $.get(url, { customer_id: customerId }, function(data) {
-        modalBody.html(data);
-        // 重新初始化地標功能
-        initializeLandmarkInputsInModal();
-    });
-});
+// 建立訂單功能已改為頁面式，不再需要 Modal 處理
 
 // 修改訂單
 $(document).on('click', '.edit-order-btn', function() {
@@ -554,39 +573,35 @@ $(document).on('input', '#driver_fleet_number', function() {
     </div>
   </div>
 
-<!-- 編輯訂單 Modal -->
+<!-- 編輯訂單 Modal - 優化版本 -->
 <div class="modal fade" id="editOrderModal" tabindex="-1" aria-labelledby="editOrderModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="editOrderModalLabel">編輯訂單</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content shadow-lg border-0">
+        <div class="modal-header bg-gradient-primary text-white">
+          <div class="d-flex align-items-center">
+            <i class="fas fa-edit me-3 fs-4"></i>
+            <div>
+              <h5 class="modal-title mb-0" id="editOrderModalLabel">編輯訂單</h5>
+              <small class="text-light opacity-75">修改訂單資訊</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="關閉"></button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body p-0">
           {{-- AJAX載入表單 --}}
           <div id="editOrderContent">
-            <div class="text-center py-3">
-              載入中...
+            <div class="text-center py-5">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">載入中...</span>
+              </div>
+              <p class="mt-3 text-muted">載入訂單資料中...</p>
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-  <!-- 建立訂單 Modal -->
-<div class="modal fade" id="createOrderModal" tabindex="-1" aria-labelledby="createOrderLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="createOrderLabel">新增訂單</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
-            </div>
-            <div class="modal-body">
-                <div class="text-center py-3">載入中...</div>
-            </div>
-        </div>
-    </div>
-</div>
+  <!-- 建立訂單 Modal 已移除，改為頁面式 -->
 
 <script>
 // 初始化 Modal 中的地標功能（使用 Dropdown）
@@ -678,27 +693,57 @@ function searchLandmarksInDropdown(dropdown, keyword) {
         });
 }
 
-// 顯示搜尋結果
+// 顯示搜尋結果 - 優化版本
 function displayLandmarkResults(container, landmarks, dropdown) {
+    if (!landmarks || landmarks.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-search text-muted mb-2" style="font-size: 2rem;"></i>
+                <p class="text-muted mb-0">查無符合條件的地標</p>
+                <small class="text-muted">請嘗試其他關鍵字或分類</small>
+            </div>
+        `;
+        return;
+    }
+    
     let html = '';
     
-    landmarks.forEach(landmark => {
+    landmarks.forEach((landmark, index) => {
         const fullAddress = landmark.city + landmark.district + landmark.address;
         const categoryBadge = getCategoryBadge(landmark.category);
+        const categoryIcon = getCategoryIcon(landmark.category);
+        const usageCount = landmark.usage_count || 0;
+        const isPopular = usageCount >= 10;
         
         html += `
-            <div class="landmark-item p-2 border-bottom" style="cursor: pointer;" 
-                 onclick="selectLandmarkFromDropdown('${fullAddress}', ${landmark.id}, this)">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="mb-1">
-                            <i class="fas fa-map-marker-alt text-danger"></i>
-                            ${landmark.name}
-                            ${categoryBadge}
-                        </h6>
-                        <small class="text-muted">${fullAddress}</small>
+            <div class="landmark-item border rounded-3 mb-2 p-3 landmark-card" 
+                 style="cursor: pointer; transition: all 0.3s ease;" 
+                 data-category="${landmark.category}"
+                 onclick="selectLandmarkFromDropdown('${fullAddress}', ${landmark.id}, this)"
+                 onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'"
+                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0,0,0,0.1)'">
+                <div class="d-flex align-items-start">
+                    <div class="landmark-icon me-3 d-flex align-items-center justify-content-center rounded-circle bg-light" style="width: 40px; height: 40px;">
+                        <i class="${categoryIcon} text-primary"></i>
                     </div>
-                    <small class="text-muted">${landmark.usage_count || 0}次</small>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <h6 class="mb-1 fw-bold text-dark">
+                                ${landmark.name}
+                                ${isPopular ? '<i class="fas fa-fire text-warning ms-1" title="熱門地標"></i>' : ''}
+                            </h6>
+                            <div class="d-flex align-items-center">
+                                ${categoryBadge}
+                                <small class="text-muted ms-2">
+                                    <i class="fas fa-chart-bar me-1"></i>${usageCount}次
+                                </small>
+                            </div>
+                        </div>
+                        <p class="text-muted mb-0 small">
+                            <i class="fas fa-map-marker-alt me-1"></i>${fullAddress}
+                        </p>
+                        ${landmark.description ? `<small class="text-muted">${landmark.description}</small>` : ''}
+                    </div>
                 </div>
             </div>
         `;
@@ -719,7 +764,150 @@ function getCategoryBadge(category) {
     };
     
     const cat = categories[category] || { text: category, class: 'bg-secondary' };
-    return `<span class="badge ${cat.class}">${cat.text}</span>`;
+    return `<span class="badge ${cat.class} rounded-pill">${cat.text}</span>`;
+}
+
+// 獲取分類圖標
+function getCategoryIcon(category) {
+    const icons = {
+        'medical': 'fas fa-hospital',
+        'transport': 'fas fa-bus',
+        'education': 'fas fa-school',
+        'government': 'fas fa-building',
+        'commercial': 'fas fa-store',
+        'general': 'fas fa-map-marker-alt'
+    };
+    
+    return icons[category] || 'fas fa-map-marker-alt';
+}
+
+// 分類篩選功能
+function initializeCategoryFilters() {
+    $(document).on('click', '.category-filter', function() {
+        const dropdown = $(this).closest('.landmark-dropdown');
+        const category = $(this).data('category');
+        
+        // 更新按鈕狀態
+        dropdown.find('.category-filter').removeClass('active');
+        $(this).addClass('active');
+        
+        // 篩選結果
+        const allItems = dropdown.find('.landmark-item');
+        
+        if (category === 'all') {
+            allItems.show();
+        } else {
+            allItems.hide();
+            allItems.filter(`[data-category="${category}"]`).show();
+        }
+        
+        // 檢查是否有結果
+        const visibleItems = dropdown.find('.landmark-item:visible');
+        const resultsContainer = dropdown.find('.landmark-results');
+        
+        if (visibleItems.length === 0) {
+            resultsContainer.append(`
+                <div class="text-center py-4 no-results">
+                    <i class="fas fa-filter text-muted mb-2" style="font-size: 2rem;"></i>
+                    <p class="text-muted mb-0">此分類下暫無地標</p>
+                    <small class="text-muted">請選擇其他分類</small>
+                </div>
+            `);
+        } else {
+            resultsContainer.find('.no-results').remove();
+        }
+    });
+}
+
+// 載入熱門地標
+function loadPopularLandmarks(container) {
+    container.html(`
+        <div class="text-center py-3">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">載入中...</span>
+            </div>
+            <p class="mt-2 text-muted">載入熱門地標...</p>
+        </div>
+    `);
+    
+    fetch('/landmarks-popular')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data.length > 0) {
+                displayLandmarkResults(container[0], data.data);
+            } else {
+                container.html(`
+                    <div class="text-center py-4">
+                        <i class="fas fa-fire text-muted mb-2" style="font-size: 2rem;"></i>
+                        <p class="text-muted mb-0">暫無熱門地標</p>
+                        <small class="text-muted">地標需要有一定使用次數才會顯示</small>
+                    </div>
+                `);
+            }
+        })
+        .catch(error => {
+            console.error('載入熱門地標失敗:', error);
+            container.html(`
+                <div class="text-center py-4">
+                    <i class="fas fa-exclamation-triangle text-warning mb-2" style="font-size: 2rem;"></i>
+                    <p class="text-muted mb-0">載入失敗</p>
+                    <small class="text-muted">請稍後再試</small>
+                </div>
+            `);
+        });
+}
+
+// 載入最近使用的地標
+function loadRecentLandmarks(container) {
+    container.html(`
+        <div class="text-center py-3">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">載入中...</span>
+            </div>
+            <p class="mt-2 text-muted">載入最近使用...</p>
+        </div>
+    `);
+    
+    // 從 localStorage 獲取最近使用的地標
+    const recentLandmarks = JSON.parse(localStorage.getItem('recentLandmarks') || '[]');
+    
+    if (recentLandmarks.length > 0) {
+        // 獲取最近使用地標的詳細資訊
+        const landmarkIds = recentLandmarks.slice(0, 10).map(item => item.id);
+        
+        fetch('/landmarks-by-ids', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ ids: landmarkIds })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data.length > 0) {
+                displayLandmarkResults(container[0], data.data);
+            } else {
+                showNoRecentMessage(container);
+            }
+        })
+        .catch(error => {
+            console.error('載入最近使用地標失敗:', error);
+            showNoRecentMessage(container);
+        });
+    } else {
+        showNoRecentMessage(container);
+    }
+}
+
+function showNoRecentMessage(container) {
+    container.html(`
+        <div class="text-center py-4">
+            <i class="fas fa-history text-muted mb-2" style="font-size: 2rem;"></i>
+            <p class="text-muted mb-0">暫無最近使用記錄</p>
+            <small class="text-muted">使用地標後會顯示在這裡</small>
+        </div>
+    `);
 }
 
 // 選擇地標（從 dropdown）
@@ -734,11 +922,16 @@ function selectLandmarkFromDropdown(address, landmarkId, element) {
     // 儲存地標 ID
     targetInput.setAttribute('data-landmark-id', landmarkId);
     
+    // 添加選中效果
+    $(element).addClass('bg-success text-white').fadeOut(100).fadeIn(100);
+    
     // 關閉 dropdown
     const dropdownToggle = dropdown.querySelector('.dropdown-toggle');
     const bsDropdown = bootstrap.Dropdown.getInstance(dropdownToggle);
     if (bsDropdown) {
-        bsDropdown.hide();
+        setTimeout(() => {
+            bsDropdown.hide();
+        }, 300);
     }
     
     // 更新使用次數
@@ -752,5 +945,28 @@ function selectLandmarkFromDropdown(address, landmarkId, element) {
     }).catch(error => {
         console.error('更新地標使用次數失敗:', error);
     });
+    
+    // 保存到最近使用
+    saveToRecentLandmarks(landmarkId, address);
+}
+
+// 保存到最近使用地標
+function saveToRecentLandmarks(landmarkId, address) {
+    let recentLandmarks = JSON.parse(localStorage.getItem('recentLandmarks') || '[]');
+    
+    // 移除重複項目
+    recentLandmarks = recentLandmarks.filter(item => item.id !== landmarkId);
+    
+    // 添加到開頭
+    recentLandmarks.unshift({
+        id: landmarkId,
+        address: address,
+        timestamp: new Date().getTime()
+    });
+    
+    // 只保留最近 20 個
+    recentLandmarks = recentLandmarks.slice(0, 20);
+    
+    localStorage.setItem('recentLandmarks', JSON.stringify(recentLandmarks));
 }
 </script>

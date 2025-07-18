@@ -30,8 +30,8 @@ class CustomersExport implements FromCollection, WithHeadings
                 'a_mechanism' => $customer->a_mechanism,
                 'a_manager' => $customer->a_manager,
                 'special_status' => $customer->special_status,
-                'county_care' => $customer->county_care,            
-                'service_company' => $customer->service_company,    
+                'county_care' => $customer->county_care,
+                'service_company' => $customer->service_company,
                 'status' => $customer->status,
             ];
         });
@@ -58,8 +58,8 @@ class CustomersExport implements FromCollection, WithHeadings
             'a_mechanism',
             'a_manager',
             'special_status',
-            'county_care',        
-            'service_company',    
+            'county_care',
+            'service_company',
             'status',
         ];
     }

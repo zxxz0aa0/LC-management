@@ -10,7 +10,9 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
 class CustomersImport implements ToCollection, WithHeadingRow
 {
     public $successCount = 0;
+
     public $skipCount = 0;
+
     public $errorMessages = [];
 
     public function collection(Collection $rows)
@@ -20,10 +22,11 @@ class CustomersImport implements ToCollection, WithHeadingRow
         foreach ($rows as $row) {
             $idNumber = trim($row['id_number'] ?? '');
 
-            if (!$idNumber) {
+            if (! $idNumber) {
                 $this->errorMessages[] = "第 {$rowIndex} 列：缺少身分證號";
                 $this->skipCount++;
                 $rowIndex++;
+
                 continue;
             }
 
@@ -33,7 +36,9 @@ class CustomersImport implements ToCollection, WithHeadingRow
             foreach ($row->toArray() as $key => $value) {
                 $value = trim((string) $value);
 
-                if ($value === '' || $key === 'id_number') continue;
+                if ($value === '' || $key === 'id_number') {
+                    continue;
+                }
 
                 if (in_array($key, ['phone_number', 'addresses'])) {
                     // 處理 JSON 或逗號格式
@@ -45,15 +50,19 @@ class CustomersImport implements ToCollection, WithHeadingRow
                         $array = array_filter(array_map('trim', explode(',', $value)));
                     }
 
-                    if (count($array) === 0) continue; // 若解析結果為空，跳過
+                    if (count($array) === 0) {
+                        continue;
+                    } // 若解析結果為空，跳過
 
                     $data[$key] = $array;
+
                     continue;
                 }
 
-                if ($key === 'birthday' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+                if ($key === 'birthday' && ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
                     $this->errorMessages[] = "第 {$rowIndex} 列：生日格式錯誤（應為 YYYY-MM-DD）";
                     $this->skipCount++;
+
                     continue 2;
                 }
 
@@ -72,8 +81,12 @@ class CustomersImport implements ToCollection, WithHeadingRow
                 $this->successCount++;
             } catch (\Exception $e) {
                 $msg = "第 {$rowIndex} 列：資料庫錯誤";
-                if (str_contains($e->getMessage(), 'phone_number')) $msg .= '（phone_number 欄位錯誤）';
-                if (str_contains($e->getMessage(), 'addresses')) $msg .= '（addresses 欄位錯誤）';
+                if (str_contains($e->getMessage(), 'phone_number')) {
+                    $msg .= '（phone_number 欄位錯誤）';
+                }
+                if (str_contains($e->getMessage(), 'addresses')) {
+                    $msg .= '（addresses 欄位錯誤）';
+                }
 
                 $this->errorMessages[] = $msg;
                 $this->skipCount++;

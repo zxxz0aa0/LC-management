@@ -24,7 +24,7 @@ return new class extends Migration
             $table->integer('usage_count')->default(0)->comment('使用次數統計');
             $table->string('created_by', 100)->nullable()->comment('建立者');
             $table->timestamps();
-            
+
             // 索引
             $table->index('name');
             $table->index(['city', 'district']);

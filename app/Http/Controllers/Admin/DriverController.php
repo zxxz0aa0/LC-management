@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Driver;
+use Illuminate\Http\Request;
 
 class DriverController extends Controller
 {
@@ -16,9 +16,9 @@ class DriverController extends Controller
             $keyword = $request->keyword;
             $query->where(function ($q) use ($keyword) {
                 $q->where('name', 'like', "%$keyword%")
-                ->orWhere('phone', 'like', "%$keyword%")
-                ->orWhere('id_number', 'like', "%$keyword%")
-                ->orWhere('fleet_number', 'like', "%$keyword%");
+                    ->orWhere('phone', 'like', "%$keyword%")
+                    ->orWhere('id_number', 'like', "%$keyword%")
+                    ->orWhere('fleet_number', 'like', "%$keyword%");
             });
         }
 
@@ -54,8 +54,8 @@ class DriverController extends Controller
     {
         $request->validate([
             'name' => 'required',
-            'phone' => 'required|unique:drivers,phone,' . $driver->id,
-            'id_number' => 'required|unique:drivers,id_number,' . $driver->id,
+            'phone' => 'required|unique:drivers,phone,'.$driver->id,
+            'id_number' => 'required|unique:drivers,id_number,'.$driver->id,
         ]);
 
         $driver->update($request->all());
@@ -66,6 +66,7 @@ class DriverController extends Controller
     public function destroy(Driver $driver)
     {
         $driver->delete();
+
         return redirect()->route('drivers.index')->with('success', '駕駛已刪除');
     }
 
@@ -75,7 +76,7 @@ class DriverController extends Controller
 
         $driver = \App\Models\Driver::where('fleet_number', $fleetNumber)->first();
 
-        if (!$driver) {
+        if (! $driver) {
             return response()->json(['error' => '查無此隊編'], 404);
         }
 

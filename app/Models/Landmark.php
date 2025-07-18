@@ -42,9 +42,9 @@ class Landmark extends Model
     {
         return $query->where(function ($q) use ($keyword) {
             $q->where('name', 'like', "%{$keyword}%")
-              ->orWhere('address', 'like', "%{$keyword}%")
-              ->orWhere('city', 'like', "%{$keyword}%")
-              ->orWhere('district', 'like', "%{$keyword}%");
+                ->orWhere('address', 'like', "%{$keyword}%")
+                ->orWhere('city', 'like', "%{$keyword}%")
+                ->orWhere('district', 'like', "%{$keyword}%");
         });
     }
 
@@ -81,6 +81,6 @@ class Landmark extends Model
     // 取得完整地址（包含城市區域）
     public function getFullAddressAttribute()
     {
-        return $this->city . $this->district . $this->address;
+        return $this->city.$this->district.$this->address;
     }
 }

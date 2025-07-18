@@ -20,7 +20,7 @@ class CreateOrdersTable extends Migration
 
             $table->foreign('driver_id')
                 ->references('id')->on('drivers')
-                ->onDelete('set null');// 駕駛刪除時，設為 null（不會刪訂單）
+                ->onDelete('set null'); // 駕駛刪除時，設為 null（不會刪訂單）
 
             $table->string('customer_name');
             $table->string('customer_id_number');
@@ -29,8 +29,6 @@ class CreateOrdersTable extends Migration
             $table->string('driver_name')->nullable();
             $table->string('driver_plate_number')->nullable();
             $table->string('driver_fleet_number')->nullable();
-
-
 
             $table->string('order_type')->nullable();  // 訂單類型（新北長照、台北長照...）
             $table->string('service_company')->nullable();    // 服務單位（太豐、大立亨）
@@ -63,8 +61,6 @@ class CreateOrdersTable extends Migration
             $table->string('carpool_name')->nullable();   // 共乘姓名
             $table->string('carpool_id')->nullable();   // 共乘ID
 
-
-
             $table->text('remark')->nullable(); // 備註
 
             $table->string('created_by'); // 建單人員帳號或名稱
@@ -73,7 +69,7 @@ class CreateOrdersTable extends Migration
             $table->boolean('special_order')->default(false); // 特別訂單（例如特殊處理）
             $table->string('special_status')->nullable(); // 特殊狀態，例如黑名單、VIP等
 
-            $table->enum('status', ['open', 'assigned', 'bkorder',  'blocked','cancelled'])->default('open'); // 訂單狀態 open可派、ass已指派、repl已候補、block黑名單、can取消
+            $table->enum('status', ['open', 'assigned', 'bkorder',  'blocked', 'cancelled'])->default('open'); // 訂單狀態 open可派、ass已指派、repl已候補、block黑名單、can取消
 
             $table->timestamps(); // 建立與更新時間（created_at / updated_at）
         });

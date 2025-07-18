@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\CustomerEvent; // ⬅️ 確保有引入模型
+use App\Models\CustomerEvent;
+use Illuminate\Http\Request; // ⬅️ 確保有引入模型
 
 class CustomerEventController extends Controller
 {
