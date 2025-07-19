@@ -48,7 +48,7 @@
                 </div>
                 <div class="list-group">
                     @foreach($customers as $customer)
-                        <a href="{{ route('orders.index', ['customer_id' => $customer->id, 'keyword' => request('keyword')]) }}" 
+                        <a href="{{ route('orders.index', array_merge(['customer_id' => $customer->id], request()->only(['keyword', 'start_date', 'end_date']))) }}" 
                            class="list-group-item list-group-item-action">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
@@ -90,14 +90,20 @@
                             <div class="col-md-2">
                                 <strong>身份別：</strong><br>{{ $customer->identity }}
                             </div>
-                            <div class="col-md-1">
-                                <a href="{{ route('orders.create', ['customer_id' => $customer->id, 'keyword' => request('keyword')]) }}" 
-                                   class="btn btn-success btn-sm">
-                                    <i class="fas fa-plus me-1"></i>建立訂單
-                                </a>
-                            </div>
+                            @if(( $customer->status ?? '') == '開案中')
+                                <div class="col-md-1">
+                                    <a href="{{ route('orders.create', array_merge(['customer_id' => $customer->id], request()->only(['keyword', 'start_date', 'end_date']))) }}" 
+                                    class="btn btn-success btn-sm fs-6">
+                                        <i class="fas fa-plus me-1 "></i>建立訂單
+                                    </a>
+                                </div>
+                            @else
+                                <div class="col-md-1">
+                                    <span class="badge bg-danger fs-6">結案或暫停中</span>
+                                </div>
+                            @endif
                         </div>
-                        <div class="row mt-3">
+                        <div class="row mt-4">
                             <div class="col-md-3">
                                 <strong>狀態：</strong>
                                 @if(in_array($customer->status, ['暫停中', '已結案']))

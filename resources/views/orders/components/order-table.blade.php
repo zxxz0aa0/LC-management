@@ -84,10 +84,10 @@
                         </td>
                         <td>
                             <div class="btn-group" role="group">
-                                <a href="{{ route('orders.show', $order) }}" class="btn btn-info btn-sm" title="檢視">
+                                <a href="{{ route('orders.show', array_merge(['order' => $order], request()->only(['keyword', 'start_date', 'end_date', 'customer_id']))) }}" class="btn btn-info btn-sm" title="檢視">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="{{ route('orders.edit', $order) }}" class="btn btn-warning btn-sm" title="編輯">
+                                <a href="{{ route('orders.edit', array_merge(['order' => $order], request()->only(['keyword', 'start_date', 'end_date', 'customer_id']))) }}" class="btn btn-warning btn-sm" title="編輯">
                                     <i class="fas fa-edit"></i>
                                 </a>
                                 <button type="button" class="btn btn-danger btn-sm" onclick="deleteOrder({{ $order->id }})" title="刪除">
@@ -113,7 +113,7 @@
         {{-- 分頁 --}}
         @if(method_exists($orders, 'links'))
             <div class="d-flex justify-content-center mt-4">
-                {{ $orders->links() }}
+                {{ $orders->appends(request()->only(['keyword', 'start_date', 'end_date', 'customer_id']))->links() }}
             </div>
         @endif
     </div>

@@ -52,6 +52,12 @@
                     <input type="text" name="identity" class="form-control"
                            value="{{ old('identity', $order->identity ?? $customer->identity ?? '') }}" readonly>
                 </div>
+                @if(old('special_status', $order->special_status ?? $customer->special_status ?? '') == '黑名單')
+                    <div class="col-md-12">
+                        <input type="text" name="special_status" class="form-control bg-danger text-white text-center fs-1" style="height:100px;"
+                               value="黑名單" readonly>
+                    </div>
+                @endif
             </div>
         </div>
     </div>

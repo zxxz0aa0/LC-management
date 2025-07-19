@@ -82,9 +82,8 @@
             <div class="form-group">
                 <label>輪椅</label>
                 <select name="wheelchair" class="form-control">
-                    <option value="否">請選擇</option>
-                    <option value="是" {{ old('wheelchair') == '是' ? 'selected' : '' }}>是</option>
                     <option value="否" {{ old('wheelchair') == '否' ? 'selected' : '' }}>否</option>
+                    <option value="是" {{ old('wheelchair') == '是' ? 'selected' : '' }}>是</option>
                 </select>
             </div>
 
