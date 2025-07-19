@@ -349,4 +349,24 @@ class OrderController extends Controller
 
         return response()->json(['success' => false], 400);
     }
+
+    /**
+     * 取得客戶歷史訂單
+     */
+    public function getCustomerHistoryOrders(Customer $customer)
+    {
+        $orders = Order::where('customer_id', $customer->id)
+            ->orderBy('ride_date', 'desc')
+            ->orderBy('ride_time', 'desc')
+            ->limit(10)
+            ->select([
+                'id', 'ride_date', 'ride_time',
+                'pickup_address', 'dropoff_address', 
+                'companions', 'wheelchair', 'stair_machine',
+                'status'
+            ])
+            ->get();
+
+        return response()->json($orders);
+    }
 }

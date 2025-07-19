@@ -6,7 +6,7 @@
     @endif
 
     {{-- 隱藏欄位 --}}
-    <input type="hidden" name="customer_id" value="{{ old('customer_id', $order->customer_id ?? $customer->id ?? '') }}">
+    <input type="hidden" name="customer_id" value="{{ old('customer_id', isset($order) ? $order->customer_id : ($customer->id ?? '')) }}">
 
     @if(request('keyword'))
         <input type="hidden" name="keyword" value="{{ request('keyword') }}">
@@ -35,24 +35,24 @@
                 <div class="col-md-3">
                     <label class="form-label">電話</label>
                     <input type="text" name="customer_phone" class="form-control"
-                        value="{{ old('customer_phone', $order->customer_phone ?? '') }}">
+                        value="{{ old('customer_phone', isset($order) ? $order->customer_phone : '') }}">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">客戶姓名</label>
                     <input type="text" name="customer_name" class="form-control"
-                        value="{{ old('customer_name', $order->customer_name ?? $customer->name ?? '') }}" readonly>
+                        value="{{ old('customer_name', isset($order) ? $order->customer_name : ($customer->name ?? '')) }}" readonly>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">身分證字號</label>
                     <input type="text" name="customer_id_number" class="form-control"
-                        value="{{ old('customer_id_number', $order->customer_id_number ?? $customer->id_number ?? '') }}" readonly>
+                        value="{{ old('customer_id_number', isset($order) ? $order->customer_id_number : ($customer->id_number ?? '')) }}" readonly>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">身份別</label>
                     <input type="text" name="identity" class="form-control"
-                        value="{{ old('identity', $order->identity ?? $customer->identity ?? '') }}" readonly>
+                        value="{{ old('identity', isset($order) ? $order->identity : ($customer->identity ?? '')) }}" readonly>
                 </div>
-                @if(old('special_status', $order->special_status ?? $customer->special_status ?? '') == '黑名單')
+                @if(old('special_status', isset($order) ? $order->special_status : ($customer->special_status ?? '')) == '黑名單')
                     <div class="col-md-12">
                         <input type="text" name="special_status" class="form-control bg-danger text-white text-center fs-1" style="height:100px;"
                             value="黑名單" readonly>
@@ -65,16 +65,22 @@
     {{-- 用車資訊區塊 --}}
     <div class="card mb-4">
         <div class="card-header bg-warning text-dark">
-            <h5 class="mb-0">
-                <i class="fas fa-car me-2"></i>用車資訊
-            </h5>
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-car me-2"></i>用車資訊
+                </h5>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="historyOrderBtn" 
+                        style="display: none;" title="選擇歷史訂單快速填入">
+                    <i class="fas fa-history me-1"></i>歷史訂單
+                </button>
+            </div>
         </div>
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-2">
                     <label class="form-label">用車日期</label>
                     <input type="date" name="ride_date" class="form-control" required
-                    value="{{ old('ride_date', $order->ride_date ?? now()->format('Y-m-d')) }}">
+                           value="{{ old('ride_date', isset($order) ? $order->ride_date?->format('Y-m-d') : now()->format('Y-m-d')) }}">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">用車時間</label>
@@ -84,7 +90,7 @@
                            maxlength="5"
                            inputmode="numeric"
                            title="直接輸入4位數字，系統會自動格式化為 HH:MM"
-                           value="{{ old('ride_time', isset($order) ? substr($order->ride_time, 0, 5) : '') }}">
+                           value="{{ old('ride_time', isset($order) && $order->ride_time ? (strlen($order->ride_time) > 5 ? substr($order->ride_time, 0, 5) : $order->ride_time) : '') }}">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">回程時間</label>
@@ -94,25 +100,25 @@
                            maxlength="5"
                            inputmode="numeric"
                            title="直接輸入4位數字，系統會自動格式化為 HH:MM"
-                           value="{{ old('back_time', isset($order) ? substr($order->back_time, 0, 5) : '') }}">
+                           value="{{ old('back_time', '') }}">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">陪同人數</label>
                     <input type="number" name="companions" class="form-control" min="0"
-                           value="{{ old('companions', $order->companions ?? 0) }}">
+                           value="{{ old('companions', isset($order) ? $order->companions : 0) }}">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">輪椅</label>
                     <select name="wheelchair" class="form-select">
-                        <option value="0" {{ old('wheelchair', $order->wheelchair ?? 0) == 0 ? 'selected' : '' }}>否</option>
-                        <option value="1" {{ old('wheelchair', $order->wheelchair ?? 0) == 1 ? 'selected' : '' }}>是</option>
+                        <option value="0" {{ old('wheelchair', isset($order) ? $order->wheelchair : 0) == 0 ? 'selected' : '' }}>否</option>
+                        <option value="1" {{ old('wheelchair', isset($order) ? $order->wheelchair : 0) == 1 ? 'selected' : '' }}>是</option>
                     </select>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">爬梯機</label>
                     <select name="stair_machine" class="form-select">
-                        <option value="0" {{ old('stair_machine', $order->stair_machine ?? 0) == 0 ? 'selected' : '' }}>否</option>
-                        <option value="1" {{ old('stair_machine', $order->stair_machine ?? 0) == 1 ? 'selected' : '' }}>是</option>
+                        <option value="0" {{ old('stair_machine', isset($order) ? $order->stair_machine : 0) == 0 ? 'selected' : '' }}>否</option>
+                        <option value="1" {{ old('stair_machine', isset($order) ? $order->stair_machine : 0) == 1 ? 'selected' : '' }}>是</option>
                     </select>
                 </div>
             </div>
@@ -123,7 +129,7 @@
                     <label class="form-label">上車地址</label>
                     <div class="input-group">
                         <input type="text" name="pickup_address" id="pickup_address" class="form-control landmark-input" required
-                               value="{{ old('pickup_address', $order->pickup_address ?? '') }}"
+                               value="{{ old('pickup_address', isset($order) ? $order->pickup_address : '') }}"
                                placeholder="輸入地址或使用*觸發地標搜尋">
                         <button type="button" class="btn btn-outline-secondary" onclick="openLandmarkModal('pickup')">
                             <i class="fas fa-map-marker-alt"></i>
@@ -139,7 +145,7 @@
                     <label class="form-label">下車地址</label>
                     <div class="input-group">
                         <input type="text" name="dropoff_address" id="dropoff_address" class="form-control landmark-input" required
-                               value="{{ old('dropoff_address', $order->dropoff_address ?? '') }}"
+                               value="{{ old('dropoff_address', isset($order) ? $order->dropoff_address : '') }}"
                                placeholder="輸入地址或使用*觸發地標搜尋">
                         <button type="button" class="btn btn-outline-secondary" onclick="openLandmarkModal('dropoff')">
                             <i class="fas fa-map-marker-alt"></i>
@@ -211,7 +217,7 @@
                     <label class="form-label">駕駛隊編</label>
                     <div class="input-group">
                         <input type="text" name="driver_fleet_number" id="driver_fleet_number" class="form-control"
-                               value="{{ old('driver_fleet_number', $order->driver_fleet_number ?? '') }}">
+                               value="{{ old('driver_fleet_number', isset($order) ? $order->driver_fleet_number : '') }}">
                         <button type="button" class="btn btn-success" id="searchDriverBtn">
                             <i class="fas fa-search"></i>
                         </button>
@@ -245,24 +251,24 @@
                 <div class="col-md-6">
                     <label class="form-label">特殊狀態</label>
                     <select name="special_status" class="form-select">
-                        <option value="一般" {{ old('special_status', $order->special_status ?? '一般') == '一般' ? 'selected' : '' }}>一般</option>
-                        <option value="網頁" {{ old('special_status', $order->special_status ?? '一般') == '網頁' ? 'selected' : '' }}>網頁</option>
-                        <option value="個管單" {{ old('special_status', $order->special_status ?? '一般') == '個管單' ? 'selected' : '' }}>個管單</option>
-                        <option value="黑名單" {{ old('special_status', $order->special_status ?? '一般') == '黑名單' ? 'selected' : '' }}>黑名單</option>
+                        <option value="一般" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '一般' ? 'selected' : '' }}>一般</option>
+                        <option value="網頁" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '網頁' ? 'selected' : '' }}>網頁</option>
+                        <option value="個管單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '個管單' ? 'selected' : '' }}>個管單</option>
+                        <option value="黑名單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '黑名單' ? 'selected' : '' }}>黑名單</option>
                     </select>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">訂單狀態</label>
                     <select name="status" class="form-select">
-                        <option value="open" {{ old('status', $order->status ?? 'open') == 'open' ? 'selected' : '' }}>可派遣</option>
-                        <option value="assigned" {{ old('status', $order->status ?? 'open') == 'assigned' ? 'selected' : '' }}>已指派</option>
-                        <option value="replacement" {{ old('status', $order->status ?? 'open') == 'replacement' ? 'selected' : '' }}>候補</option>
-                        <option value="cancelled" {{ old('status', $order->status ?? 'open') == 'cancelled' ? 'selected' : '' }}>已取消</option>
+                        <option value="open" {{ old('status', isset($order) ? $order->status : 'open') == 'open' ? 'selected' : '' }}>可派遣</option>
+                        <option value="assigned" {{ old('status', isset($order) ? $order->status : 'open') == 'assigned' ? 'selected' : '' }}>已指派</option>
+                        <option value="replacement" {{ old('status', isset($order) ? $order->status : 'open') == 'replacement' ? 'selected' : '' }}>候補</option>
+                        <option value="cancelled" {{ old('status', isset($order) ? $order->status : 'open') == 'cancelled' ? 'selected' : '' }}>已取消</option>
                     </select>
                 </div>
                 <div class="col-12">
                     <label class="form-label">訂單備註</label>
-                    <textarea name="remark" class="form-control" rows="3">{{ old('remark', $order->remark ?? '') }}</textarea>
+                    <textarea name="remark" class="form-control" rows="3">{{ old('remark', isset($order) ? $order->remark : '') }}</textarea>
                 </div>
             </div>
         </div>

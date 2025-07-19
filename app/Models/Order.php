@@ -16,7 +16,7 @@ class Order extends Model
 
         // 其他欄位
         'order_type', 'service_company',
-        'ride_date', 'ride_time', 'back_time',
+        'ride_date', 'ride_time',
         'pickup_county', 'pickup_district', 'pickup_address',
         'pickup_lat', 'pickup_lng',
         'dropoff_county', 'dropoff_district', 'dropoff_address',
@@ -30,8 +30,6 @@ class Order extends Model
     // 資料類型轉換
     protected $casts = [
         'ride_date' => 'date',
-        'ride_time' => 'datetime:H:i',
-        'back_time' => 'datetime:H:i',
         'wheelchair' => 'boolean',
         'stair_machine' => 'boolean',
         'companions' => 'integer',

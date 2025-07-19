@@ -47,6 +47,14 @@ class OrderForm {
         // 時間自動格式化
         $('.time-auto-format').on('input', this.handleTimeAutoFormat.bind(this));
         $('.time-auto-format').on('keydown', this.handleTimeKeydown.bind(this));
+        
+        // 歷史訂單功能
+        $('#historyOrderBtn').on('click', this.handleHistoryOrderClick.bind(this));
+        
+        // 監聽客戶選擇，控制歷史訂單按鈕顯示
+        this.checkHistoryOrderButtonVisibility();
+        $('input[name="customer_id"]').on('change input', this.checkHistoryOrderButtonVisibility.bind(this));
+        $('input[name="customer_name"]').on('change input', this.checkHistoryOrderButtonVisibility.bind(this));
     }
     
     /**
@@ -842,6 +850,227 @@ class OrderForm {
         
         // 阻止其他按鍵
         e.preventDefault();
+    }
+    
+    /**
+     * 處理歷史訂單按鈕點擊
+     */
+    handleHistoryOrderClick() {
+        const customerId = $('input[name="customer_id"]').val();
+        
+        if (!customerId) {
+            alert('請先選擇客戶');
+            return;
+        }
+        
+        // 顯示 Modal
+        const modal = new bootstrap.Modal(document.getElementById('historyOrderModal'));
+        modal.show();
+        
+        // 載入歷史訂單
+        this.loadHistoryOrders(customerId);
+    }
+    
+    /**
+     * 載入客戶歷史訂單
+     */
+    loadHistoryOrders(customerId) {
+        // 顯示載入狀態
+        $('#historyOrderLoading').show();
+        $('#historyOrderContent').hide();
+        $('#historyOrderEmpty').hide();
+        $('#historyOrderError').hide();
+        
+        // AJAX 請求歷史訂單
+        $.ajax({
+            url: `/customers/${customerId}/history-orders`,
+            method: 'GET',
+            success: (response) => {
+                this.renderHistoryOrders(response);
+            },
+            error: (xhr) => {
+                console.error('載入歷史訂單失敗:', xhr);
+                $('#historyOrderLoading').hide();
+                $('#historyOrderError').show();
+            }
+        });
+    }
+    
+    /**
+     * 渲染歷史訂單列表
+     */
+    renderHistoryOrders(orders) {
+        $('#historyOrderLoading').hide();
+        
+        if (orders.length === 0) {
+            $('#historyOrderEmpty').show();
+            return;
+        }
+        
+        let html = '';
+        orders.forEach(order => {
+            const statusClass = `status-${order.status}`;
+            const statusText = this.getStatusText(order.status);
+            
+            html += `
+                <tr class="history-order-row">
+                    <td>${this.formatDate(order.ride_date)}</td>
+                    <td>${order.ride_time || '-'}</td>
+                    <td>
+                        <small class="text-muted" title="${order.pickup_address}">
+                            ${this.truncateText(order.pickup_address, 30)}
+                        </small>
+                    </td>
+                    <td>
+                        <small class="text-muted" title="${order.dropoff_address}">
+                            ${this.truncateText(order.dropoff_address, 30)}
+                        </small>
+                    </td>
+                    <td class="text-center">${order.companions || 0}</td>
+                    <td class="text-center">
+                        <i class="fas fa-${order.wheelchair ? 'check text-success' : 'times text-muted'}"></i>
+                    </td>
+                    <td class="text-center">
+                        <i class="fas fa-${order.stair_machine ? 'check text-success' : 'times text-muted'}"></i>
+                    </td>
+                    <td>
+                        <span class="badge status-badge ${statusClass}">${statusText}</span>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-primary btn-sm" 
+                                onclick="orderForm.selectHistoryOrder(${order.id})">
+                            <i class="fas fa-check me-1"></i>選擇
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        $('#historyOrderList').html(html);
+        $('#historyOrderContent').show();
+    }
+    
+    /**
+     * 選擇歷史訂單並填入表單
+     */
+    selectHistoryOrder(orderId) {
+        // 從當前顯示的列表中找到對應的訂單
+        const customerId = $('input[name="customer_id"]').val();
+        
+        $.ajax({
+            url: `/customers/${customerId}/history-orders`,
+            method: 'GET',
+            success: (orders) => {
+                const selectedOrder = orders.find(order => order.id === orderId);
+                if (selectedOrder) {
+                    this.fillFormWithHistoryOrder(selectedOrder);
+                    
+                    // 關閉 Modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('historyOrderModal'));
+                    modal.hide();
+                }
+            }
+        });
+    }
+    
+    /**
+     * 用歷史訂單資料填入表單
+     */
+    fillFormWithHistoryOrder(order) {
+        // 填入時間欄位
+        if (order.ride_time) {
+            const timeInput = $('input[name="ride_time"]');
+            timeInput.val(order.ride_time);
+            // 觸發自動格式化
+            timeInput.trigger('input');
+        }
+        
+        // 填入其他欄位
+        $('input[name="companions"]').val(order.companions || 0);
+        $('select[name="wheelchair"]').val(order.wheelchair ? '1' : '0');
+        $('select[name="stair_machine"]').val(order.stair_machine ? '1' : '0');
+        
+        // 填入地址欄位
+        if (order.pickup_address) {
+            $('input[name="pickup_address"]').val(order.pickup_address);
+        }
+        
+        if (order.dropoff_address) {
+            $('input[name="dropoff_address"]').val(order.dropoff_address);
+        }
+        
+        // 顯示成功訊息
+        this.showSuccessMessage('已成功填入歷史訂單資料');
+    }
+    
+    /**
+     * 顯示成功訊息
+     */
+    showSuccessMessage(message) {
+        // 創建臨時成功訊息
+        const alertHtml = `
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i>${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        
+        // 在表單頂部插入訊息
+        $('.order-form').prepend(alertHtml);
+        
+        // 3秒後自動移除
+        setTimeout(() => {
+            $('.alert-success').fadeOut(() => {
+                $('.alert-success').remove();
+            });
+        }, 3000);
+    }
+    
+    /**
+     * 格式化日期
+     */
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('zh-TW', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+    }
+    
+    /**
+     * 截斷文字
+     */
+    truncateText(text, maxLength) {
+        if (!text) return '-';
+        return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+    }
+    
+    /**
+     * 取得狀態文字
+     */
+    getStatusText(status) {
+        const statusMap = {
+            'open': '可派遣',
+            'assigned': '已指派',
+            'replacement': '候補',
+            'cancelled': '已取消'
+        };
+        return statusMap[status] || status;
+    }
+    
+    /**
+     * 檢查歷史訂單按鈕是否應該顯示
+     */
+    checkHistoryOrderButtonVisibility() {
+        const customerId = $('input[name="customer_id"]').val();
+        const customerName = $('input[name="customer_name"]').val();
+        
+        if (customerId && customerName) {
+            $('#historyOrderBtn').show();
+        } else {
+            $('#historyOrderBtn').hide();
+        }
     }
 }
 

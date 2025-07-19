@@ -47,6 +47,7 @@ Route::middleware('auth')->group(function () {
     // 訂單管理
     Route::resource('orders', OrderController::class);
     Route::get('/carpool-search', [CustomerController::class, 'carpoolSearch']);
+    Route::get('/customers/{customer}/history-orders', [OrderController::class, 'getCustomerHistoryOrders'])->name('customers.history-orders');
 
     // 地標管理路由
     Route::resource('landmarks', LandmarkController::class);

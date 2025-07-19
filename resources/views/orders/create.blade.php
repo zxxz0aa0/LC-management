@@ -21,6 +21,9 @@
 
 {{-- 地標選擇 Modal --}}
 @include('orders.components.landmark-modal')
+
+{{-- 歷史訂單選擇 Modal --}}
+@include('orders.components.history-modal')
 @endsection
 
 @push('scripts')
