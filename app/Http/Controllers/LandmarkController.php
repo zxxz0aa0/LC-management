@@ -5,6 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Landmark;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Exports\LandmarksExport;
+use App\Exports\LandmarkTemplateExport;
+use App\Imports\LandmarksImport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class LandmarkController extends Controller
 {
@@ -195,5 +199,43 @@ class LandmarkController extends Controller
         $message = $status ? '批量啟用成功' : '批量停用成功';
 
         return back()->with('success', $message);
+    }
+
+    /**
+     * 匯出地標資料為 Excel 檔案
+     */
+    public function export()
+    {
+        return Excel::download(new LandmarksExport, '地標資料_' . date('Y-m-d') . '.xlsx');
+    }
+
+    /**
+     * 匯入地標資料
+     */
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls',
+        ]);
+
+        $importer = new LandmarksImport;
+        Excel::import($importer, $request->file('file'));
+
+        $success = $importer->successCount;
+        $fail = $importer->skipCount;
+        $errors = $importer->errorMessages;
+
+        return redirect()->route('landmarks.index')->with([
+            'success' => "匯入完成：成功 {$success} 筆，失敗 {$fail} 筆。",
+            'import_errors' => $errors,
+        ]);
+    }
+
+    /**
+     * 下載地標匯入範例檔案
+     */
+    public function downloadTemplate()
+    {
+        return Excel::download(new LandmarkTemplateExport, '地標匯入範例檔案.xlsx');
     }
 }

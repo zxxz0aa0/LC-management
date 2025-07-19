@@ -49,7 +49,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/carpool-search', [CustomerController::class, 'carpoolSearch']);
     Route::get('/customers/{customer}/history-orders', [OrderController::class, 'getCustomerHistoryOrders'])->name('customers.history-orders');
 
-    // 地標管理路由
+    // 地標管理路由 - 匯入匯出路由必須在 resource 路由之前，避免路由衝突
+    Route::get('/landmarks/export', [LandmarkController::class, 'export'])->name('landmarks.export');
+    Route::post('/landmarks/import', [LandmarkController::class, 'import'])->name('landmarks.import');
+    Route::get('/landmarks/template', [LandmarkController::class, 'downloadTemplate'])->name('landmarks.template');
     Route::resource('landmarks', LandmarkController::class);
     Route::get('/landmarks-search', [LandmarkController::class, 'search'])->name('landmarks.search');
     Route::post('/landmarks/batch-destroy', [LandmarkController::class, 'batchDestroy'])->name('landmarks.batchDestroy');

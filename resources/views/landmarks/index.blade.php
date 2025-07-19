@@ -59,10 +59,36 @@
 
             <!-- 操作按鈕 -->
             <div class="mb-3">
-                <a href="{{ route('landmarks.create') }}" class="btn btn-primary">新增地標</a>
-                <button type="button" class="btn btn-success" onclick="batchToggle(true)">批量啟用</button>
-                <button type="button" class="btn btn-warning" onclick="batchToggle(false)">批量停用</button>
-                <button type="button" class="btn btn-danger" onclick="batchDelete()">批量刪除</button>
+                <div class="row">
+                    <div class="col-md-8">
+                        <a href="{{ route('landmarks.create') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>新增地標
+                        </a>
+                        <button type="button" class="btn btn-success" onclick="batchToggle(true)">
+                            <i class="fas fa-check me-1"></i>批量啟用
+                        </button>
+                        <button type="button" class="btn btn-warning" onclick="batchToggle(false)">
+                            <i class="fas fa-times me-1"></i>批量停用
+                        </button>
+                        <button type="button" class="btn btn-danger" onclick="batchDelete()">
+                            <i class="fas fa-trash me-1"></i>批量刪除
+                        </button>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <!-- 匯入匯出功能 -->
+                        <div class="btn-group">
+                            <a href="{{ route('landmarks.export') }}" class="btn btn-outline-success">
+                                <i class="fas fa-download me-1"></i>匯出 Excel
+                            </a>
+                            <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#importModal">
+                                <i class="fas fa-upload me-1"></i>匯入 Excel
+                            </button>
+                            <a href="{{ route('landmarks.template') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-file-excel me-1"></i>下載範例
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- 地標列表 -->
@@ -217,4 +243,62 @@ function getCheckedIds() {
     return Array.from(checkboxes).map(cb => cb.value);
 }
 </script>
+
+<!-- 匯入 Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('landmarks.import') }}" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importModalLabel">
+                        <i class="fas fa-upload me-2"></i>匯入地標資料
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="file" class="form-label">選擇 Excel 檔案</label>
+                        <input type="file" class="form-control" id="file" name="file" accept=".xlsx,.xls" required>
+                        <div class="form-text">
+                            支援的檔案格式：.xlsx, .xls
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>匯入須知：</h6>
+                        <ul class="mb-0">
+                            <li>請使用提供的範例檔案格式</li>
+                            <li>必填欄位：地標名稱、地址、城市、區域、分類</li>
+                            <li>分類選項：醫療、交通、教育、政府機關、商業、一般</li>
+                            <li>是否啟用：填入 1（啟用）或 0（停用）</li>
+                            <li>座標為選填，格式需為數字</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- 匯入錯誤訊息顯示 -->
+                    @if(session('import_errors') && count(session('import_errors')) > 0)
+                        <div class="alert alert-warning">
+                            <h6><i class="fas fa-exclamation-triangle me-2"></i>匯入錯誤詳情：</h6>
+                            <ul class="mb-0">
+                                @foreach(session('import_errors') as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>取消
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload me-1"></i>開始匯入
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @endsection

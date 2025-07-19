@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('customers', function (Blueprint $table) {
             $table->id();
             $table->string('name'); // 個案名稱
-            $table->string('id_number'); // 身分證字號
+            $table->string('id_number')->unique(); // 身分證字號，唯一
             $table->date('birthday')->nullable(); // 生日
             $table->string('gender')->nullable(); // 性別
             $table->json('phone_number'); // 多筆電話，如 ["0912xxxxxx", "02-xxxxxxx"]

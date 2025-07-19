@@ -289,6 +289,30 @@ $landmarks = $query->paginate(20);
 - 使用分頁機制，每頁限制 20 筆記錄
 - 支援搜尋和分類篩選，減少記憶體佔用
 
+**地標匯入匯出記憶體使用分析**：
+
+**LandmarksExport** (`app/Exports/LandmarksExport.php:13`):
+```php
+return Landmark::all()->map(function ($landmark) {
+    // 處理 12 個欄位，包含座標 JSON 轉換
+});
+```
+- **高記憶體風險**：使用 `Landmark::all()` 一次性載入所有地標
+- **記憶體佔用**：每筆地標約 800 bytes，50,000 筆約需 40MB
+- **建議最佳化**：實施分塊處理機制
+
+**LandmarksImport** (`app/Imports/LandmarksImport.php:28`):
+```php
+public function collection(Collection $rows) {
+    foreach ($rows as $row) { // 逐行處理
+        // 重複性檢查、分類對照、座標驗證
+    }
+}
+```
+- **記憶體友善**：逐行處理，避免大檔案記憶體問題
+- **潛在風險**：每行執行資料庫查詢檢查重複性
+- **錯誤追蹤**：使用實例變數累積錯誤訊息
+
 #### 資料模型記憶體最佳化
 
 **Customer Model** (`app/Models/Customer.php:36-39`):
@@ -339,6 +363,17 @@ protected $casts = [
    - 考慮使用 Redis 作為 Session 儲存
    - 設定 `SESSION_DRIVER=redis`
 
+4. **地標匯出分塊處理**
+   - 修改 `LandmarksExport::collection()` 使用 `chunk()` 方法
+   - 避免大量地標時記憶體不足問題
+   ```php
+   // 建議實施
+   public function collection() {
+       return Landmark::select(['id', 'name', 'address', ...])
+           ->chunk(1000)->flatten();
+   }
+   ```
+
 ### 2. 中優先級建議
 
 1. **分頁優化**
@@ -353,6 +388,21 @@ protected $casts = [
    - 執行 `php artisan config:cache`
    - 減少設定檔案讀取次數
 
+4. **地標匯入最佳化**
+   - 最佳化 `LandmarksImport` 重複性檢查機制
+   - 預先載入現有地標避免逐筆查詢
+   ```php
+   // 建議實施
+   $existingLandmarks = Landmark::select('name', 'address', 'city')
+       ->get()->keyBy(function($item) {
+           return $item->name . '|' . $item->address . '|' . $item->city;
+       });
+   ```
+
+5. **地標搜尋快取**
+   - 為 `LandmarkController::search()` 新增 Redis 快取
+   - 快取常用搜尋結果，減少資料庫查詢
+
 ### 3. 低優先級建議
 
 1. **路由快取**
@@ -365,11 +415,37 @@ protected $casts = [
    - 新增記憶體使用監控中介軟體
    - 記錄高記憶體使用的請求
 
+4. **地標匯入檔案大小限制**
+   - 在 `LandmarkController::import()` 新增檔案大小檢查
+   ```php
+   $request->validate([
+       'file' => 'required|file|mimes:xlsx,xls|max:10240', // 10MB 限制
+   ]);
+   ```
+
+5. **簡化範本下載功能**
+   - 將 `downloadTemplate()` 的匿名類別改為標準匯出類別
+   - 減少不必要的記憶體開銷
+
+6. **地標匯入匯出記憶體監控**
+   - 新增專門的記憶體使用監控
+   - 記錄匯入匯出操作的記憶體峰值
+
 ## 潛在記憶體問題
 
 ### 1. Excel 匯入匯出
 - 大檔案處理可能導致記憶體不足
 - 建議實作分塊處理或使用佇列處理
+
+#### 地標匯入匯出特定風險
+- **地標匯出高風險**：`LandmarksExport::collection()` 使用 `Landmark::all()` 
+  - 當地標數量超過 50,000 筆時可能記憶體不足
+  - 需實施 `chunk()` 分塊處理機制
+- **範本下載記憶體浪費**：`LandmarkController::downloadTemplate()` 使用匿名類別
+  - 範本資料被複製到匿名類別實例中
+  - 建議使用標準匯出類別替代
+- **匯入重複性檢查效能**：每行匯入都執行 `Landmark::where()` 查詢
+  - 建議預先載入現有地標進行批次比對
 
 ### 2. 大量資料查詢
 - `OrderController` 中的複雜查詢可能消耗大量記憶體
@@ -397,6 +473,197 @@ protected $casts = [
 3. **資料庫連線監控**
    - 監控資料庫連線數量
    - 避免連線洩漏
+
+## 地標系統記憶體最佳化專項指南
+
+### 地標資料記憶體特性分析
+
+**單筆地標記憶體佔用估算**：
+- 基本欄位（name, address, city, district）：約 200 bytes
+- 座標 JSON 欄位：約 50 bytes
+- 其他欄位（category, description, timestamps）：約 300 bytes
+- **總計**：約 550-800 bytes per 地標
+
+**vs. 客戶資料對比**：
+- 地標：800 bytes（12 欄位，1 個 JSON 欄位）
+- 客戶：2000 bytes（36 欄位，2 個 JSON 欄位）
+- **地標記憶體效率較高**，但匯出時仍需注意分塊處理
+
+### 地標匯入匯出記憶體最佳化實施指南
+
+#### 1. 匯出功能最佳化（高優先級）
+
+**問題**：`LandmarksExport::collection()` 使用 `Landmark::all()`
+
+**解決方案**：
+```php
+// 原始程式碼（高風險）
+return Landmark::all()->map(function ($landmark) { ... });
+
+// 最佳化方案 1：分塊處理
+public function collection()
+{
+    $landmarks = collect();
+    Landmark::chunk(1000, function ($chunk) use ($landmarks) {
+        $landmarks->push(...$chunk->map(function ($landmark) {
+            return [
+                'name' => $landmark->name,
+                'address' => $landmark->address,
+                // ... 其他欄位
+            ];
+        }));
+    });
+    return $landmarks;
+}
+
+// 最佳化方案 2：使用 Generator（推薦）
+public function collection()
+{
+    return Landmark::select([
+        'name', 'address', 'city', 'district', 'category',
+        'description', 'coordinates', 'is_active', 'usage_count',
+        'created_by', 'created_at'
+    ])->cursor()->map(function ($landmark) {
+        return [
+            'name' => $landmark->name,
+            'address' => $landmark->address,
+            'city' => $landmark->city,
+            'district' => $landmark->district,
+            'category' => $landmark->category_name,
+            'description' => $landmark->description ?? '',
+            'longitude' => $landmark->coordinates['lng'] ?? '',
+            'latitude' => $landmark->coordinates['lat'] ?? '',
+            'is_active' => $landmark->is_active ? '1' : '0',
+            'usage_count' => $landmark->usage_count,
+            'created_by' => $landmark->created_by ?? '',
+            'created_at' => $landmark->created_at->format('Y-m-d H:i:s'),
+        ];
+    });
+}
+```
+
+#### 2. 匯入功能最佳化（中優先級）
+
+**問題**：每行都執行重複性檢查資料庫查詢
+
+**解決方案**：
+```php
+// 原始程式碼（效能問題）
+$existingLandmark = Landmark::where('name', $name)
+    ->where('address', $address)
+    ->where('city', $city)
+    ->first();
+
+// 最佳化方案：預先載入所有地標
+public function collection(Collection $rows)
+{
+    // 預先載入現有地標
+    $existingLandmarks = Landmark::select('id', 'name', 'address', 'city')
+        ->get()
+        ->keyBy(function($item) {
+            return md5($item->name . '|' . $item->address . '|' . $item->city);
+        });
+
+    foreach ($rows as $row) {
+        $name = trim($row['地標名稱'] ?? '');
+        $address = trim($row['地址'] ?? '');
+        $city = trim($row['城市'] ?? '');
+        
+        // 使用記憶體中的查詢替代資料庫查詢
+        $key = md5($name . '|' . $address . '|' . $city);
+        $existingLandmark = $existingLandmarks->get($key);
+        
+        // 後續處理邏輯...
+    }
+}
+```
+
+#### 3. 範本下載最佳化（低優先級）
+
+**問題**：使用匿名類別造成不必要記憶體開銷
+
+**解決方案**：
+```php
+// 建立專門的範本匯出類別
+class LandmarkTemplateExport implements FromCollection, WithHeadings
+{
+    public function collection()
+    {
+        return collect([
+            [
+                '地標名稱' => '台北車站',
+                '地址' => '中正區忠孝西路一段49號',
+                // ... 其他範例資料
+            ],
+            // ... 其他範例
+        ]);
+    }
+
+    public function headings(): array
+    {
+        return [
+            '地標名稱', '地址', '城市', '區域', '分類',
+            '描述', '經度', '緯度', '是否啟用',
+        ];
+    }
+}
+
+// 在控制器中使用
+public function downloadTemplate()
+{
+    return Excel::download(
+        new LandmarkTemplateExport, 
+        '地標匯入範例檔案.xlsx'
+    );
+}
+```
+
+### 記憶體監控實施
+
+#### 地標專用記憶體監控中介軟體
+
+```php
+class LandmarkMemoryMonitor
+{
+    public function handle($request, Closure $next)
+    {
+        if (str_contains($request->path(), 'landmarks')) {
+            $memoryStart = memory_get_usage();
+            $response = $next($request);
+            $memoryEnd = memory_get_usage();
+            $memoryUsed = $memoryEnd - $memoryStart;
+            
+            // 記錄高記憶體使用操作
+            if ($memoryUsed > 20 * 1024 * 1024) { // 20MB
+                Log::warning('地標操作高記憶體使用', [
+                    'url' => $request->url(),
+                    'method' => $request->method(),
+                    'memory_used' => number_format($memoryUsed / 1024 / 1024, 2) . 'MB',
+                    'peak_memory' => number_format(memory_get_peak_usage() / 1024 / 1024, 2) . 'MB'
+                ]);
+            }
+            
+            return $response;
+        }
+        
+        return $next($request);
+    }
+}
+```
+
+### 效能基準測試
+
+**建議測試場景**：
+1. **小量測試**：1,000 筆地標匯出入
+2. **中量測試**：10,000 筆地標匯出入
+3. **大量測試**：50,000 筆地標匯出入
+4. **極限測試**：100,000 筆地標匯出入
+
+**記憶體監控指標**：
+- 匯出操作記憶體峰值
+- 匯入操作記憶體峰值
+- 錯誤訊息累積對記憶體的影響
+- 重複性檢查的記憶體開銷
 
 ## 總結
 
@@ -428,7 +695,29 @@ protected $casts = [
 - **使用統計追蹤**：記錄地標使用次數，優化常用地標排序
 - **記憶體優化**：搜尋結果限制、分頁機制、索引最佳化
 
-建議優先實施 Redis 快取和查詢最佳化，以提升系統整體效能和記憶體使用效率。地標系統已針對高頻使用場景進行最佳化，可有效提升訂單建立效率。
+### 地標匯入匯出功能記憶體管理更新（2025-07-19）
+
+#### 新增功能與記憶體影響
+- **地標匯出功能**：實現完整的 Excel 匯出，包含 12 個繁體中文欄位
+  - **記憶體風險**：使用 `Landmark::all()` 在大量地標時可能記憶體不足
+  - **影響評估**：每筆地標約 800 bytes，50,000 筆需約 40MB 記憶體
+- **地標匯入功能**：支援 Excel 匯入，包含分類對照和座標驗證
+  - **記憶體優勢**：逐行處理機制，記憶體使用友善
+  - **效能問題**：每行執行重複性檢查資料庫查詢
+- **範本下載功能**：提供繁體中文 Excel 範例檔案
+  - **記憶體浪費**：使用匿名類別實現，增加不必要開銷
+
+#### 記憶體管理最佳化建議實施
+- **高優先級**：地標匯出分塊處理，避免 `Landmark::all()` 記憶體風險
+- **中優先級**：最佳化匯入重複性檢查，預先載入現有地標資料
+- **低優先級**：簡化範本下載，使用標準匯出類別替代匿名類別
+
+#### 與現有系統記憶體使用對比
+- **地標 vs 客戶記憶體效率**：地標系統記憶體效率較高（800 vs 2000 bytes/筆）
+- **匯入匯出模式一致性**：遵循客戶系統的匯入匯出架構模式
+- **記憶體風險相同**：兩系統都存在匯出時 `::all()` 的記憶體風險
+
+建議優先實施 Redis 快取和查詢最佳化，以提升系統整體效能和記憶體使用效率。地標系統已針對高頻使用場景進行最佳化，可有效提升訂單建立效率。新增的匯入匯出功能需要進一步最佳化以確保大量資料處理時的記憶體安全。
 
 ## 訂單系統重構詳細記錄
 
