@@ -41,8 +41,12 @@ class OrderForm {
         // 數字輸入限制
         $('input[type="number"]').on('input', this.handleNumberInput.bind(this));
         
-        // 時間格式驗證
+        // 時間格式驗證（保留原有的，但現在沒有 type="time" 欄位了）
         $('input[type="time"]').on('blur', this.validateTimeInput.bind(this));
+        
+        // 時間自動格式化
+        $('.time-auto-format').on('input', this.handleTimeAutoFormat.bind(this));
+        $('.time-auto-format').on('keydown', this.handleTimeKeydown.bind(this));
     }
     
     /**
@@ -737,6 +741,107 @@ class OrderForm {
         } else {
             field.removeClass('is-invalid');
         }
+    }
+    
+    /**
+     * 處理時間自動格式化
+     */
+    handleTimeAutoFormat(e) {
+        const input = e.target;
+        let value = input.value.replace(/[^\d]/g, ''); // 只保留數字
+        
+        // 限制最多4位數字
+        if (value.length > 4) {
+            value = value.substring(0, 4);
+        }
+        
+        let formattedValue = '';
+        
+        if (value.length >= 1) {
+            let hours = value.substring(0, 2);
+            let minutes = value.substring(2, 4);
+            
+            // 處理小時部分
+            if (value.length === 1) {
+                // 第一位數字如果是3-9，自動補0
+                if (parseInt(value) >= 3) {
+                    hours = '0' + value;
+                    formattedValue = hours + ':';
+                    // 設定游標位置到冒號後
+                    setTimeout(() => {
+                        input.setSelectionRange(3, 3);
+                    }, 0);
+                } else {
+                    formattedValue = value;
+                }
+            } else if (value.length === 2) {
+                // 驗證小時範圍
+                let hourNum = parseInt(hours);
+                if (hourNum > 23) {
+                    hours = '23';
+                }
+                formattedValue = hours + ':';
+                // 設定游標位置到冒號後
+                setTimeout(() => {
+                    input.setSelectionRange(3, 3);
+                }, 0);
+            } else if (value.length >= 3) {
+                // 處理分鐘部分
+                let hourNum = parseInt(hours);
+                if (hourNum > 23) {
+                    hours = '23';
+                }
+                
+                if (minutes.length === 1) {
+                    formattedValue = hours + ':' + minutes;
+                } else {
+                    let minNum = parseInt(minutes);
+                    if (minNum > 59) {
+                        minutes = '59';
+                    }
+                    formattedValue = hours + ':' + minutes;
+                }
+            }
+        }
+        
+        input.value = formattedValue;
+    }
+    
+    /**
+     * 處理時間輸入的特殊按鍵
+     */
+    handleTimeKeydown(e) {
+        const input = e.target;
+        
+        // 允許的按鍵：數字、退格鍵、刪除鍵、Tab、方向鍵
+        const allowedKeys = [
+            'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+            'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'
+        ];
+        
+        // 如果是允許的按鍵或者是數字鍵，則允許
+        if (allowedKeys.includes(e.key) || 
+            (e.key >= '0' && e.key <= '9') ||
+            (e.ctrlKey || e.metaKey)) { // 允許 Ctrl+A, Ctrl+C 等
+            
+            // 處理退格鍵
+            if (e.key === 'Backspace') {
+                const cursorPos = input.selectionStart;
+                const value = input.value;
+                
+                // 如果游標在冒號後且冒號前是完整的小時，刪除冒號和前一位數字
+                if (cursorPos === 3 && value.length === 3 && value[2] === ':') {
+                    e.preventDefault();
+                    input.value = value.substring(0, 1);
+                    input.setSelectionRange(1, 1);
+                }
+            }
+            
+            return;
+        }
+        
+        // 阻止其他按鍵
+        e.preventDefault();
     }
 }
 

@@ -29,8 +29,10 @@ php artisan route:cache
 php artisan view:cache
 
 # 測試執行
-php artisan test
-./vendor/bin/phpunit
+php artisan test                    # Laravel 測試套件
+php artisan test --parallel         # 平行執行測試
+./vendor/bin/phpunit                # PHPUnit 測試
+./vendor/bin/phpunit --filter=ExampleTest  # 執行特定測試
 
 # 程式碼格式化
 ./vendor/bin/pint
@@ -45,7 +47,7 @@ php artisan db:seed --class=LandmarkSeeder
 
 ### 前端建置指令
 ```bash
-# 開發模式
+# 開發模式 (使用 Vite)
 npm run dev
 
 # 生產建置
@@ -54,6 +56,9 @@ npm run build
 # 依賴安裝
 npm install
 composer install
+
+# Vite 熱更新開發
+npm run dev -- --host  # 允許外部存取
 ```
 
 ## 應用程式架構
@@ -111,10 +116,12 @@ public/js/orders/
 - **維護性**: 清晰的職責劃分，易於維護和擴展
 
 ### 前端架構
+- **Vite**: 現代前端建置工具，提供快速熱更新
+- **Tailwind CSS**: 實用性優先的 CSS 框架
+- **Alpine.js**: 輕量級 JavaScript 框架（透過 CDN 引入）
 - **AdminLTE 3.2**: 主要管理介面框架
 - **Bootstrap 5.3** + **DataTables**: 表格展示
-- **Alpine.js**: 輕量級 JavaScript 框架
-- **Tailwind CSS**: 實用性優先的 CSS 框架
+- **PostCSS**: CSS 後處理器，支援 Autoprefixer
 
 ## 關鍵特色功能
 
@@ -512,3 +519,71 @@ protected $casts = [
 - **維護性提升**：清晰的職責劃分和檔案結構
 
 這次重構不僅解決了原有的架構問題，還為後續的功能擴展和維護打下了堅實的基礎。
+
+## 安全性最佳實踐
+
+### 資料驗證與保護
+- **CSRF 保護**: 所有表單都包含 CSRF Token (`@csrf`)
+- **SQL 注入防護**: 使用 Eloquent ORM 和 Query Builder
+- **XSS 防護**: Blade 模板自動轉義輸出 (`{{ }}`)
+- **Mass Assignment 保護**: 模型使用 `$fillable` 白名單
+
+### 身份驗證與授權
+- **Laravel Breeze**: 提供基本的身份驗證功能
+- **Session 安全**: HTTP-only cookies，防止 JavaScript 存取
+- **密碼安全**: 使用 Laravel 內建的密碼雜湊
+
+### 檔案安全
+- **上傳檔案限制**: Excel 檔案類型驗證
+- **儲存隔離**: 使用 `storage/` 目錄，與公開檔案分離
+- **環境變數**: 敏感資訊存放於 `.env` 檔案
+
+### 資料庫安全
+- **連線加密**: 支援 SSL 連線
+- **預備語句**: 使用參數化查詢
+- **最小權限**: 資料庫使用者僅具備必要權限
+
+## 開發環境設定
+
+### 必要環境變數
+```bash
+# 資料庫連線
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=lc_management
+DB_USERNAME=root
+DB_PASSWORD=
+
+# 快取設定 (建議生產環境使用 Redis)
+CACHE_DRIVER=file
+SESSION_DRIVER=file
+
+# 應用程式設定
+APP_KEY=                    # 執行 php artisan key:generate 生成
+APP_DEBUG=true              # 生產環境應設為 false
+APP_URL=http://localhost:8000
+```
+
+### 初始化專案步驟
+```bash
+# 1. 複製環境變數檔案
+cp .env.example .env
+
+# 2. 安裝依賴
+composer install
+npm install
+
+# 3. 生成應用程式金鑰
+php artisan key:generate
+
+# 4. 資料庫遷移與測試資料
+php artisan migrate
+php artisan db:seed --class=LandmarkSeeder
+
+# 5. 建置前端資源
+npm run build
+
+# 6. 清除快取
+php artisan optimize:clear
+```

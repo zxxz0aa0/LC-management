@@ -42,26 +42,26 @@
 
         <div class="table-responsive">
             <table id="customers-table" class="table table-bordered table-hover align-middle mb-0">
-                <thead class="table-success">
+                <thead class="table-success align-middle">
                     <tr>
-                        <th style="width:40px;"><input type="checkbox" id="select-all"></th>
-                        <th>姓名</th>
-                        <th>身分證字號</th>
-                        <th>聯絡電話</th>
-                        <th>地址</th>
-                        <th>長照縣市</th>
-                        <th>服務公司</th>
-                        <th>共乘</th>
-                        <th>爬梯</th>
-                        <th>特殊</th>
-                        <th>狀態</th>
-                        <th style="width:120px;">操作</th>
+                        <!--<th style="width:40px;"><input type="checkbox" id="select-all"></th>--> <!--備註：可批次刪除選項-->
+                        <th style="width: 7%;">姓名</th>
+                        <th style="width: 7%;">身分證字號</th>
+                        <th style="width: 10%;">聯絡電話</th>
+                        <th style="width: 19%;">地址</th>
+                        <th style="width: 8%;">個案來源</th>
+                        <th style="width: 8%;">服務公司</th>
+                        <th style="width: 6%;">共乘</th>
+                        <th style="width: 6%;">爬梯</th>
+                        <th style="width: 6%;">特殊</th>
+                        <th style="width: 6%;">狀態</th>
+                        <th>操作</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($customers as $customer)
                         <tr>
-                            <td><input class="me-2" type="checkbox" name="ids[]" value="{{ $customer->id }}" form="batch-delete-form">{{ $loop->iteration }}</td>
+                            <!--<td><input class="me-2" type="checkbox" name="ids[]" value="{{ $customer->id }}" form="batch-delete-form">{{ $loop->iteration }}</td>-->
                             <td>{{ $customer->name }}</td>
                             <td>{{ $customer->id_number }}</td>
                             <td>{{ is_array($customer->phone_number) ? implode(' / ', $customer->phone_number) : $customer->phone_number }}</td>
@@ -83,11 +83,11 @@
                             <td>
                                 <div class="d-flex gap-1"  style="width:150px;" >
                                     <a href="{{ route('customers.edit', $customer) }}" class="btn btn-sm btn-warning">編輯</a>
-                                    <form action="{{ route('customers.destroy', $customer) }}" method="POST" class="d-inline m-0 p-0">
+                                    <!--<form action="{{ route('customers.destroy', $customer) }}" method="POST" class="d-inline m-0 p-0">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('確定要刪除嗎？');">刪除</button>
-                                    </form>
+                                    </form>-->
                                     <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#eventModal{{ $customer->id }}">事件</button>
                                 </div>
                                 <!-- Modal -->
@@ -159,12 +159,12 @@
                     @endforeach
                 </tbody>
             </table>
-                    <form id="batch-delete-form" method="POST" action="{{ route('customers.batchDelete') }}" class="mb-2">
+                    <!--<form id="batch-delete-form" method="POST" action="{{ route('customers.batchDelete') }}" class="mb-2">
                         @csrf
                         <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('確定要刪除選取的客戶嗎？')">
                             批次刪除
                         </button>
-                    </form>
+                    </form>-->
         </div>
         {{-- 原本的 Laravel 分頁已由 DataTables 取代 --}}
         {{-- {{ $customers->links() }} --}}

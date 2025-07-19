@@ -30,6 +30,29 @@
     </ul>
 
     <!-- 右邊其他功能 -->
+    <ul class="navbar-nav ms-auto">
+        <!-- 用戶資訊下拉選單 -->
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" aria-expanded="false">
+                <i class="far fa-user"></i>
+                <span class="ms-1">{{ Auth::user()->name ?? '用戶' }}</span>
+                <i class="fas fa-angle-down ms-1"></i>
+            </a>
+            <div class="dropdown-menu dropdown-menu-end">
+                <a href="{{ route('profile.edit') }}" class="dropdown-item">
+                    <i class="fas fa-user-edit me-2"></i>個人設定
+                </a>
+                <div class="dropdown-divider"></div>
+                <form method="POST" action="{{ route('logout') }}" class="d-inline">
+                    @csrf
+                    <button type="submit" class="dropdown-item text-danger" 
+                            onclick="return confirm('確定要登出嗎？')">
+                        <i class="fas fa-sign-out-alt me-2"></i>登出
+                    </button>
+                </form>
+            </div>
+        </li>
+    </ul>
 </nav>
 
     <!-- Sidebar -->
