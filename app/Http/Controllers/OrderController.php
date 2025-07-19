@@ -53,7 +53,7 @@ class OrderController extends Controller
         }
 
         $user = auth()->user(); // 🔹目前登入的使用者
-        
+
         // 保留搜尋參數，讓返回按鈕能維持搜尋狀態
         $searchParams = $request->only(['keyword', 'start_date', 'end_date', 'customer_id']);
 
@@ -96,7 +96,6 @@ class OrderController extends Controller
                 'created_by' => 'required|string',
                 'identity' => 'required|string',
                 'carpool_name' => 'nullable|string',
-                'special_order' => 'required|boolean',
                 'special_status' => 'nullable|string',
                 'carpool_customer_id' => 'nullable|integer',
                 'carpool_id' => 'nullable|string',
@@ -195,7 +194,6 @@ class OrderController extends Controller
             'created_by' => $validated['created_by'], // 23. 建單人員
             'identity' => $validated['identity'], // 24. 身份別
             'carpool_name' => $validated['carpoolSearchInput'] ?? null, // 25. 共乘對象
-            'special_order' => $validated['special_order'], // 26. 特別訂單
             'status' => $validated['status'], // 27. 訂單狀態
             'special_status' => $validated['special_status'] ?? null, // 28. 特別狀態（可選填）
             'carpool_customer_id' => $validated['carpool_customer_id'] ?? null, // 29. 共乘客戶ID（可選填）
@@ -361,9 +359,9 @@ class OrderController extends Controller
             ->limit(10)
             ->select([
                 'id', 'ride_date', 'ride_time',
-                'pickup_address', 'dropoff_address', 
+                'pickup_address', 'dropoff_address',
                 'companions', 'wheelchair', 'stair_machine',
-                'status'
+                'status', 'customer_phone'
             ])
             ->get();
 

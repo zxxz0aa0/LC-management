@@ -21,12 +21,12 @@
             <table class="table table-hover" id="ordersTable">
                 <thead class="table-dark">
                     <tr>
-                        <th>訂單編號</th>
                         <th>客戶姓名</th>
                         <th>用車日期</th>
                         <th>用車時間</th>
                         <th>上車地址</th>
                         <th>下車地址</th>
+                        <th>共乘姓名</th>
                         <th>特殊狀態</th>
                         <th>駕駛</th>
                         <th>訂單狀態</th>
@@ -36,12 +36,12 @@
                 <tbody>
                     @forelse($orders as $order)
                     <tr>
-                        <td>{{ $order->order_number }}</td>
                         <td>{{ $order->customer_name }}</td>
                         <td>{{ $order->ride_date ? (is_string($order->ride_date) ? $order->ride_date : $order->ride_date->format('Y-m-d')) : 'N/A' }}</td>
-                        <td>{{ $order->ride_time ? (is_string($order->ride_time) ? $order->ride_time : $order->ride_time->format('H:i')) : 'N/A' }}</td>
+                        <td>{{ $order->ride_time ? \Illuminate\Support\Carbon::parse($order->ride_time)->format('H:i') : 'N/A' }}</td>
                         <td>{{ Str::limit($order->pickup_address, 30) }}</td>
                         <td>{{ Str::limit($order->dropoff_address, 30) }}</td>
+                        <td>{{ $order->carpool_name }}</td>
                         <td>
                             @if($order->stair_machine == 1)
                                 <span class="badge bg-warning">爬梯機</span>
@@ -109,7 +109,7 @@
                 </tbody>
             </table>
         </div>
-        
+
         {{-- 分頁 --}}
         @if(method_exists($orders, 'links'))
             <div class="d-flex justify-content-center mt-4">

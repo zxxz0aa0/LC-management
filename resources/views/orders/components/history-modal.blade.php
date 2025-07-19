@@ -16,7 +16,7 @@
                     </div>
                     <div class="mt-2">載入歷史訂單中...</div>
                 </div>
-                
+
                 {{-- 歷史訂單列表 --}}
                 <div id="historyOrderContent" style="display: none;">
                     <div class="mb-3">
@@ -25,19 +25,20 @@
                             顯示最近 10 筆訂單，點擊「選擇」可快速填入用車資訊
                         </p>
                     </div>
-                    
+
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead class="table-light">
                                 <tr>
-                                    <th width="15%">日期</th>
-                                    <th width="12%">時間</th>
-                                    <th width="27%">起點</th>
-                                    <th width="27%">終點</th>
-                                    <th width="8%">陪同</th>
-                                    <th width="5%">輪椅</th>
-                                    <th width="6%">爬梯機</th>
-                                    <th width="10%">狀態</th>
+                                    <th width="6%">日期</th>
+                                    <th width="6%">時間</th>
+                                    <th width="8%">電話</th>
+                                    <th width="23%">起點</th>
+                                    <th width="23%">終點</th>
+                                    <th width="6%">陪同</th>
+                                    <th width="6%">輪椅</th>
+                                    <th width="6%">爬梯</th>
+                                    <th width="6%">狀態</th>
                                     <th width="10%">操作</th>
                                 </tr>
                             </thead>
@@ -47,14 +48,14 @@
                         </table>
                     </div>
                 </div>
-                
+
                 {{-- 空資料狀態 --}}
                 <div id="historyOrderEmpty" style="display: none;" class="text-center py-5">
                     <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                     <h5 class="text-muted">沒有歷史訂單</h5>
                     <p class="text-muted">該客戶還沒有任何訂單記錄</p>
                 </div>
-                
+
                 {{-- 錯誤狀態 --}}
                 <div id="historyOrderError" style="display: none;" class="text-center py-5">
                     <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
