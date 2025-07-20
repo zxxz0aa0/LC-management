@@ -1,6 +1,6 @@
 <div class="row">
     <div class="col-md-6">
-        <div class="form-group">
+        <div class="mb-3">
             <label>地標名稱 *</label>
             <input type="text" name="name" class="form-control" required 
                    value="{{ old('name', $landmark->name ?? '') }}" 
@@ -8,9 +8,9 @@
         </div>
     </div>
     <div class="col-md-6">
-        <div class="form-group">
+        <div class="mb-3">
             <label>分類 *</label>
-            <select name="category" class="form-control" required>
+            <select name="category" class="form-select" required>
                 <option value="">請選擇分類</option>
                 @foreach(App\Models\Landmark::CATEGORIES as $key => $value)
                     <option value="{{ $key }}" 
@@ -25,7 +25,7 @@
 
 <div class="row">
     <div class="col-md-4">
-        <div class="form-group">
+        <div class="mb-3">
             <label>城市 *</label>
             <input type="text" name="city" class="form-control" required 
                    value="{{ old('city', $landmark->city ?? '') }}" 
@@ -33,7 +33,7 @@
         </div>
     </div>
     <div class="col-md-4">
-        <div class="form-group">
+        <div class="mb-3">
             <label>區域 *</label>
             <input type="text" name="district" class="form-control" required 
                    value="{{ old('district', $landmark->district ?? '') }}" 
@@ -41,7 +41,7 @@
         </div>
     </div>
     <div class="col-md-4">
-        <div class="form-group">
+        <div class="mb-3">
             <label>狀態</label>
             <div class="form-check">
                 <input type="checkbox" name="is_active" class="form-check-input" 
@@ -52,7 +52,7 @@
     </div>
 </div>
 
-<div class="form-group">
+<div class="mb-3">
     <label>地址 *</label>
     <input type="text" name="address" class="form-control" required 
            value="{{ old('address', $landmark->address ?? '') }}" 
@@ -60,13 +60,13 @@
     <small class="form-text text-muted">請輸入詳細地址（不需包含城市和區域）</small>
 </div>
 
-<div class="form-group">
+<div class="mb-3">
     <label>描述</label>
     <textarea name="description" class="form-control" rows="3" 
               placeholder="地標的詳細描述或備註">{{ old('description', $landmark->description ?? '') }}</textarea>
 </div>
 
-<div class="form-group">
+<div class="mb-3">
     <label>地址預覽</label>
     <div class="alert" id="address-preview">
         <span id="preview-text">請填入城市、區域和地址後查看完整地址</span>

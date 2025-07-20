@@ -19,7 +19,7 @@
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <select name="category" class="form-control">
+                        <select name="category" class="form-select">
                             <option value="">所有分類</option>
                             @foreach(App\Models\Landmark::CATEGORIES as $key => $value)
                                 <option value="{{ $key }}" {{ request('category') == $key ? 'selected' : '' }}>
@@ -29,14 +29,14 @@
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <select name="is_active" class="form-control">
+                        <select name="is_active" class="form-select">
                             <option value="">所有狀態</option>
                             <option value="1" {{ request('is_active') == '1' ? 'selected' : '' }}>啟用</option>
                             <option value="0" {{ request('is_active') == '0' ? 'selected' : '' }}>停用</option>
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <select name="sort" class="form-control">
+                        <select name="sort" class="form-select">
                             <option value="name" {{ request('sort') == 'name' ? 'selected' : '' }}>名稱排序</option>
                             <option value="usage_count" {{ request('sort') == 'usage_count' ? 'selected' : '' }}>使用次數</option>
                             <option value="created_at" {{ request('sort') == 'created_at' ? 'selected' : '' }}>建立時間</option>
@@ -151,8 +151,8 @@
             </div>
 
             <!-- 分頁 -->
-            <div class="d-flex justify-content-center">
-                {{ $landmarks->appends(request()->query())->links() }}
+            <div class="mt-4">
+                {{ $landmarks->appends(request()->query())->links('components.pagination') }}
             </div>
         </div>
     </div>

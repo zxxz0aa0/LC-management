@@ -20,7 +20,7 @@
                 <div class="mb-3">
                     <div class="row">
                         <div class="col-md-6">
-                            <select class="form-control" id="landmarkCategoryFilter">
+                            <select class="form-select" id="landmarkCategoryFilter">
                                 <option value="">所有分類</option>
                                 @foreach(App\Models\Landmark::CATEGORIES as $key => $value)
                                     <option value="{{ $key }}">{{ $value }}</option>

@@ -24,7 +24,7 @@
                 @method('PUT')
                 @include('landmarks.partials.form')
 
-                <div class="form-group">
+                <div class="mb-3">
                     <button type="submit" class="btn btn-success">更新地標</button>
                     <a href="{{ route('landmarks.index') }}" class="btn btn-secondary">返回列表</a>
                 </div>

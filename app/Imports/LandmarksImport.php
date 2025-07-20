@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
-class LandmarksImport implements ToCollection, WithHeadingRow
+class LandmarksImport implements ToCollection
 {
     public $successCount = 0;
     public $skipCount = 0;
@@ -27,11 +27,54 @@ class LandmarksImport implements ToCollection, WithHeadingRow
 
     public function collection(Collection $rows)
     {
-        $rowIndex = 2; // 從第2列開始讀資料（第1列為標題）
+        // 檢查是否有資料
+        if ($rows->count() === 0) {
+            $this->errorMessages[] = "檔案中沒有資料";
+            return;
+        }
 
-        foreach ($rows as $row) {
-            $name = trim($row['地標名稱'] ?? '');
-            $address = trim($row['地址'] ?? '');
+        // 檢查標題行的位置
+        $headerRowIndex = -1;
+        foreach ($rows as $index => $row) {
+            $rowData = $row->toArray();
+            // 尋找包含 "地標名稱" 的行
+            if (in_array('地標名稱', $rowData)) {
+                $headerRowIndex = $index;
+                break;
+            }
+        }
+
+        if ($headerRowIndex === -1) {
+            $this->errorMessages[] = "找不到包含 '地標名稱' 的標題行";
+            return;
+        }
+
+        // 取得標題行
+        $headers = $rows[$headerRowIndex]->toArray();
+
+        // 從標題行的下一行開始讀取資料
+        $dataRows = $rows->slice($headerRowIndex + 1);
+        $rowIndex = $headerRowIndex + 2; // Excel 行號從 1 開始
+
+        foreach ($dataRows as $row) {
+            $rowData = $row->toArray();
+            
+            // 根據位置對應欄位
+            $name = isset($rowData[0]) ? trim($rowData[0]) : '';
+            $address = isset($rowData[1]) ? trim($rowData[1]) : '';
+            $city = isset($rowData[2]) ? trim($rowData[2]) : '';
+            $district = isset($rowData[3]) ? trim($rowData[3]) : '';
+            $categoryText = isset($rowData[4]) ? trim($rowData[4]) : '';
+            $description = isset($rowData[5]) ? trim($rowData[5]) : '';
+            $longitude = isset($rowData[6]) ? trim($rowData[6]) : '';
+            $latitude = isset($rowData[7]) ? trim($rowData[7]) : '';
+            $isActiveText = isset($rowData[8]) ? trim($rowData[8]) : '1';
+
+            // 跳過空白行
+            if (!$name && !$address && !$city) {
+                $rowIndex++;
+                continue;
+            }
 
             // 必填欄位檢查
             if (!$name) {
@@ -47,9 +90,6 @@ class LandmarksImport implements ToCollection, WithHeadingRow
                 $rowIndex++;
                 continue;
             }
-
-            $city = trim($row['城市'] ?? '');
-            $district = trim($row['區域'] ?? '');
 
             if (!$city) {
                 $this->errorMessages[] = "第 {$rowIndex} 列：缺少城市";
@@ -72,7 +112,6 @@ class LandmarksImport implements ToCollection, WithHeadingRow
                 ->first();
 
             // 處理分類
-            $categoryText = trim($row['分類'] ?? '');
             $category = $this->categoryMap[$categoryText] ?? null;
 
             if (!$category) {
@@ -84,8 +123,6 @@ class LandmarksImport implements ToCollection, WithHeadingRow
             }
 
             // 處理座標
-            $longitude = trim($row['經度'] ?? '');
-            $latitude = trim($row['緯度'] ?? '');
             $coordinates = null;
 
             if ($longitude && $latitude) {
@@ -103,7 +140,6 @@ class LandmarksImport implements ToCollection, WithHeadingRow
             }
 
             // 處理是否啟用
-            $isActiveText = trim($row['是否啟用'] ?? '1');
             $isActive = in_array($isActiveText, ['1', '啟用', 'true', 'TRUE']) ? 1 : 0;
 
             $data = [
@@ -112,7 +148,7 @@ class LandmarksImport implements ToCollection, WithHeadingRow
                 'city' => $city,
                 'district' => $district,
                 'category' => $category,
-                'description' => trim($row['描述'] ?? ''),
+                'description' => $description,
                 'coordinates' => $coordinates,
                 'is_active' => $isActive,
                 'usage_count' => 0, // 新建地標使用次數為0

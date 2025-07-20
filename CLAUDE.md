@@ -124,6 +124,17 @@ public/js/orders/
 - **Bootstrap 5.3** + **DataTables**: 表格展示
 - **PostCSS**: CSS 後處理器，支援 Autoprefixer
 
+### 國際化支援
+- **繁體中文語言包**：`lang/zh-TW/` 目錄包含完整的繁體中文翻譯
+- **分頁國際化**：`lang/zh-TW/pagination.php` 提供中文分頁文字
+- **通用分頁組件**：`resources/views/components/pagination.blade.php` 標準化分頁顯示
+
+### 測試架構
+- **PHPUnit 10.1+**: 主要測試框架
+- **Laravel Feature Tests**: 身份驗證功能測試完整
+- **測試覆蓋率**: 目前主要涵蓋身份驗證，業務邏輯測試待補強
+- **測試指令**: `php artisan test` 或 `./vendor/bin/phpunit`
+
 ## 關鍵特色功能
 
 ### Excel 匯入匯出系統
@@ -437,15 +448,19 @@ protected $casts = [
 - 大檔案處理可能導致記憶體不足
 - 建議實作分塊處理或使用佇列處理
 
-#### 地標匯入匯出特定風險
+#### 地標匯入匯出特定風險（2025-07-20 更新）
 - **地標匯出高風險**：`LandmarksExport::collection()` 使用 `Landmark::all()` 
   - 當地標數量超過 50,000 筆時可能記憶體不足
-  - 需實施 `chunk()` 分塊處理機制
+  - **待實施**：需要 `chunk()` 分塊處理機制（高優先級）
 - **範本下載記憶體浪費**：`LandmarkController::downloadTemplate()` 使用匿名類別
   - 範本資料被複製到匿名類別實例中
-  - 建議使用標準匯出類別替代
+  - **待實施**：建議使用標準匯出類別替代（低優先級）
 - **匯入重複性檢查效能**：每行匯入都執行 `Landmark::where()` 查詢
-  - 建議預先載入現有地標進行批次比對
+  - **待實施**：建議預先載入現有地標進行批次比對（中優先級）
+- **✅ 已修復**：匯入程式記憶體效率提升
+  - 移除調試程式碼，減少記憶體開銷
+  - 加入空白行跳過邏輯，避免無效處理
+  - 改用位置對應讀取，提升解析效率
 
 ### 2. 大量資料查詢
 - `OrderController` 中的複雜查詢可能消耗大量記憶體
@@ -669,7 +684,28 @@ class LandmarkMemoryMonitor
 
 此系統採用 Laravel 標準的記憶體管理架構，整體設計合理。主要記憶體管理透過檔案快取、Session 管理和資料庫連線池實現。
 
-### 近期更新（2025-07-19）
+### 近期更新（2025-07-20）
+
+#### 地標匯入匯出功能修復與介面優化
+- **地標匯入功能修復**：解決 Excel 檔案標題行識別問題，改用位置對應方式讀取資料
+- **地標編輯驗證修復**：移除 `is_active` 布林驗證衝突，正確處理 checkbox 狀態
+- **Bootstrap 5 相容性修復**：統一所有 select 元素使用 `form-select` 類別，修正表單間距
+- **分頁顯示修復**：設定 Bootstrap 5 分頁樣式，新增繁體中文語言包，建立自訂分頁組件
+- **記憶體管理優化**：清理匯入程式調試程式碼，加入空白行跳過邏輯
+
+#### 技術改進項目
+- **匯入程式重構**：移除 `WithHeadingRow` 依賴，實現自動標題行檢測
+- **視圖組件化**：建立 `components/pagination.blade.php` 通用分頁組件
+- **語言包完善**：新增 `lang/zh-TW/pagination.php` 繁體中文分頁語言檔
+- **CSS 標準化**：所有地標相關頁面使用統一的 Bootstrap 5 類別
+
+#### 系統穩定性提升
+- **匯入容錯性**：支援各種 Excel 檔案格式，自動檢測標題行位置
+- **表單驗證優化**：修正 checkbox 欄位驗證邏輯，避免編輯時錯誤
+- **介面一致性**：統一所有表單元素的 Bootstrap 5 樣式
+- **分頁功能完善**：提供完整的頁碼導航和中文分頁資訊
+
+### 先前更新（2025-07-19）
 
 #### 歷史訂單選擇功能
 - **新增歷史訂單 API**：`OrderController::getCustomerHistoryOrders()` 方法，提供客戶最近 10 筆訂單資料
@@ -840,6 +876,7 @@ class LandmarkMemoryMonitor
 
 ### 身份驗證與授權
 - **Laravel Breeze**: 提供基本的身份驗證功能
+- **Laravel Sanctum**: API 身份驗證系統（已安裝但未啟用）
 - **Session 安全**: HTTP-only cookies，防止 JavaScript 存取
 - **密碼安全**: 使用 Laravel 內建的密碼雜湊
 
@@ -873,6 +910,14 @@ SESSION_DRIVER=file
 APP_KEY=                    # 執行 php artisan key:generate 生成
 APP_DEBUG=true              # 生產環境應設為 false
 APP_URL=http://localhost:8000
+
+# 郵件設定
+MAIL_MAILER=smtp
+MAIL_HOST=mailpit
+MAIL_PORT=1025
+
+# Vite 前端設定
+VITE_APP_NAME="${APP_NAME}"
 ```
 
 ### 初始化專案步驟

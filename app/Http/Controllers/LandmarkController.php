@@ -114,7 +114,6 @@ class LandmarkController extends Controller
             'district' => 'required|string|max:50',
             'category' => 'required|string|max:50',
             'description' => 'nullable|string',
-            'is_active' => 'boolean',
         ]);
 
         // 檢查地址格式（需包含"市"與"區"）
@@ -123,6 +122,7 @@ class LandmarkController extends Controller
             return back()->withErrors(['address' => '地址必須包含「市」與「區」'])->withInput();
         }
 
+        // 處理 checkbox 的 is_active 欄位
         $validated['is_active'] = $request->has('is_active');
 
         $landmark->update($validated);
