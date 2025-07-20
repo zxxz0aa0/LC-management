@@ -55,7 +55,7 @@
 
 <div class="mb-3">
     <label>狀態</label>
-    <select name="status" class="form-control">
+    <select name="status" class="form-select">
         <option value="active" {{ (old('status', $driver->status ?? '') == 'active') ? 'selected' : '' }}>在職</option>
         <option value="inactive" {{ (old('status', $driver->status ?? '') == 'inactive') ? 'selected' : '' }}>離職</option>
         <option value="blacklist" {{ (old('status', $driver->status ?? '') == 'blacklist') ? 'selected' : '' }}>黑名單</option>

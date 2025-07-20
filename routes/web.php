@@ -40,7 +40,10 @@ Route::middleware('auth')->group(function () {
     // 客戶事件
     Route::resource('customer-events', CustomerEventController::class)->only(['store', 'update', 'destroy']);
 
-    // 司機管理
+    // 司機管理路由 - 匯入匯出路由必須在 resource 路由之前，避免路由衝突
+    Route::get('/admin/drivers/export', [App\Http\Controllers\Admin\DriverController::class, 'export'])->name('drivers.export');
+    Route::post('/admin/drivers/import', [App\Http\Controllers\Admin\DriverController::class, 'import'])->name('drivers.import');
+    Route::get('/admin/drivers/template', [App\Http\Controllers\Admin\DriverController::class, 'downloadTemplate'])->name('drivers.template');
     Route::resource('admin/drivers', App\Http\Controllers\Admin\DriverController::class);
     Route::get('/drivers/fleet-search', [App\Http\Controllers\Admin\DriverController::class, 'searchByFleetNumber']);
 

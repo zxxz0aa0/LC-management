@@ -4,7 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Driver;
+use App\Exports\DriversExport;
+use App\Exports\DriverTemplateExport;
+use App\Imports\DriversImport;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class DriverController extends Controller
 {
@@ -22,7 +26,7 @@ class DriverController extends Controller
             });
         }
 
-        $drivers = $query->get();
+        $drivers = $query->paginate(20);
 
         return view('admin.drivers.index', compact('drivers'));
     }
@@ -85,5 +89,43 @@ class DriverController extends Controller
             'name' => $driver->name,
             'plate_number' => $driver->plate_number,
         ]);
+    }
+
+    /**
+     * 匯出駕駛資料為 Excel 檔案
+     */
+    public function export()
+    {
+        return Excel::download(new DriversExport, '駕駛資料_' . date('Y-m-d') . '.xlsx');
+    }
+
+    /**
+     * 匯入駕駛資料
+     */
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls',
+        ]);
+
+        $importer = new DriversImport;
+        Excel::import($importer, $request->file('file'));
+
+        $success = $importer->successCount;
+        $fail = $importer->skipCount;
+        $errors = $importer->errorMessages;
+
+        return redirect()->route('drivers.index')->with([
+            'success' => "匯入完成：成功 {$success} 筆，失敗 {$fail} 筆。",
+            'import_errors' => $errors,
+        ]);
+    }
+
+    /**
+     * 下載駕駛匯入範例檔案
+     */
+    public function downloadTemplate()
+    {
+        return Excel::download(new DriverTemplateExport, '駕駛匯入範例檔案.xlsx');
     }
 }
