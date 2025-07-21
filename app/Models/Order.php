@@ -23,8 +23,8 @@ class Order extends Model
         'dropoff_lat', 'dropoff_lng',
         'wheelchair', 'stair_machine', 'companions', 'carpool_customer_id', 'carpool_name', 'carpool_id',
         'remark', 'created_by', 'identity', 'carpool_with',
-        'special_order', 'status', 'special_status',
-        'carpool_id_number', 'carpool_phone_number', 'carpool_addresses',
+        'status', 'special_status',
+        'carpool_id_number',
     ];
 
     // 資料類型轉換

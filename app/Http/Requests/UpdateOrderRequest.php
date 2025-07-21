@@ -48,7 +48,6 @@ class UpdateOrderRequest extends FormRequest
             'created_by' => 'required|string',
             'identity' => 'required|string',
             'carpoolSearchInput' => 'nullable|string',
-            'special_order' => 'required|boolean',
             'special_status' => 'nullable|string',
             'carpool_customer_id' => 'nullable|integer',
             'carpool_id_number' => 'nullable|string',

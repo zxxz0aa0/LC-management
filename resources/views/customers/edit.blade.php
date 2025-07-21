@@ -36,10 +36,10 @@
             <div class="form-group">
                 <label>生日</label>
                 <div class="input-group">
-                    <input type="text" id="birthday-input" class="form-control" placeholder="可輸入民國年：077/01/06 或西元年：1988/01/06" value="{{ old('birthday', $customer->birthday ? \Carbon\Carbon::parse($customer->birthday)->format('Y/m/d') : '') }}">
+                    <input type="text" id="birthday-input" class="form-control" placeholder="可輸入民國年：077/07/07 或西元年：1988/07/07" value="{{ old('birthday', $customer->birthday ? \Carbon\Carbon::parse($customer->birthday)->format('Y/m/d') : '') }}">
                     <input type="hidden" name="birthday" id="birthday-hidden" value="{{ old('birthday', $customer->birthday) }}">
                 </div>
-                <small class="form-text text-muted">支援民國年格式（如：077/01/06）或西元年格式（如：1988/01/06）</small>
+                <small class="form-text text-muted">支援民國年格式（如：077/07/07）或西元年格式（如：1988/07/07）</small>
             </div>
 
             <div class="form-group">
@@ -156,9 +156,15 @@
             </div>
 
             <div class="form-group">
-                <label>太豐或大立亨</label>
-                <input type="text" name="service_company" class="form-control" value="{{ old('service_company', $customer->service_company) }}">
+                <label>可服務交通公司</label>
+                <select name="service_company" class="form-control">
+                    <option value="" disabled selected>請選擇</option>
+                    <option value="太豐" {{ old('service_company', $customer->service_company) == '太豐' ? 'selected' : '' }}>太豐</option>
+                    <option value="大立亨" {{ old('service_company', $customer->service_company) == '大立亨' ? 'selected' : '' }}>大立亨</option>
+                    <option value="太豐與大立亨" {{ old('service_company', $customer->service_company) == '太豐與大立亨' ? 'selected' : '' }}>太豐與大立亨</option>
+                </select>
             </div>
+
 
             <div class="form-group">
                 <label>狀態 *</label>
@@ -180,7 +186,7 @@
 
 @endsection
 
-@section('scripts')
+@push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const birthdayInput = document.getElementById('birthday-input');
@@ -194,8 +200,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // 支援的格式：077/01/06, 077-01-06, 0770106
         const rocPatterns = [
             /^(\d{3})\/(\d{2})\/(\d{2})$/,  // 077/01/06
-            /^(\d{3})-(\d{2})-(\d{2})$/,   // 077-01-06  
-            /^(\d{6})$/                     // 0770106
+            /^(\d{3})-(\d{2})-(\d{2})$/,   // 077-01-06
+            /^(\d{7})$/                     // 0770106
         ];
         
         // 西元年格式：1988/01/06, 1988-01-06, 19880106
@@ -211,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (match) {
                 let year, month, day;
                 
-                if (pattern.source.includes('(\\d{6})')) {
+                if (pattern.source.includes('(\\d{7})')) {
                     // 格式：0770106
                     year = parseInt(match[1].substring(0, 3));
                     month = match[1].substring(3, 5);
@@ -299,4 +305,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-@endsection
+@endpush

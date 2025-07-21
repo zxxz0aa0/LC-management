@@ -313,7 +313,20 @@ class OrderController extends Controller
     // 刪除訂單（預留）
     public function destroy(Order $order)
     {
-        // 等等再補功能
+        try {
+            // 刪除訂單
+            $order->delete();
+            
+            return response()->json([
+                'success' => true,
+                'message' => '訂單已成功刪除'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => '刪除失敗：' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

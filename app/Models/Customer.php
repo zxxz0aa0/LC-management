@@ -43,5 +43,11 @@ class Customer extends Model
     {
         return $this->hasMany(CustomerEvent::class);
     }
+
+    // 定義與 Order 的關聯
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
 }
 // 注意：此模型假設已經有對應的資料表 'customers'，並且資料表結構符合上述的欄位定義。

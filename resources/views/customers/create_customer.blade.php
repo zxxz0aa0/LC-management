@@ -154,6 +154,7 @@
                 <label>可服務交通公司</label>
                 <select name="service_company" class="form-control">
                     <option value="太豐" {{ old('service_company') == '太豐' ? 'selected' : '' }}>太豐</option>
+                    <option value="大立亨" {{ old('service_company') == '大立亨' ? 'selected' : '' }}>大立亨</option>
                     <option value="太豐與大立亨" {{ old('service_company') == '太豐與大立亨' ? 'selected' : '' }}>太豐與大立亨</option>
                 </select>
                 
@@ -178,7 +179,7 @@
 
 @endsection
 
-@section('scripts')
+@push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const birthdayInput = document.getElementById('birthday-input');
@@ -193,7 +194,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const rocPatterns = [
             /^(\d{3})\/(\d{2})\/(\d{2})$/,  // 077/01/06
             /^(\d{3})-(\d{2})-(\d{2})$/,   // 077-01-06  
-            /^(\d{6})$/                     // 0770106
+            /^(\d{7})$/                     // 0770106
         ];
         
         // 西元年格式：1988/01/06, 1988-01-06, 19880106
@@ -209,7 +210,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (match) {
                 let year, month, day;
                 
-                if (pattern.source.includes('(\\d{6})')) {
+                if (pattern.source.includes('(\\d{7})')) {
                     // 格式：0770106
                     year = parseInt(match[1].substring(0, 3));
                     month = match[1].substring(3, 5);
@@ -297,4 +298,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-@endsection
+@endpush
