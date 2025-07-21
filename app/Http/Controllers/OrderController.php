@@ -213,11 +213,8 @@ class OrderController extends Controller
             return view('orders.components.order-table', compact('orders'))->render(); // 回傳部分視圖
         }
 
-        // 頁面式提交，成功後返回訂單列表並保持搜尋關鍵字
-        $redirectParams = [];
-        if ($request->filled('keyword')) {
-            $redirectParams['keyword'] = $request->input('keyword');
-        }
+        // 頁面式提交，成功後返回訂單列表並保持完整搜尋條件
+        $redirectParams = $this->prepareSearchParams($request, $order);
 
         return redirect()->route('orders.index', $redirectParams)->with('success', '訂單建立成功');
     }
@@ -379,5 +376,77 @@ class OrderController extends Controller
             ->get();
 
         return response()->json($orders);
+    }
+    
+    /**
+     * 準備搜尋參數，確保新訂單能夠顯示
+     */
+    private function prepareSearchParams(Request $request, Order $newOrder)
+    {
+        $params = [];
+        
+        // 保留原有搜尋參數
+        if ($request->filled('keyword')) {
+            $params['keyword'] = $request->input('keyword');
+        }
+        
+        if ($request->filled('customer_id')) {
+            $params['customer_id'] = $request->input('customer_id');
+        }
+        
+        // 智能處理日期範圍
+        $newOrderDate = $newOrder->ride_date;
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        
+        if ($startDate && $endDate) {
+            // 如果原本有日期範圍，檢查新訂單是否在範圍內
+            $start = Carbon::parse($startDate);
+            $end = Carbon::parse($endDate);
+            $newDate = Carbon::parse($newOrderDate);
+            
+            if ($newDate->lt($start)) {
+                // 新訂單日期早於範圍開始，擴展開始日期
+                $params['start_date'] = $newDate->format('Y-m-d');
+                $params['end_date'] = $endDate;
+            } elseif ($newDate->gt($end)) {
+                // 新訂單日期晚於範圍結束，擴展結束日期
+                $params['start_date'] = $startDate;
+                $params['end_date'] = $newDate->format('Y-m-d');
+            } else {
+                // 新訂單在範圍內，保持原範圍
+                $params['start_date'] = $startDate;
+                $params['end_date'] = $endDate;
+            }
+        } elseif ($startDate) {
+            // 只有開始日期
+            $start = Carbon::parse($startDate);
+            $newDate = Carbon::parse($newOrderDate);
+            
+            $params['start_date'] = $newDate->lt($start) ? $newDate->format('Y-m-d') : $startDate;
+        } elseif ($endDate) {
+            // 只有結束日期
+            $end = Carbon::parse($endDate);
+            $newDate = Carbon::parse($newOrderDate);
+            
+            $params['end_date'] = $newDate->gt($end) ? $newDate->format('Y-m-d') : $endDate;
+        } else {
+            // 沒有設定日期範圍，檢查新訂單是否是今天
+            $today = Carbon::today();
+            $newDate = Carbon::parse($newOrderDate);
+            
+            if (!$newDate->isSameDay($today)) {
+                // 新訂單不是今天，設定適當的日期範圍
+                if ($newDate->lt($today)) {
+                    $params['start_date'] = $newDate->format('Y-m-d');
+                    $params['end_date'] = $today->format('Y-m-d');
+                } else {
+                    $params['start_date'] = $today->format('Y-m-d');
+                    $params['end_date'] = $newDate->format('Y-m-d');
+                }
+            }
+        }
+        
+        return $params;
     }
 }

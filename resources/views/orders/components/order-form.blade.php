@@ -79,10 +79,12 @@
                 <h5 class="mb-0">
                     <i class="fas fa-car me-2"></i>用車資訊
                 </h5>
+                @if(!isset($order))
                 <button type="button" class="btn btn-outline-secondary btn-sm" id="historyOrderBtn"
                         style="display: none;" title="選擇歷史訂單快速填入">
                     <i class="fas fa-history me-1"></i>歷史訂單
                 </button>
+                @endif
             </div>
         </div>
         <div class="card-body">
@@ -258,7 +260,7 @@
         </div>
         <div class="card-body">
             <div class="row g-3">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label class="form-label">特殊狀態</label>
                     <select name="special_status" class="form-select">
                         <option value="一般" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '一般' ? 'selected' : '' }}>一般</option>
@@ -267,7 +269,7 @@
                         <option value="黑名單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '黑名單' ? 'selected' : '' }}>黑名單</option>
                     </select>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label class="form-label">訂單狀態</label>
                     <select name="status" class="form-select">
                         <option value="open" {{ old('status', isset($order) ? $order->status : 'open') == 'open' ? 'selected' : '' }}>可派遣</option>
@@ -276,7 +278,7 @@
                         <option value="cancelled" {{ old('status', isset($order) ? $order->status : 'open') == 'cancelled' ? 'selected' : '' }}>已取消</option>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-4">
                     <label class="form-label">建立者</label>
                     <input type="text" name="created_by" class="form-control"
                     value="{{ old('created_by', isset($order) ? $order->created_by : optional(auth()->user())->name) }}" readonly>

@@ -144,7 +144,7 @@
                 <label>個案來源</label>
                 <select name="county_care" class="form-control">
                     <option value="">請選擇</option>
-                    @foreach(['新北長照','台北長照','愛接送','新北復康'] as $option)
+                    @foreach(['新北長照','台北長照','愛接送','新北復康','一般乘客'] as $option)
                         <option value="{{ $option }}" {{ old('county_care') == $option ? 'selected' : '' }}>{{ $option }}</option>
                     @endforeach
                 </select>

@@ -104,7 +104,7 @@
                             @endif
                         </div>
                         <div class="row mt-4">
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <strong>狀態：</strong>
                                 @if(in_array($customer->status, ['暫停中', '已結案']))
                                     <span class="badge bg-danger">{{ $customer->status }}</span>
@@ -112,7 +112,7 @@
                                     <span class="badge bg-success">{{ $customer->status }}</span>
                                 @endif
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <strong>特殊狀態：</strong>
                                 @if(in_array($customer->special_status, ['黑名單', '網頁']))
                                     <span class="badge bg-warning">{{ $customer->special_status }}</span>
@@ -120,8 +120,11 @@
                                     <span class="badge bg-secondary">{{ $customer->special_status }}</span>
                                 @endif
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-5">
                                 <strong>乘客備註：</strong>{{ $customer->note }}
+                            </div>
+                            <div class="col-md-3">
+                                <strong>訂單來源：</strong>{{ $customer->county_care }}
                             </div>
                         </div>
                     </div>

@@ -735,6 +735,31 @@ class LandmarkMemoryMonitor
 
 此系統採用 Laravel 標準的記憶體管理架構，整體設計合理。主要記憶體管理透過檔案快取、Session 管理和資料庫連線池實現。
 
+### 最新更新（2025-07-21）
+
+#### 訂單管理系統關鍵問題修復
+- **訂單刪除功能實現**：完成 `OrderController::destroy()` 方法實現，包含完整的異常處理和 JSON 回應
+- **Customer 模型關聯完善**：新增 `orders()` 關聯方法，確保模型關聯的完整性
+- **special_order 欄位驗證錯誤修復**：
+  - 從 `UpdateOrderRequest.php` 移除不需要的驗證規則
+  - 從 `Order.php` 模型的 `$fillable` 陣列移除已廢棄欄位
+- **carpool_phone_number 欄位錯誤修復**：
+  - 保留前端功能但不儲存到資料庫的解決方案
+  - 從 `Order.php` 模型的 `$fillable` 移除不存在的資料庫欄位
+  - 避免 `Column not found: 1054 Unknown column` SQL 錯誤
+
+#### 問題排除最佳實踐建立
+- **資料庫欄位與程式碼一致性檢查**：建立標準流程處理欄位不匹配問題
+- **Laravel $fillable 陣列管理**：確保只包含實際存在的資料庫欄位
+- **前端功能與後端儲存分離**：支援表單欄位僅用於前端處理，不強制儲存
+- **SQL 約束錯誤處理**：標準化錯誤診斷和修復流程
+
+#### 修復的檔案清單
+- `app/Http/Controllers/OrderController.php:314-330` - 實現刪除功能
+- `app/Models/Customer.php:47-51` - 新增訂單關聯
+- `app/Http/Requests/UpdateOrderRequest.php:51` - 移除過時驗證規則
+- `app/Models/Order.php:26-27` - 清理 fillable 陣列
+
 ### 近期更新（2025-07-20）
 
 #### 駕駛管理系統完整匯入匯出功能實現
@@ -929,6 +954,124 @@ class LandmarkMemoryMonitor
 - **維護性提升**：清晰的職責劃分和檔案結構
 
 這次重構不僅解決了原有的架構問題，還為後續的功能擴展和維護打下了堅實的基礎。
+
+## 問題排除與最佳實踐指南
+
+### 常見 Laravel 資料庫錯誤處理
+
+#### 1. Column not found 錯誤
+**錯誤訊息**：`SQLSTATE[42S22]: Column not found: 1054 Unknown column 'xxx' in 'field list'`
+
+**原因與解決方案**：
+- **原因**：Model 的 `$fillable` 陣列包含不存在的資料庫欄位
+- **解決步驟**：
+  1. 檢查資料庫遷移檔案確認實際欄位結構
+  2. 從 Model 的 `$fillable` 陣列移除不存在的欄位
+  3. 如需保留前端功能，可保留表單驗證但移除儲存邏輯
+
+**範例修復**：
+```php
+// app/Models/Order.php - 修復前
+protected $fillable = [
+    'carpool_phone_number', 'carpool_addresses', // 資料庫中不存在
+];
+
+// 修復後
+protected $fillable = [
+    // 移除不存在的欄位
+];
+```
+
+#### 2. Validation Required 錯誤
+**錯誤訊息**：`The xxx field is required.`
+
+**原因與解決方案**：
+- **原因**：表單驗證規則要求欄位為必填，但前端已移除該欄位
+- **解決步驟**：
+  1. 檢查 FormRequest 中的驗證規則
+  2. 移除已廢棄欄位的 `required` 規則
+  3. 從 Model 的 `$fillable` 陣列移除該欄位
+
+**範例修復**：
+```php
+// app/Http/Requests/UpdateOrderRequest.php - 修復前
+public function rules(): array
+{
+    return [
+        'special_order' => 'required|boolean', // 前端已移除
+    ];
+}
+
+// 修復後
+public function rules(): array
+{
+    return [
+        // 移除已廢棄欄位的驗證規則
+    ];
+}
+```
+
+#### 3. 缺少模型關聯錯誤
+**原因與解決方案**：
+- **原因**：嘗試使用未定義的模型關聯
+- **解決步驟**：
+  1. 在相關 Model 中新增關聯方法
+  2. 確保外鍵名稱正確
+  3. 測試關聯是否正常運作
+
+**範例修復**：
+```php
+// app/Models/Customer.php
+public function orders()
+{
+    return $this->hasMany(Order::class);
+}
+```
+
+### Laravel Model $fillable 管理最佳實踐
+
+#### 1. 定期審查 $fillable 陣列
+- **檢查原則**：確保所有欄位都存在於資料庫表中
+- **工具建議**：使用 `php artisan tinker` 測試 Model::create() 操作
+- **記錄更新**：每次遷移後檢查並更新相關 Model
+
+#### 2. 前端與後端分離策略
+- **情境**：需要前端欄位但不儲存到資料庫
+- **解決方案**：
+  1. 保留表單驗證規則（確保資料格式正確）
+  2. 從 `$fillable` 移除該欄位（避免儲存錯誤）
+  3. 前端可正常使用該欄位進行 JavaScript 處理
+
+#### 3. 批量賦值安全性
+- **Mass Assignment 保護**：只允許安全欄位被批量賦值
+- **白名單原則**：使用 `$fillable` 明確列出可賦值欄位
+- **避免 `$guarded = []`**：可能導致安全風險
+
+### 資料庫一致性檢查流程
+
+#### 1. 遷移後檢查清單
+```bash
+# 1. 檢查遷移狀態
+php artisan migrate:status
+
+# 2. 檢查表結構
+php artisan tinker
+Schema::getColumnListing('orders');
+
+# 3. 測試 Model 操作
+Order::first();
+```
+
+#### 2. Model 驗證清單
+- [ ] `$fillable` 陣列只包含實際存在的欄位
+- [ ] `$casts` 陣列對應正確的資料類型
+- [ ] 關聯方法已正確定義
+- [ ] 外鍵約束設定正確
+
+#### 3. 除錯工具建議
+- **Laravel Debugbar**：監控 SQL 查詢和錯誤
+- **Telescope**：追蹤請求和資料庫操作
+- **Log 檔案**：`storage/logs/laravel.log` 查看詳細錯誤資訊
 
 ## 安全性最佳實踐
 

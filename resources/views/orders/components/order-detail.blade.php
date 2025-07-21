@@ -19,11 +19,7 @@
                     </tr>
                     <tr>
                         <td><strong>用車時間：</strong></td>
-                        <td>{{ $order->ride_time ? (is_string($order->ride_time) ? $order->ride_time : $order->ride_time->format('H:i')) : 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>回程時間：</strong></td>
-                        <td>{{ $order->back_time ? (is_string($order->back_time) ? $order->back_time : $order->back_time->format('H:i')) : 'N/A' }}</td>
+                        <td>{{ $order->ride_time ? \Carbon\Carbon::parse($order->ride_time)->format('H:i') : 'N/A' }}</td>
                     </tr>
                     <tr>
                         <td><strong>上車地址：</strong></td>

@@ -90,9 +90,9 @@
                                 <a href="{{ route('orders.edit', array_merge(['order' => $order], request()->only(['keyword', 'start_date', 'end_date', 'customer_id']))) }}" class="btn btn-warning btn-sm" title="編輯">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <button type="button" class="btn btn-danger btn-sm" onclick="deleteOrder({{ $order->id }})" title="刪除">
+                                <!--<button type="button" class="btn btn-danger btn-sm" onclick="deleteOrder({{ $order->id }})" title="刪除">
                                     <i class="fas fa-trash"></i>
-                                </button>
+                                </button>-->
                             </div>
                         </td>
                     </tr>
