@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\UniqueOrderDateTime;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateOrderRequest extends FormRequest
@@ -27,7 +28,15 @@ class UpdateOrderRequest extends FormRequest
             'customer_phone' => 'required|string|max:255',
             'customer_id' => 'required|integer',
             'ride_date' => 'required|date',
-            'ride_time' => 'required|date_format:H:i',
+            'ride_time' => [
+                'required',
+                'date_format:H:i',
+                new UniqueOrderDateTime(
+                    $this->input('customer_id'), 
+                    $this->input('ride_date'),
+                    $this->route('order')->id ?? null
+                )
+            ],
             'pickup_address' => [
                 'required',
                 'string',

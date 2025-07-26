@@ -55,6 +55,9 @@ class OrderForm {
         this.checkHistoryOrderButtonVisibility();
         $('input[name="customer_id"]').on('change input', this.checkHistoryOrderButtonVisibility.bind(this));
         $('input[name="customer_name"]').on('change input', this.checkHistoryOrderButtonVisibility.bind(this));
+
+        // 重複訂單檢查
+        $('input[name="ride_date"], input[name="ride_time"]').on('change blur', this.checkDuplicateOrder.bind(this));
     }
 
     /**
@@ -1077,6 +1080,117 @@ class OrderForm {
         } else {
             $('#historyOrderBtn').hide();
         }
+    }
+
+    /**
+     * 檢查重複訂單
+     */
+    checkDuplicateOrder() {
+        const customerId = $('input[name="customer_id"]').val();
+        const rideDate = $('input[name="ride_date"]').val();
+        const rideTime = $('input[name="ride_time"]').val();
+
+        // 檢查必要欄位是否已填寫
+        if (!customerId || !rideDate || !rideTime) {
+            this.clearDuplicateWarning();
+            return;
+        }
+
+        // 檢查時間格式是否正確
+        if (!/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(rideTime)) {
+            this.clearDuplicateWarning();
+            return;
+        }
+
+        // 取得當前訂單 ID（編輯模式用）
+        const orderId = window.location.pathname.includes('/edit') ?
+            window.location.pathname.split('/').slice(-2, -1)[0] : null;
+
+        // 發送 AJAX 請求檢查重複
+        $.ajax({
+            url: '/orders/check-duplicate',
+            method: 'POST',
+            data: {
+                customer_id: customerId,
+                ride_date: rideDate,
+                ride_time: rideTime,
+                order_id: orderId,
+                _token: $('meta[name="csrf-token"]').attr('content')
+            },
+            success: (response) => {
+                if (response.isDuplicate) {
+                    this.showDuplicateWarning(response.message, response.existingOrder);
+                } else {
+                    this.showDuplicateSuccess(response.message);
+                }
+            },
+            error: (xhr) => {
+                console.error('檢查重複訂單時發生錯誤:', xhr);
+                this.clearDuplicateWarning();
+            }
+        });
+    }
+
+    /**
+     * 顯示重複訂單警告
+     */
+    showDuplicateWarning(message, existingOrder) {
+        this.clearDuplicateWarning();
+
+        const rideTimeInput = $('input[name="ride_time"]');
+        const warningHtml = `
+            <div class="duplicate-warning alert alert-warning mt-2" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <div>
+                        <strong>重複訂單提醒：</strong>${message}
+                        ${existingOrder ? `
+                        <br><small class="text-muted">
+                            上車：${existingOrder.pickup_address} → 下車：${existingOrder.dropoff_address}
+                            <br>建立時間：${existingOrder.created_at}
+                        </small>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const errormsgInput = $('select[name="stair_machine"]'); //顯示在.....
+
+        errormsgInput.parent().after(warningHtml);
+        rideTimeInput.addClass('is-invalid');
+    }
+
+    /**
+     * 顯示時間可用提示
+     */
+    showDuplicateSuccess(message) {
+        this.clearDuplicateWarning();
+
+        const okmsgInput = $('select[name="stair_machine"]'); //顯示在.....
+        const rideTimeInput = $('input[name="ride_time"]');
+        const successHtml = `
+            <div class="duplicate-warning alert alert-success mt-2" role="alert">
+                <i class="fas fa-check me-2"></i>${message}
+            </div>
+        `;
+
+        okmsgInput.parent().after(successHtml);
+        rideTimeInput.removeClass('is-invalid').addClass('is-valid');
+
+        // 3秒後自動隱藏成功提示
+        setTimeout(() => {
+            $('.duplicate-warning.alert-success').fadeOut(300);
+            rideTimeInput.removeClass('is-valid');
+        }, 3000);
+    }
+
+    /**
+     * 清除重複訂單警告
+     */
+    clearDuplicateWarning() {
+        $('.duplicate-warning').remove();
+        $('input[name="ride_time"]').removeClass('is-invalid is-valid');
     }
 }
 

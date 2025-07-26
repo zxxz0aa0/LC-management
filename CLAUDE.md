@@ -6,6 +6,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 LC-management 是一個基於 Laravel 10 框架的長照服務管理系統，主要用於客戶、訂單、司機管理、地標管理和 Excel 匯入匯出功能。
 
+## 快速開始
+
+```bash
+# 1. 環境設定
+cp .env.example .env
+composer install
+npm install
+php artisan key:generate
+
+# 2. 資料庫設定
+php artisan migrate
+php artisan db:seed --class=LandmarkSeeder
+
+# 3. 啟動開發環境
+npm run dev        # 終端 1：前端建置
+php artisan serve  # 終端 2：後端伺服器
+
+# 4. 開發工具（可選）
+php artisan ide-helper:generate
+./vendor/bin/pint  # 程式碼格式化
+```
+
 ## 個人偏好
 1. 使用繁體中文應答
 2. 設計新功能前先規劃，並討論完後，有確定再執行
@@ -37,6 +59,11 @@ php artisan test --parallel         # 平行執行測試
 
 # 程式碼格式化
 ./vendor/bin/pint
+
+# IDE Helper 生成（提升開發體驗）
+php artisan ide-helper:generate     # 生成 Helper 檔案
+php artisan ide-helper:models       # 生成 Model 註解
+php artisan ide-helper:meta         # 生成 Meta 檔案
 
 # 清除所有快取
 php artisan optimize:clear
@@ -336,6 +363,41 @@ public function collection(Collection $rows) {
 - **重複性檢查**：檢查手機和身分證重複性
 - **錯誤追蹤**：使用實例變數累積錯誤訊息
 
+**重複訂單檢查記憶體使用分析**：
+
+**UniqueOrderDateTime** (`app/Rules/UniqueOrderDateTime.php:28-41`):
+```php
+$query = Order::where('customer_id', $this->customerId)
+    ->where('ride_date', $this->rideDate)
+    ->where('ride_time', $value);
+if ($query->exists()) { ... }
+```
+- **記憶體使用**：每次驗證執行一次資料庫查詢，約 1-2KB 記憶體佔用
+- **查詢效率**：使用索引優化的簡單 WHERE 查詢，記憶體開銷較低
+- **頻率風險**：表單驗證時觸發，頻率取決於用戶操作習慣
+
+**checkDuplicateOrder API** (`app/Http/Controllers/OrderController.php:461-494`):
+```php
+$query = Order::where('customer_id', $request->customer_id)
+    ->where('ride_date', $request->ride_date)
+    ->where('ride_time', $request->ride_time);
+$existingOrder = $query->first();
+```
+- **AJAX 記憶體使用**：每次前端檢查執行一次查詢，回傳 JSON 資料約 0.5-1KB
+- **併發風險**：多用戶同時操作可能產生大量併發查詢
+- **潛在問題**：用戶快速修改日期/時間可能導致請求堆積
+
+**前端即時檢查** (`public/js/orders/form.js:1088-1191`):
+```javascript
+$.ajax({
+    url: '/orders/check-duplicate',
+    data: { customer_id, ride_date, ride_time, order_id, _token }
+});
+```
+- **DOM 操作記憶體**：動態創建警告/成功訊息元素，每次約 0.5KB
+- **事件監聽記憶體**：綁定 change/blur 事件監聽器，輕微記憶體佔用
+- **記憶體洩漏風險**：DOM 元素清理機制已實施，但需要監控累積影響
+
 **地標匯入匯出記憶體使用分析**：
 
 **LandmarksExport** (`app/Exports/LandmarksExport.php:13`):
@@ -422,6 +484,16 @@ protected $casts = [
    }
    ```
 
+5. **重複訂單檢查最佳化**
+   - **前端節流控制**：在 `checkDuplicateOrder()` 實施 debounce 機制，減少 AJAX 請求頻率
+   - **查詢快取**：為重複檢查結果實施 Redis 短期快取（5-10分鐘）
+   - **資料庫索引**：為 `(customer_id, ride_date, ride_time)` 組合建立複合索引
+   ```php
+   // 建議實施 - 前端 debounce
+   const debouncedCheck = debounce(this.checkDuplicateOrder.bind(this), 500);
+   $('input[name="ride_date"], input[name="ride_time"]').on('change blur', debouncedCheck);
+   ```
+
 ### 2. 中優先級建議
 
 1. **分頁優化**
@@ -450,6 +522,18 @@ protected $casts = [
 5. **地標搜尋快取**
    - 為 `LandmarkController::search()` 新增 Redis 快取
    - 快取常用搜尋結果，減少資料庫查詢
+
+6. **重複訂單檢查中級優化**
+   - **請求取消機制**：實施 AJAX 請求取消，避免過時請求堆積
+   - **錯誤處理改善**：優化網路錯誤時的記憶體清理機制
+   - **API 響應快取**：在用戶端快取檢查結果，相同條件下避免重複請求
+   ```javascript
+   // 建議實施 - 請求取消
+   if (this.checkRequest) {
+       this.checkRequest.abort();
+   }
+   this.checkRequest = $.ajax({ ... });
+   ```
 
 ### 3. 低優先級建議
 
@@ -539,6 +623,12 @@ protected $casts = [
 3. **資料庫連線監控**
    - 監控資料庫連線數量
    - 避免連線洩漏
+
+4. **重複訂單檢查監控**
+   - **API 響應時間監控**：追蹤 `/orders/check-duplicate` 端點的響應時間
+   - **併發請求監控**：監控同時進行的重複檢查請求數量
+   - **前端錯誤監控**：追蹤 AJAX 請求失敗率和 DOM 操作錯誤
+   - **查詢頻率分析**：分析用戶操作模式，優化檢查觸發邏輯
 
 ## 地標系統記憶體最佳化專項指南
 
@@ -735,7 +825,48 @@ class LandmarkMemoryMonitor
 
 此系統採用 Laravel 標準的記憶體管理架構，整體設計合理。主要記憶體管理透過檔案快取、Session 管理和資料庫連線池實現。
 
-### 最新更新（2025-07-21）
+### 最新更新（2025-07-26）
+
+#### 重複訂單檢查功能全面實施
+- **核心功能實現**：防止同一客戶在同一日期同一時間建立重複訂單
+- **多層防護機制**：
+  - 後端驗證：`UniqueOrderDateTime` 自訂驗證規則
+  - 前端即時檢查：AJAX 即時驗證，提供視覺化提示
+  - API 端點：`POST /orders/check-duplicate` 供前端調用
+- **智慧檢查邏輯**：
+  - 檢查組合：`customer_id + ride_date + ride_time`
+  - 編輯模式自動排除當前訂單，避免誤報
+  - 詳細錯誤資訊：顯示重複訂單編號、地址、建立時間
+
+#### 記憶體管理考量與優化
+- **新增記憶體使用點分析**：
+  - 驗證規則：每次約 1-2KB 記憶體佔用
+  - API 查詢：每次回傳 0.5-1KB JSON 資料
+  - 前端 DOM 操作：每次約 0.5KB 動態元素
+- **潛在記憶體風險識別**：
+  - 高頻 AJAX 請求可能導致請求堆積
+  - 多用戶併發操作增加資料庫記憶體壓力
+  - DOM 元素累積可能造成前端記憶體洩漏
+- **記憶體優化建議**：
+  - 高優先級：實施前端 debounce 機制、查詢快取、資料庫索引
+  - 中優先級：請求取消機制、錯誤處理改善、API 響應快取
+  - 監控指標：API 響應時間、併發請求數量、前端錯誤率
+
+#### 實施的檔案清單
+- `app/Rules/UniqueOrderDateTime.php` - 自訂驗證規則
+- `app/Http/Controllers/OrderController.php:79-83` - store() 方法驗證整合
+- `app/Http/Controllers/OrderController.php:461-494` - 重複檢查 API 端點
+- `app/Http/Requests/UpdateOrderRequest.php:31-39` - update 請求驗證
+- `routes/web.php:54` - API 路由註冊
+- `public/js/orders/form.js:1088-1191` - 前端即時檢查功能
+
+#### 技術特色
+- **使用者友善**：即時提示，清楚的錯誤訊息
+- **開發友善**：組件化設計，易於維護和擴展
+- **效能友善**：輕量級查詢，記憶體使用最佳化
+- **安全友善**：CSRF 保護，SQL 注入防護
+
+### 先前更新（2025-07-21）
 
 #### 訂單管理系統關鍵問題修復
 - **訂單刪除功能實現**：完成 `OrderController::destroy()` 方法實現，包含完整的異常處理和 JSON 回應

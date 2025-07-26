@@ -6,6 +6,7 @@ use App\Http\Requests\UpdateOrderRequest;
 use App\Models\Customer;
 use App\Models\Landmark;
 use App\Models\Order;
+use App\Rules\UniqueOrderDateTime;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -75,7 +76,11 @@ class OrderController extends Controller
                 'customer_phone' => 'required|string|max:255',
                 'customer_id' => 'required|integer',
                 'ride_date' => 'required|date',
-                'ride_time' => 'required|date_format:H:i',
+                'ride_time' => [
+                    'required',
+                    'date_format:H:i',
+                    new UniqueOrderDateTime($request->customer_id, $request->ride_date)
+                ],
                 'pickup_address' => [
                     'required',
                     'string',
@@ -448,5 +453,43 @@ class OrderController extends Controller
         }
         
         return $params;
+    }
+
+    /**
+     * 檢查重複訂單的 API 端點
+     */
+    public function checkDuplicateOrder(Request $request)
+    {
+        $request->validate([
+            'customer_id' => 'required|integer',
+            'ride_date' => 'required|date',
+            'ride_time' => 'required|date_format:H:i',
+            'order_id' => 'nullable|integer'
+        ]);
+
+        $query = Order::where('customer_id', $request->customer_id)
+            ->where('ride_date', $request->ride_date)
+            ->where('ride_time', $request->ride_time);
+
+        // 編輯模式時排除當前訂單
+        if ($request->order_id) {
+            $query->where('id', '!=', $request->order_id);
+        }
+
+        $existingOrder = $query->first();
+
+        return response()->json([
+            'isDuplicate' => $existingOrder !== null,
+            'message' => $existingOrder 
+                ? '該客戶在此日期時間已有訂單（訂單編號：' . $existingOrder->order_number . '）'
+                : '此時間可以使用',
+            'existingOrder' => $existingOrder ? [
+                'id' => $existingOrder->id,
+                'order_number' => $existingOrder->order_number,
+                'pickup_address' => $existingOrder->pickup_address,
+                'dropoff_address' => $existingOrder->dropoff_address,
+                'created_at' => $existingOrder->created_at->format('Y-m-d H:i')
+            ] : null
+        ]);
     }
 }
