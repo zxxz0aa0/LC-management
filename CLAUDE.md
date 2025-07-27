@@ -6,6 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 LC-management 是一個基於 Laravel 10 框架的長照服務管理系統，主要用於客戶、訂單、司機管理、地標管理和 Excel 匯入匯出功能。
 
+### 關鍵技術堆疊
+- **後端**: Laravel 10.x + PHP 8.1+
+- **前端**: Vite + Tailwind CSS + Alpine.js + AdminLTE 3.2
+- **資料庫**: MySQL with JSON column support
+- **認證**: Laravel Breeze
+- **Excel 處理**: maatwebsite/excel 3.1+
+- **開發工具**: Laravel Pint (程式碼格式化) + IDE Helper
+
 ## 快速開始
 
 ```bash
@@ -87,6 +95,22 @@ composer install
 
 # Vite 熱更新開發
 npm run dev -- --host  # 允許外部存取
+```
+
+### 路由架構概覽
+```
+/dashboard                    # 主控台頁面
+/customers                    # 客戶管理 (CRUD + 匯入匯出)
+/orders                       # 訂單管理 (CRUD + 複雜搜尋)
+/admin/drivers                # 駕駛管理 (CRUD + 匯入匯出)
+/landmarks                    # 地標管理 (CRUD + 搜尋 API)
+/profile                      # 使用者資料管理
+
+# 重要 API 端點
+GET  /landmarks-search        # 地標搜尋 API
+POST /orders/check-duplicate  # 重複訂單檢查
+GET  /customers/{id}/history-orders  # 客戶歷史訂單
+POST /landmarks-usage         # 更新地標使用統計
 ```
 
 ## 應用程式架構
@@ -1232,30 +1256,43 @@ Order::first();
 
 ### 必要環境變數
 ```bash
-# 資料庫連線
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=lc_management
-DB_USERNAME=root
-DB_PASSWORD=
-
-# 快取設定 (建議生產環境使用 Redis)
-CACHE_DRIVER=file
-SESSION_DRIVER=file
-
 # 應用程式設定
+APP_NAME="LC Management"     # 長照管理系統
+APP_ENV=local
 APP_KEY=                    # 執行 php artisan key:generate 生成
 APP_DEBUG=true              # 生產環境應設為 false
 APP_URL=http://localhost:8000
 
-# 郵件設定
+# 資料庫連線
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=lc_management   # 建議使用此資料庫名稱
+DB_USERNAME=root
+DB_PASSWORD=
+
+# 快取設定 (建議生產環境使用 Redis)
+CACHE_DRIVER=file           # 生產環境建議改為 redis
+SESSION_DRIVER=file         # 生產環境建議改為 redis
+SESSION_LIFETIME=120
+
+# 郵件設定 (開發環境使用 Mailpit)
 MAIL_MAILER=smtp
 MAIL_HOST=mailpit
 MAIL_PORT=1025
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_ENCRYPTION=null
+MAIL_FROM_ADDRESS="hello@example.com"
+MAIL_FROM_NAME="${APP_NAME}"
 
 # Vite 前端設定
 VITE_APP_NAME="${APP_NAME}"
+
+# Redis 設定 (生產環境需要)
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
 ```
 
 ### 初始化專案步驟
@@ -1279,4 +1316,29 @@ npm run build
 
 # 6. 清除快取
 php artisan optimize:clear
+```
+
+## 除錯與問題排查
+
+### 常見開發問題
+1. **Vite 建置問題**: 確保 `npm install` 完成且 `tailwind.config.js` 設定正確
+2. **認證問題**: 檢查 Laravel Breeze 是否正確安裝：`php artisan breeze:install`
+3. **地標搜尋問題**: 確保 `LandmarkSeeder` 已執行：`php artisan db:seed --class=LandmarkSeeder`
+4. **Excel 匯入問題**: 檢查檔案權限和 `storage/framework/cache/laravel-excel/` 目錄
+5. **分頁顯示問題**: 確保中文語言包存在：`lang/zh-TW/pagination.php`
+
+### 測試指令
+```bash
+# 執行所有測試
+php artisan test
+
+# 執行特定測試
+php artisan test --filter=AuthenticationTest
+
+# 檢查程式碼風格
+./vendor/bin/pint --test
+
+# 檢查資料庫連線
+php artisan tinker
+>>> \DB::connection()->getPdo()
 ```

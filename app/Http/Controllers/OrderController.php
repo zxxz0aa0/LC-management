@@ -79,8 +79,9 @@ class OrderController extends Controller
                 'ride_time' => [
                     'required',
                     'date_format:H:i',
-                    new UniqueOrderDateTime($request->customer_id, $request->ride_date)
+                    new UniqueOrderDateTime($request->customer_id, $request->ride_date, $request->back_time)
                 ],
+                'back_time' => 'nullable|date_format:H:i',
                 'pickup_address' => [
                     'required',
                     'string',
@@ -113,6 +114,7 @@ class OrderController extends Controller
             ], [
                 'pickup_address.regex' => '上車地址必須包含「市/縣」與「區/鄉/鎮」',
                 'dropoff_address.regex' => '下車地址必須包含「市/縣」與「區/鄉/鎮」',
+                'back_time.date_format' => '回程時間格式錯誤，請使用 HH:MM 格式',
             ]
             );
         } catch (ValidationException $e) {
@@ -207,7 +209,55 @@ class OrderController extends Controller
             // ... 其他欄位請自行加入
         ]);
 
-        // 記錄地標使用次數
+        $returnOrder = null;
+        $ordersCreated = 1;
+
+        // 檢查是否有回程時間，如果有則創建回程訂單
+        if (!empty($validated['back_time'])) {
+            // 生成回程訂單編號（增加流水號避免重複）
+            $returnCountToday = Order::whereDate('created_at', $today->toDateString())->count() + 1;
+            $returnSerial = str_pad($returnCountToday, 4, '0', STR_PAD_LEFT);
+            $returnOrderNumber = $typeCode.$idSuffix.$date.$time.$returnSerial;
+
+            // 創建回程訂單（地址對調）
+            $returnOrder = Order::create([
+                'order_number' => $returnOrderNumber,
+                'customer_id' => $validated['customer_id'],
+                'driver_id' => $validated['driver_id'] ?? null,
+                'customer_name' => $validated['customer_name'],
+                'customer_id_number' => $validated['customer_id_number'],
+                'customer_phone' => $validated['customer_phone'],
+                'driver_name' => $validated['driver_name'] ?? null,
+                'driver_fleet_number' => $validated['driver_fleet_number'] ?? null,
+                'driver_plate_number' => $validated['driver_plate_number'] ?? null,
+                'order_type' => $validated['order_type'],
+                'service_company' => $validated['service_company'],
+                'ride_date' => $validated['ride_date'],
+                'ride_time' => $validated['back_time'], // 使用回程時間
+                'pickup_address' => $dropoffAddress, // 對調：原下車地址變上車地址
+                'pickup_county' => $validated['dropoff_county'], // 對調：原下車縣市變上車縣市
+                'pickup_district' => $validated['dropoff_district'], // 對調：原下車區域變上車區域
+                'dropoff_address' => $pickupAddress, // 對調：原上車地址變下車地址
+                'dropoff_county' => $validated['pickup_county'], // 對調：原上車縣市變下車縣市
+                'dropoff_district' => $validated['pickup_district'], // 對調：原上車區域變下車區域
+                'wheelchair' => $validated['wheelchair'],
+                'stair_machine' => $validated['stair_machine'],
+                'companions' => $validated['companions'],
+                'remark' => $validated['remark'] ?? null,
+                'created_by' => $validated['created_by'],
+                'identity' => $validated['identity'],
+                'carpool_name' => $validated['carpoolSearchInput'] ?? null,
+                'status' => $validated['status'],
+                'special_status' => $validated['special_status'] ?? null,
+                'carpool_customer_id' => $validated['carpool_customer_id'] ?? null,
+                'carpool_id' => $validated['carpool_id_number'] ?? null,
+            ]);
+
+            $ordersCreated = 2;
+
+        }
+
+        // 記錄去程訂單的地標使用次數
         $this->recordLandmarkUsage($request->get('pickup_address'), $request->get('pickup_landmark_id'));
         $this->recordLandmarkUsage($request->get('dropoff_address'), $request->get('dropoff_landmark_id'));
 
@@ -221,7 +271,11 @@ class OrderController extends Controller
         // 頁面式提交，成功後返回訂單列表並保持完整搜尋條件
         $redirectParams = $this->prepareSearchParams($request, $order);
 
-        return redirect()->route('orders.index', $redirectParams)->with('success', '訂單建立成功');
+        $successMessage = $ordersCreated === 2 
+            ? '成功建立 2 筆訂單（去程和回程）' 
+            : '訂單建立成功';
+
+        return redirect()->route('orders.index', $redirectParams)->with('success', $successMessage);
     }
 
     // 顯示單筆訂單資料（預留）

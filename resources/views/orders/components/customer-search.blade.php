@@ -36,7 +36,7 @@
         @if(request()->filled('keyword') || request()->filled('customer_id'))
             <hr class="my-4">
             <h6 class="text-muted mb-3">搜尋結果</h6>
-            
+
             @if(isset($customers) && $customers->isEmpty())
                 <div class="alert alert-warning">
                     <i class="fas fa-exclamation-triangle me-2"></i>查無符合的客戶資料
@@ -48,14 +48,14 @@
                 </div>
                 <div class="list-group">
                     @foreach($customers as $customer)
-                        <a href="{{ route('orders.index', array_merge(['customer_id' => $customer->id], request()->only(['keyword', 'start_date', 'end_date']))) }}" 
+                        <a href="{{ route('orders.index', array_merge(['customer_id' => $customer->id], request()->only(['keyword', 'start_date', 'end_date']))) }}"
                            class="list-group-item list-group-item-action">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h6 class="mb-1">{{ $customer->name }}</h6>
                                     <p class="mb-1">{{ $customer->id_number }}</p>
                                     <small class="text-muted">
-                                        {{ is_array($customer->phone_number) ? $customer->phone_number[0] : $customer->phone_number }} / 
+                                        {{ is_array($customer->phone_number) ? $customer->phone_number[0] : $customer->phone_number }} /
                                         {{ is_array($customer->addresses) ? $customer->addresses[0] : $customer->addresses }}
                                     </small>
                                 </div>
@@ -75,13 +75,13 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <strong>姓名：</strong><br>{{ $customer->name }}
                             </div>
                             <div class="col-md-2">
                                 <strong>身分證字號：</strong><br>{{ $customer->id_number }}
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-3">
                                 <strong>電話：</strong><br>{{ is_array($customer->phone_number) ? implode(' / ', $customer->phone_number) : $customer->phone_number }}
                             </div>
                             <div class="col-md-3">
@@ -92,7 +92,7 @@
                             </div>
                             @if(( $customer->status ?? '') == '開案中')
                                 <div class="col-md-1">
-                                    <a href="{{ route('orders.create', array_merge(['customer_id' => $customer->id], request()->only(['keyword', 'start_date', 'end_date']))) }}" 
+                                    <a href="{{ route('orders.create', array_merge(['customer_id' => $customer->id], request()->only(['keyword', 'start_date', 'end_date']))) }}"
                                     class="btn btn-success btn-sm fs-6">
                                         <i class="fas fa-plus me-1 "></i>建立訂單
                                     </a>

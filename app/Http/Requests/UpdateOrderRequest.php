@@ -34,9 +34,11 @@ class UpdateOrderRequest extends FormRequest
                 new UniqueOrderDateTime(
                     $this->input('customer_id'), 
                     $this->input('ride_date'),
+                    $this->input('back_time'),
                     $this->route('order')->id ?? null
                 )
             ],
+            'back_time' => 'nullable|date_format:H:i',
             'pickup_address' => [
                 'required',
                 'string',
@@ -80,6 +82,7 @@ class UpdateOrderRequest extends FormRequest
         return [
             'pickup_address.regex' => '上車地址必須包含「市/縣」與「區/鄉/鎮」',
             'dropoff_address.regex' => '下車地址必須包含「市/縣」與「區/鄉/鎮」',
+            'back_time.date_format' => '回程時間格式錯誤，請使用 HH:MM 格式',
         ];
     }
 }
