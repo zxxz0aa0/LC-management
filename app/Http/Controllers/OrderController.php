@@ -7,12 +7,20 @@ use App\Models\Customer;
 use App\Models\Landmark;
 use App\Models\Order;
 use App\Rules\UniqueOrderDateTime;
+use App\Services\CarpoolGroupService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
+    protected $carpoolGroupService;
+    
+    public function __construct(CarpoolGroupService $carpoolGroupService)
+    {
+        $this->carpoolGroupService = $carpoolGroupService;
+    }
+    
     public function index(Request $request)
     {
         $query = Order::filter($request);
@@ -98,6 +106,9 @@ class OrderController extends Controller
                 'service_company' => 'required|string',
                 'wheelchair' => 'required|string',
                 'stair_machine' => 'required|string',
+                
+                // 共乘相關欄位
+                'carpool_customer_id' => 'nullable|exists:customers,id',
                 'remark' => 'nullable|string',
                 'created_by' => 'required|string',
                 'identity' => 'required|string',
@@ -132,148 +143,64 @@ class OrderController extends Controller
             return back()->withErrors($e->errors())->withInput();
         }
 
+        // 拆解地址資訊
         $pickupAddress = $validated['pickup_address'];
         $dropoffAddress = $validated['dropoff_address'];
-
-        // 拆出 pickup 地點
+        
         preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $pickupAddress, $pickupMatches);
         $validated['pickup_county'] = $pickupMatches[1] ?? null;
         $validated['pickup_district'] = $pickupMatches[2] ?? null;
-
-        // 拆出 dropoff 地點
+        
         preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $dropoffAddress, $dropoffMatches);
         $validated['dropoff_county'] = $dropoffMatches[1] ?? null;
         $validated['dropoff_district'] = $dropoffMatches[2] ?? null;
 
-        $typeCodeMap = [
-            '新北長照' => 'NTPC',
-            '台北長照' => 'TPC',
-            '新北復康' => 'NTFK',
-            '愛接送' => 'LT',
-        ];
-
-        // 取得當前時間
-        $today = Carbon::now();
-
-        // 取得類型代碼
-        $orderType = $validated['order_type'] ?? null;
-        $typeCode = $typeCodeMap[$orderType] ?? 'UNK'; // fallback 預設 UNK
-
-        // 身分證末 3 碼
-        $idNumber = $validated['customer_id_number'];
-        $idSuffix = substr($idNumber, -3);
-
-        // 日期時間
-        $date = $today->format('Ymd');
-        $time = $today->format('Hi'); // 例如 1230
-
-        // 查詢當日已有幾張單，+1 後補滿 4 碼流水號
-        $countToday = Order::whereDate('created_at', $today->toDateString())->count() + 1;
-        $serial = str_pad($countToday, 4, '0', STR_PAD_LEFT);
-
-        // 組合編號
-        $orderNumber = $typeCode.$idSuffix.$date.$time.$serial;
-
-        $order = Order::create([
-            'order_number' => $orderNumber, // 1.訂單編號
-            'customer_id' => $validated['customer_id'], // 2.客戶 ID
-            'driver_id' => $validated['driver_id'] ?? null, // 3.駕駛 ID（可選填）
-            'customer_name' => $validated['customer_name'], // 4.個案姓名
-            'customer_id_number' => $validated['customer_id_number'], // 5. 個案身分證字號
-            'customer_phone' => $validated['customer_phone'], // 6. 個案電話
-            'driver_name' => $validated['driver_name'] ?? null, // 7. 駕駛姓名（可選填）
-            'driver_fleet_number' => $validated['driver_fleet_number'] ?? null, // 7.1 駕駛姓名（可選填）
-            'driver_plate_number' => $validated['driver_plate_number'] ?? null, // 8. 車牌號碼（可選填）
-            'order_type' => $validated['order_type'], // 9.訂單類型
-            'service_company' => $validated['service_company'], // 10. 服務單位
-            'ride_date' => $validated['ride_date'], // 11. 用車日期
-            'ride_time' => $validated['ride_time'], // 12. 用車時間
-            'pickup_address' => $pickupAddress, // 13. 上車地址
-            'pickup_county' => $validated['pickup_county'], // 14. 上車縣市
-            'pickup_district' => $validated['pickup_district'], // 15. 上車區域
-            'dropoff_address' => $dropoffAddress, // 16. 下車地址
-            'dropoff_county' => $validated['dropoff_county'], // 17. 下車縣市
-            'dropoff_district' => $validated['dropoff_district'], // 18. 下車區域
-            'wheelchair' => $validated['wheelchair'], // 19. 是否需要輪椅
-            'stair_machine' => $validated['stair_machine'], // 20. 是否需要爬梯機
-            'companions' => $validated['companions'], // 21. 陪同人數
-            'remark' => $validated['remark'] ?? null, // 22. 備註
-            'created_by' => $validated['created_by'], // 23. 建單人員
-            'identity' => $validated['identity'], // 24. 身份別
-            'carpool_name' => $validated['carpoolSearchInput'] ?? null, // 25. 共乘對象
-            'status' => $validated['status'], // 27. 訂單狀態
-            'special_status' => $validated['special_status'] ?? null, // 28. 特別狀態（可選填）
-            'carpool_customer_id' => $validated['carpool_customer_id'] ?? null, // 29. 共乘客戶ID（可選填）
-            'carpool_id' => $validated['carpool_id_number'] ?? null, // 30. 共乘客戶身分證（可選填）
-
-            // ... 其他欄位請自行加入
-        ]);
-
-        $returnOrder = null;
-        $ordersCreated = 1;
-
-        // 檢查是否有回程時間，如果有則創建回程訂單
-        if (!empty($validated['back_time'])) {
-            // 生成回程訂單編號（增加流水號避免重複）
-            $returnCountToday = Order::whereDate('created_at', $today->toDateString())->count() + 1;
-            $returnSerial = str_pad($returnCountToday, 4, '0', STR_PAD_LEFT);
-            $returnOrderNumber = $typeCode.$idSuffix.$date.$time.$returnSerial;
-
-            // 創建回程訂單（地址對調）
-            $returnOrder = Order::create([
-                'order_number' => $returnOrderNumber,
-                'customer_id' => $validated['customer_id'],
-                'driver_id' => $validated['driver_id'] ?? null,
-                'customer_name' => $validated['customer_name'],
-                'customer_id_number' => $validated['customer_id_number'],
-                'customer_phone' => $validated['customer_phone'],
-                'driver_name' => $validated['driver_name'] ?? null,
-                'driver_fleet_number' => $validated['driver_fleet_number'] ?? null,
-                'driver_plate_number' => $validated['driver_plate_number'] ?? null,
-                'order_type' => $validated['order_type'],
-                'service_company' => $validated['service_company'],
-                'ride_date' => $validated['ride_date'],
-                'ride_time' => $validated['back_time'], // 使用回程時間
-                'pickup_address' => $dropoffAddress, // 對調：原下車地址變上車地址
-                'pickup_county' => $validated['dropoff_county'], // 對調：原下車縣市變上車縣市
-                'pickup_district' => $validated['dropoff_district'], // 對調：原下車區域變上車區域
-                'dropoff_address' => $pickupAddress, // 對調：原上車地址變下車地址
-                'dropoff_county' => $validated['pickup_county'], // 對調：原上車縣市變下車縣市
-                'dropoff_district' => $validated['pickup_district'], // 對調：原上車區域變下車區域
-                'wheelchair' => $validated['wheelchair'],
-                'stair_machine' => $validated['stair_machine'],
-                'companions' => $validated['companions'],
-                'remark' => $validated['remark'] ?? null,
-                'created_by' => $validated['created_by'],
-                'identity' => $validated['identity'],
-                'carpool_name' => $validated['carpoolSearchInput'] ?? null,
-                'status' => $validated['status'],
-                'special_status' => $validated['special_status'] ?? null,
-                'carpool_customer_id' => $validated['carpool_customer_id'] ?? null,
-                'carpool_id' => $validated['carpool_id_number'] ?? null,
-            ]);
-
-            $ordersCreated = 2;
-
+        // 檢查是否為共乘訂單
+        $isCarpool = !empty($validated['carpool_customer_id']);
+        
+        if ($isCarpool) {
+            // 建立共乘群組
+            $result = $this->carpoolGroupService->createCarpoolGroup(
+                $validated['customer_id'],
+                $validated['carpool_customer_id'],
+                $validated
+            );
+            
+            $ordersCreated = $result['total_orders'];
+            $order = $result['orders'][0]; // 主訂單
+            
+            $successMessage = $ordersCreated === 2 
+                ? '成功建立 2 筆共乘訂單（去程）' 
+                : "成功建立 {$ordersCreated} 筆訂單（共乘含去程回程）";
+                
+        } else {
+            // 建立單人訂單（使用原有邏輯的簡化版）
+            $order = $this->createSingleOrder($validated);
+            $ordersCreated = 1;
+            
+            // 處理回程訂單
+            if (!empty($validated['back_time'])) {
+                $this->createReturnOrder($validated, $order);
+                $ordersCreated = 2;
+            }
+            
+            $successMessage = $ordersCreated === 2 
+                ? '成功建立 2 筆訂單（去程和回程）' 
+                : '訂單建立成功';
         }
 
-        // 記錄去程訂單的地標使用次數
+        // 記錄地標使用次數
         $this->recordLandmarkUsage($request->get('pickup_address'), $request->get('pickup_landmark_id'));
         $this->recordLandmarkUsage($request->get('dropoff_address'), $request->get('dropoff_landmark_id'));
 
         if ($request->ajax()) {
             $query = Order::filter($request);
             $orders = $query->orderBy('ride_date', 'desc')->get();
-
-            return view('orders.components.order-table', compact('orders'))->render(); // 回傳部分視圖
+            return view('orders.components.order-table', compact('orders'))->render();
         }
 
         // 頁面式提交，成功後返回訂單列表並保持完整搜尋條件
         $redirectParams = $this->prepareSearchParams($request, $order);
-
-        $successMessage = $ordersCreated === 2 
-            ? '成功建立 2 筆訂單（去程和回程）' 
-            : '訂單建立成功';
 
         return redirect()->route('orders.index', $redirectParams)->with('success', $successMessage);
     }
@@ -544,6 +471,104 @@ class OrderController extends Controller
                 'dropoff_address' => $existingOrder->dropoff_address,
                 'created_at' => $existingOrder->created_at->format('Y-m-d H:i')
             ] : null
+        ]);
+    }
+
+    /**
+     * 建立單人訂單
+     */
+    private function createSingleOrder($validated)
+    {
+        $typeCodeMap = [
+            '新北長照' => 'NTPC',
+            '台北長照' => 'TPC',
+            '新北復康' => 'NTFK',
+            '愛接送' => 'LT',
+        ];
+
+        $today = Carbon::now();
+        $typeCode = $typeCodeMap[$validated['order_type']] ?? 'UNK';
+        $idSuffix = substr($validated['customer_id_number'], -3);
+        $date = $today->format('Ymd');
+        $time = $today->format('Hi');
+        
+        $countToday = Order::whereDate('created_at', $today->toDateString())->count() + 1;
+        $serial = str_pad($countToday, 4, '0', STR_PAD_LEFT);
+        $orderNumber = $typeCode . $idSuffix . $date . $time . $serial;
+
+        return Order::create([
+            'order_number' => $orderNumber,
+            'customer_id' => $validated['customer_id'],
+            'customer_name' => $validated['customer_name'],
+            'customer_id_number' => $validated['customer_id_number'],
+            'customer_phone' => $validated['customer_phone'],
+            'order_type' => $validated['order_type'],
+            'service_company' => $validated['service_company'],
+            'ride_date' => $validated['ride_date'],
+            'ride_time' => $validated['ride_time'],
+            'pickup_address' => $validated['pickup_address'],
+            'pickup_county' => $validated['pickup_county'],
+            'pickup_district' => $validated['pickup_district'],
+            'dropoff_address' => $validated['dropoff_address'],
+            'dropoff_county' => $validated['dropoff_county'],
+            'dropoff_district' => $validated['dropoff_district'],
+            'wheelchair' => $validated['wheelchair'],
+            'stair_machine' => $validated['stair_machine'],
+            'companions' => $validated['companions'],
+            'remark' => $validated['remark'] ?? null,
+            'created_by' => $validated['created_by'],
+            'identity' => $validated['identity'],
+            'status' => $validated['status'],
+            'special_status' => $validated['special_status'] ?? null,
+        ]);
+    }
+
+    /**
+     * 建立回程訂單
+     */
+    private function createReturnOrder($validated, $outboundOrder)
+    {
+        $today = Carbon::now();
+        $typeCodeMap = [
+            '新北長照' => 'NTPC',
+            '台北長照' => 'TPC',
+            '新北復康' => 'NTFK',
+            '愛接送' => 'LT',
+        ];
+        
+        $typeCode = $typeCodeMap[$validated['order_type']] ?? 'UNK';
+        $idSuffix = substr($validated['customer_id_number'], -3);
+        $date = $today->format('Ymd');
+        $time = $today->format('Hi');
+        
+        $returnCountToday = Order::whereDate('created_at', $today->toDateString())->count() + 1;
+        $returnSerial = str_pad($returnCountToday, 4, '0', STR_PAD_LEFT);
+        $returnOrderNumber = $typeCode . $idSuffix . $date . $time . $returnSerial;
+
+        return Order::create([
+            'order_number' => $returnOrderNumber,
+            'customer_id' => $validated['customer_id'],
+            'customer_name' => $validated['customer_name'],
+            'customer_id_number' => $validated['customer_id_number'],
+            'customer_phone' => $validated['customer_phone'],
+            'order_type' => $validated['order_type'],
+            'service_company' => $validated['service_company'],
+            'ride_date' => $validated['ride_date'],
+            'ride_time' => $validated['back_time'], // 使用回程時間
+            'pickup_address' => $validated['dropoff_address'], // 地址對調
+            'pickup_county' => $validated['dropoff_county'],
+            'pickup_district' => $validated['dropoff_district'],
+            'dropoff_address' => $validated['pickup_address'], // 地址對調
+            'dropoff_county' => $validated['pickup_county'],
+            'dropoff_district' => $validated['pickup_district'],
+            'wheelchair' => $validated['wheelchair'],
+            'stair_machine' => $validated['stair_machine'],
+            'companions' => $validated['companions'],
+            'remark' => $validated['remark'] ?? null,
+            'created_by' => $validated['created_by'],
+            'identity' => $validated['identity'],
+            'status' => $validated['status'],
+            'special_status' => $validated['special_status'] ?? null,
         ]);
     }
 }
