@@ -5,20 +5,28 @@ namespace App\Services;
 use App\Models\Customer;
 use App\Models\Driver;
 use App\Models\Order;
+use App\Services\OrderNumberService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class CarpoolGroupService
 {
+    private OrderNumberService $orderNumberService;
+    
+    public function __construct(OrderNumberService $orderNumberService)
+    {
+        $this->orderNumberService = $orderNumberService;
+    }
     /**
      * 建立共乘群組
      */
     public function createCarpoolGroup($mainCustomerId, $carpoolCustomerId, $orderData)
     {
         return DB::transaction(function () use ($mainCustomerId, $carpoolCustomerId, $orderData) {
-            // 生成群組ID
-            $groupId = 'carpool_' . time() . '_' . rand(1000, 9999);
+            // 生成唯一群組ID (使用UUID避免衝突)
+            $groupId = 'carpool_' . Str::uuid()->toString();
             
             // 取得客戶資料
             $mainCustomer = Customer::findOrFail($mainCustomerId);
@@ -28,10 +36,10 @@ class CarpoolGroupService
             $orderNumbers = $this->generateCarpoolOrderNumbers($mainCustomer, $carpoolCustomer, $orderData);
             
             // 建立主訂單
-            $mainOrder = $this->createMainOrder($mainCustomer, $orderData, $groupId, $orderNumbers['main']);
+            $mainOrder = $this->createMainOrder($mainCustomer, $orderData, $groupId, $orderNumbers['main'], $carpoolCustomer);
             
             // 建立共乘成員訂單
-            $carpoolOrder = $this->createCarpoolMemberOrder($carpoolCustomer, $orderData, $groupId, $orderNumbers['carpool'], $orderNumbers['main']);
+            $carpoolOrder = $this->createCarpoolMemberOrder($carpoolCustomer, $orderData, $groupId, $orderNumbers['carpool'], $orderNumbers['main'], $mainCustomer);
             
             $createdOrders = [$mainOrder, $carpoolOrder];
             
@@ -50,74 +58,69 @@ class CarpoolGroupService
     }
     
     /**
-     * 生成共乘訂單編號
+     * 生成共乘訂單編號（使用原子化服務）
      */
     private function generateCarpoolOrderNumbers($mainCustomer, $carpoolCustomer, $orderData)
     {
-        $typeCodeMap = [
-            '新北長照' => 'NTPC',
-            '台北長照' => 'TPC',
-            '新北復康' => 'NTFK',
-            '愛接送' => 'LT',
-        ];
+        $orderType = $orderData['order_type'];
+        $mainCustomerIdNumber = $mainCustomer->id_number;
+        $hasReturn = !empty($orderData['back_time']);
         
-        $today = Carbon::now();
-        $typeCode = $typeCodeMap[$orderData['order_type']] ?? 'UNK';
-        $date = $today->format('Ymd');
-        $time = $today->format('Hi');
-        
-        // 主訂單編號
-        $mainIdSuffix = substr($mainCustomer->id_number, -3);
-        $mainSerial = str_pad(Order::whereDate('created_at', $today->toDateString())->count() + 1, 4, '0', STR_PAD_LEFT);
-        $mainOrderNumber = $typeCode . $mainIdSuffix . $date . $time . $mainSerial;
-        
-        // 共乘成員編號（基於主訂單編號）
-        $carpoolOrderNumber = $mainOrderNumber . '-M2';
-        
-        $orderNumbers = [
-            'main' => $mainOrderNumber,
-            'carpool' => $carpoolOrderNumber
-        ];
-        
-        // 如果有回程，生成回程編號
-        if (!empty($orderData['back_time'])) {
-            $returnSerial = str_pad(Order::whereDate('created_at', $today->toDateString())->count() + 2, 4, '0', STR_PAD_LEFT);
-            $returnMainNumber = $typeCode . $mainIdSuffix . $date . $time . $returnSerial;
-            $returnCarpoolNumber = $returnMainNumber . '-M2';
-            
-            $orderNumbers['return_main'] = $returnMainNumber;
-            $orderNumbers['return_carpool'] = $returnCarpoolNumber;
-        }
-        
-        return $orderNumbers;
+        // 使用原子化服務生成所有編號
+        return $this->orderNumberService->generateCarpoolOrderNumbers(
+            $orderType,
+            $mainCustomerIdNumber,
+            $carpoolCustomer->id_number,
+            $hasReturn
+        );
     }
     
     /**
      * 建立主訂單
      */
-    private function createMainOrder($customer, $orderData, $groupId, $orderNumber)
+    private function createMainOrder($customer, $orderData, $groupId, $orderNumber, $carpoolCustomer = null)
     {
+        $carpoolData = [];
+        if ($carpoolCustomer) {
+            $carpoolData = [
+                'special_status' => '共乘',
+                'carpool_customer_id' => $carpoolCustomer->id,
+                'carpool_name' => $carpoolCustomer->name,
+                'carpool_id' => $carpoolCustomer->id_number,
+            ];
+        }
+        
         return Order::create(array_merge($this->prepareOrderData($customer, $orderData, $orderNumber), [
             'carpool_group_id' => $groupId,
             'is_main_order' => true,
             'carpool_member_count' => 2,
             'main_order_number' => $orderNumber,
             'member_sequence' => 1,
-        ]));
+        ], $carpoolData));
     }
     
     /**
      * 建立共乘成員訂單
      */
-    private function createCarpoolMemberOrder($customer, $orderData, $groupId, $orderNumber, $mainOrderNumber)
+    private function createCarpoolMemberOrder($customer, $orderData, $groupId, $orderNumber, $mainOrderNumber, $mainCustomer = null)
     {
+        $carpoolData = [];
+        if ($mainCustomer) {
+            $carpoolData = [
+                'special_status' => '共乘',
+                'carpool_customer_id' => $mainCustomer->id,
+                'carpool_name' => $mainCustomer->name,
+                'carpool_id' => $mainCustomer->id_number,
+            ];
+        }
+        
         return Order::create(array_merge($this->prepareOrderData($customer, $orderData, $orderNumber), [
             'carpool_group_id' => $groupId,
             'is_main_order' => false,
             'carpool_member_count' => 2,
             'main_order_number' => $mainOrderNumber,
             'member_sequence' => 2,
-        ]));
+        ], $carpoolData));
     }
     
     /**
@@ -143,6 +146,11 @@ class CarpoolGroupService
             'carpool_member_count' => 2,
             'main_order_number' => $orderNumbers['return_main'],
             'member_sequence' => 1,
+            // 共乘資訊：主訂單指向共乘客戶
+            'special_status' => '共乘',
+            'carpool_customer_id' => $carpoolCustomer->id,
+            'carpool_name' => $carpoolCustomer->name,
+            'carpool_id' => $carpoolCustomer->id_number,
         ]));
         
         // 建立共乘客戶回程訂單
@@ -152,6 +160,11 @@ class CarpoolGroupService
             'carpool_member_count' => 2,
             'main_order_number' => $orderNumbers['return_main'],
             'member_sequence' => 2,
+            // 共乘資訊：成員訂單指向主客戶
+            'special_status' => '共乘',
+            'carpool_customer_id' => $mainCustomer->id,
+            'carpool_name' => $mainCustomer->name,
+            'carpool_id' => $mainCustomer->id_number,
         ]));
         
         return [$returnMainOrder, $returnCarpoolOrder];
@@ -398,8 +411,8 @@ class CarpoolGroupService
             'status' => $mainOrder->status,
             'created_at' => $mainOrder->created_at->format('Y-m-d H:i:s'),
             'main_order' => $mainOrder,
-            'members' => $members->values()->all(),
-            'all_orders' => $orders->values()->all()
+            'members' => $members->values(),
+            'all_orders' => $orders->values()
         ];
     }
 }

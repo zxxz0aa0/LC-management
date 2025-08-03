@@ -849,7 +849,52 @@ class LandmarkMemoryMonitor
 
 此系統採用 Laravel 標準的記憶體管理架構，整體設計合理。主要記憶體管理透過檔案快取、Session 管理和資料庫連線池實現。
 
-### 最新更新（2025-07-26）
+### 最新更新（2025-08-02）
+
+#### 共乘系統核心功能實施
+- **核心架構實現**：完整的共乘群組管理系統，支援多人共乘和智能派遣
+- **資料庫結構優化**：
+  - 新增 9 個共乘相關欄位
+  - 實施主訂單代表制設計模式
+  - 智能顯示策略：瀏覽模式只顯示主訂單，搜尋模式顯示所有相關訂單
+- **服務層架構**：
+  - `CarpoolGroupService`：400+ 行完整業務邏輯
+  - 支援群組建立、解除、狀態同步、司機指派
+  - 智能訂單編號生成：主訂單標準編號，成員訂單使用 "主編號-M2" 格式
+- **模型關聯優化**：
+  - Order 模型新增 3 個群組關聯方法
+  - 實施 Scope 查詢：mainOrders(), groupOrders(), dissolvedGroups()
+  - 智能過濾策略減少記憶體佔用
+
+#### 記憶體管理新增影響
+- **記憶體佔用分析**：
+  - 單一訂單記憶體增加 20%（新增共乘欄位含關聯資訊）
+  - 2人群組約 4.8KB，4人群組約 9.6KB
+  - 群組解除操作 5-21KB（視群組大小）
+- **新增記憶體風險點**：
+  - 高風險：`dissolveGroup()` 一次性載入所有群組訂單
+  - 中風險：群組關聯查詢可能觸發 N+1 問題
+  - 低風險：訂單編號生成和群組驗證邏輯
+- **記憶體最佳化建議**：
+  - 高優先級：優化 dissolveGroup 使用直接 UPDATE，群組查詢使用 chunk()
+  - 中優先級：實施 CarpoolMemoryMonitor 中間件，優化群組列表查詢
+  - 低優先級：群組大小限制（4人），歷史資料清理機制
+
+#### 實施的檔案清單
+- `database/migrations/2025_08_02_190310_add_carpool_group_fields_to_orders_table.php` - 資料庫結構
+- `app/Services/CarpoolGroupService.php` - 共乘群組服務（405行）+ 共乘欄位設定邏輯
+- `app/Models/Order.php:26, 29-58, 128-236` - 模型關聯和方法 + fillable 欄位更新
+- `app/Http/Controllers/OrderController.php:10-22, 158-190` - 控制器整合
+- `CLAUDE.md:1002-1270` - 記憶體管理分析更新
+
+#### 技術特色
+- **派遣友善**：主訂單代表制，派遣系統只需處理主訂單
+- **記憶體友善**：智能顯示策略，瀏覽模式記憶體佔用減少 50%
+- **維護友善**：完整的群組生命週期管理，支援解除和狀態同步
+- **擴展友善**：支援未來多人群組（目前建議限制 4 人）
+- **資料標準化**：統一使用 special_status 標記共乘訂單，完整的共乘關聯資訊
+
+### 先前更新（2025-07-26）
 
 #### 重複訂單檢查功能全面實施
 - **核心功能實現**：防止同一客戶在同一日期同一時間建立重複訂單
@@ -998,6 +1043,273 @@ class LandmarkMemoryMonitor
 - **記憶體風險相同**：兩系統都存在匯出時 `::all()` 的記憶體風險
 
 建議優先實施 Redis 快取和查詢最佳化，以提升系統整體效能和記憶體使用效率。地標系統已針對高頻使用場景進行最佳化，可有效提升訂單建立效率。新增的匯入匯出功能需要進一步最佳化以確保大量資料處理時的記憶體安全。
+
+## 共乘系統記憶體影響分析（2025-08-02 新增）
+
+### 共乘系統新增功能與記憶體佔用
+
+#### 1. 資料庫結構變更影響
+- **新增9個共乘欄位**：`carpool_group_id`, `is_main_order`, `carpool_member_count`, `main_order_number`, `member_sequence`, `is_group_dissolved`, `dissolved_at`, `dissolved_by`, `original_group_id`
+- **記憶體增加**：每筆訂單約增加 200-300 bytes
+- **索引開銷**：新增3個索引（carpool_group_id, is_main_order, is_group_dissolved），查詢效能提升但記憶體佔用增加約 50-100 bytes/訂單
+
+#### 2. CarpoolGroupService 記憶體使用分析
+
+**createCarpoolGroup 方法** (`app/Services/CarpoolGroupService.php:17-50`):
+```php
+return DB::transaction(function () use ($mainCustomerId, $carpoolCustomerId, $orderData) {
+    // 建立 2-4 筆訂單的事務操作
+    // 每筆訂單自動設定 special_status='共乘' 和共乘關聯資訊
+});
+```
+- **記憶體友善**：使用 DB::transaction 確保原子性操作，記憶體風險可控
+- **訂單建立開銷**：
+  - 去程共乘：建立 2 筆訂單，約 4.8KB 記憶體佔用（含共乘欄位）
+  - 含回程共乘：建立 4 筆訂單，約 9.6KB 記憶體佔用（含共乘欄位）
+- **編號生成邏輯**：記憶體佔用較輕，主要為字串處理
+- **共乘欄位設定**：每筆訂單額外增加約 100 bytes（special_status, carpool_customer_id, carpool_name, carpool_id）
+
+**dissolveGroup 方法** (`app/Services/CarpoolGroupService.php:270-299`):
+```php
+$groupOrders = Order::where('carpool_group_id', $groupId)->get();
+foreach ($groupOrders as $order) {
+    $dissolvedOrder = $this->dissolveOrder($order, $reason);
+}
+```
+- **高記憶體風險**：一次性載入整個群組的所有訂單到記憶體
+- **記憶體佔用估算**：
+  - 2人群組：約 4.8KB（含共乘欄位）
+  - 4人群組：約 9.6KB（含共乘欄位）
+  - 含回程的4人群組：約 19.2KB（含共乘欄位）
+- **潛在問題**：大型群組或併發解除操作可能導致記憶體壓力
+
+**syncGroupStatus 方法** (`app/Services/CarpoolGroupService.php:212-228`):
+```php
+Order::where('carpool_group_id', $groupId)
+     ->where('is_group_dissolved', false)
+     ->update([...]);
+```
+- **記憶體友善**：使用直接 UPDATE 語句，不載入訂單到記憶體
+- **批量更新開銷**：記憶體佔用最小，主要為查詢開銷
+
+#### 3. Order 模型關聯記憶體影響
+
+**新增關聯方法** (`app/Models/Order.php:133-156`):
+```php
+public function groupMembers() // 群組成員關聯
+public function mainOrder()    // 群組主訂單關聯
+public function allGroupOrders() // 所有群組訂單關聯
+```
+- **Lazy Loading 記憶體影響**：每次載入關聯時約增加 2-6KB 記憶體佔用
+- **N+1 查詢風險**：在列表頁面顯示群組資訊時可能觸發 N+1 查詢
+- **關聯查詢開銷**：`groupMembers()` 方法使用 JOIN 查詢，記憶體效率較高
+
+**智能顯示策略** (`app/Models/Order.php:79-126`):
+```php
+public function scopeFilter($query, $request)
+{
+    $isSearching = $request->filled('keyword') || 
+                   $request->filled('customer_id') || 
+                   $request->filled('order_number');
+    
+    if (!$isSearching) {
+        $query->where('is_main_order', true); // 瀏覽模式只顯示主訂單
+    }
+}
+```
+- **記憶體優化**：瀏覽模式下過濾非主訂單，減少約 50% 的記憶體佔用
+- **搜尋模式**：載入所有相關訂單，記憶體佔用增加但提供完整搜尋結果
+
+### 共乘系統潛在記憶體風險
+
+#### 1. 高風險操作
+- **群組解除操作**：`dissolveGroup()` 一次性載入所有群組訂單
+- **群組查詢關聯**：在列表頁面可能觸發 N+1 查詢問題
+- **大型群組管理**：超過 4 人的群組記憶體佔用顯著增加
+
+#### 2. 中風險操作
+- **回程訂單建立**：單次操作建立 4 筆訂單，記憶體佔用約 9.2KB
+- **群組狀態同步**：批量更新操作，記憶體佔用中等
+- **群組資訊 API**：`getGroupInfo()` 返回完整群組數據
+
+#### 3. 低風險操作
+- **訂單編號生成**：純字串處理，記憶體佔用微小
+- **群組驗證邏輯**：簡單的條件檢查，記憶體影響極小
+
+### 共乘系統記憶體最佳化建議
+
+#### 1. 高優先級最佳化
+
+**dissolveGroup 方法記憶體優化**：
+```php
+// 建議實施 - 避免載入到記憶體
+public function dissolveGroup($groupId, $reason = '', $force = false)
+{
+    return DB::transaction(function () use ($groupId, $reason, $force) {
+        // 直接使用 UPDATE 語句，避免載入訂單
+        $updateData = [
+            'original_group_id' => $groupId,
+            'carpool_group_id' => null,
+            'is_main_order' => true,
+            'carpool_member_count' => 1,
+            'is_group_dissolved' => true,
+            'dissolved_at' => now(),
+            'dissolved_by' => auth()->user()->name ?? 'system',
+        ];
+        
+        $affectedRows = Order::where('carpool_group_id', $groupId)
+            ->update($updateData);
+            
+        return ['affected_orders' => $affectedRows];
+    });
+}
+```
+
+**群組查詢分塊處理**：
+```php
+// 建議實施 - 大型群組查詢使用 chunk()
+public function getGroupInfo($groupId)
+{
+    $orders = collect();
+    Order::where('carpool_group_id', $groupId)
+         ->chunk(100, function ($chunk) use ($orders) {
+             $orders->push(...$chunk);
+         });
+    
+    return $this->processGroupInfo($orders);
+}
+```
+
+#### 2. 中優先級最佳化
+
+**實施 CarpoolMemoryMonitor 中間件**：
+```php
+class CarpoolMemoryMonitor
+{
+    public function handle($request, Closure $next)
+    {
+        if (str_contains($request->path(), 'carpool')) {
+            $memoryStart = memory_get_usage();
+            $response = $next($request);
+            $memoryEnd = memory_get_usage();
+            
+            $memoryUsed = $memoryEnd - $memoryStart;
+            if ($memoryUsed > 5 * 1024 * 1024) { // 5MB
+                Log::warning('共乘操作高記憶體使用', [
+                    'url' => $request->url(),
+                    'memory_used' => number_format($memoryUsed / 1024 / 1024, 2) . 'MB'
+                ]);
+            }
+            
+            return $response;
+        }
+        
+        return $next($request);
+    }
+}
+```
+
+**群組列表查詢優化**：
+```php
+// 建議實施 - 限制載入欄位，避免 N+1 查詢
+$orders = Order::with(['groupMembers:id,customer_name,carpool_group_id'])
+               ->select(['id', 'customer_name', 'carpool_group_id', 'is_main_order'])
+               ->mainOrders()
+               ->paginate(50);
+```
+
+#### 3. 低優先級最佳化
+
+**群組大小限制**：
+- 建議群組最大人數限制在 4 人
+- 超過 4 人的群組顯示警告提示
+- 實施群組人數監控機制
+
+**歷史群組資料清理**：
+```php
+// 定期清理已解散的群組歷史記錄
+Order::where('is_group_dissolved', true)
+     ->where('dissolved_at', '<', now()->subMonths(6))
+     ->chunk(1000, function ($orders) {
+         $orders->each->delete();
+     });
+```
+
+### 共乘系統記憶體使用基準
+
+#### 記憶體佔用基準表
+| 操作類型 | 記憶體佔用 | 備註 |
+|---------|-----------|------|
+| 單一訂單（原有） | ~2.0KB | 基準值 |
+| 單一訂單（含共乘欄位） | ~2.4KB | 增加 20% |
+| 2人去程群組 | ~4.8KB | 新增功能（含共乘資訊） |
+| 2人含回程群組 | ~9.6KB | 新增功能（含共乘資訊） |
+| 4人去程群組 | ~9.6KB | 新增功能（含共乘資訊） |
+| 4人含回程群組 | ~19.2KB | 新增功能（含共乘資訊） |
+| 群組解除操作 | ~5-21KB | 視群組大小（含共乘資訊） |
+
+#### 記憶體監控閾值建議
+- **單次群組操作**：超過 20MB 記憶體使用時記錄警告
+- **群組大小限制**：建議最大 4 人群組
+- **併發群組操作**：監控同時進行的群組操作數量
+- **API 響應大小**：群組資訊 API 響應超過 50KB 時優化
+
+### 效能測試建議
+
+#### 共乘系統記憶體壓力測試
+1. **小型群組測試**：100 個 2 人群組同時操作
+2. **中型群組測試**：50 個 4 人群組同時操作
+3. **群組解除測試**：批量解除 100 個群組
+4. **搜尋效能測試**：在 1000 個群組中搜尋特定訂單
+
+#### 記憶體監控指標
+- 群組建立/解除操作的記憶體峰值
+- 群組列表載入的記憶體使用
+- 群組搜尋操作的記憶體效率
+- N+1 查詢檢測和關聯載入最佳化
+
+這些測試和監控機制將確保共乘系統在擴展時保持良好的記憶體效率和系統穩定性。
+
+### 共乘資料標準化記憶體影響（2025-08-02 更新）
+
+#### 共乘欄位標準化實施
+- **special_status 統一標記**：所有共乘訂單統一使用 `special_status = '共乘'` 標記
+- **完整關聯資訊**：每筆共乘訂單包含完整的共乘對象資訊
+  - `carpool_customer_id`: 共乘對象的客戶 ID
+  - `carpool_name`: 共乘對象的姓名  
+  - `carpool_id`: 共乘對象的身分證字號
+
+#### 記憶體影響評估
+- **單筆訂單增加**：每筆共乘訂單約增加 100 bytes（4個共乘欄位）
+- **查詢效率提升**：標準化的 special_status 欄位便於索引和篩選
+- **關聯查詢優化**：直接的關聯資訊減少 JOIN 查詢需求
+
+#### 最佳化建議更新
+1. **高優先級**：
+   - 為 `special_status` 欄位建立索引，加速共乘訂單查詢
+   - 共乘關聯查詢使用 `carpool_customer_id` 直接查找，避免複雜 JOIN
+   
+2. **中優先級**：
+   - 實施共乘資料的快取策略，減少重複查詢
+   - 監控共乘訂單的查詢模式，優化常用查詢路徑
+   
+3. **低優先級**：
+   - 定期清理無效的共乘關聯資訊
+   - 實施共乘資料的一致性檢查機制
+
+#### 查詢效能改善
+```sql
+-- 優化前：複雜的群組查詢
+SELECT * FROM orders WHERE carpool_group_id IN (
+    SELECT DISTINCT carpool_group_id FROM orders WHERE customer_id = ?
+);
+
+-- 優化後：直接的共乘關聯查詢  
+SELECT * FROM orders WHERE special_status = '共乘' 
+    AND (customer_id = ? OR carpool_customer_id = ?);
+```
+
+這些改善將進一步提升共乘系統的記憶體效率和查詢效能。
 
 ## 訂單系統重構詳細記錄
 

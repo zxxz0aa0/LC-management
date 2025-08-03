@@ -50,14 +50,17 @@
                                 @case('一般')
                                     <span class="badge bg-success">一般</span>
                                     @break
-                                @case('網頁')
-                                    <span class="badge bg-danger">網頁</span>
+                                @case('網頁單')
+                                    <span class="badge bg-danger">網頁單</span>
                                     @break
                                 @case('個管單')
                                     <span class="badge bg-info">個管單</span>
                                     @break
                                 @case('黑名單')
                                     <span class="badge bg-dark">黑名單</span>
+                                    @break
+                                @case('共乘')
+                                    <span class="badge bg-primary">共乘</span>
                                     @break
                                 @default
                                     <span class="badge bg-secondary">未知</span>

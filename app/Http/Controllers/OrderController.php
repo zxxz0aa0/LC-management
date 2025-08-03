@@ -2,23 +2,30 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\ConcurrencyException;
 use App\Http\Requests\UpdateOrderRequest;
 use App\Models\Customer;
 use App\Models\Landmark;
 use App\Models\Order;
 use App\Rules\UniqueOrderDateTime;
 use App\Services\CarpoolGroupService;
+use App\Services\OrderNumberService;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
     protected $carpoolGroupService;
+    protected $orderNumberService;
     
-    public function __construct(CarpoolGroupService $carpoolGroupService)
+    public function __construct(CarpoolGroupService $carpoolGroupService, OrderNumberService $orderNumberService)
     {
         $this->carpoolGroupService = $carpoolGroupService;
+        $this->orderNumberService = $orderNumberService;
     }
     
     public function index(Request $request)

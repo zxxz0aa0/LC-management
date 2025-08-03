@@ -81,9 +81,15 @@
                             <p>訂單管理</p>
                         </a>
                     </li>
-                        <li class="nav-item">
+                    <li class="nav-item">
+                        <a href="{{ route('carpool-groups.index') }}" class="nav-link {{ request()->is('carpool-groups*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-users"></i>
+                            <p>共乘群組管理</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a href="{{ route('landmarks.index') }}" class="nav-link">
-                            <i class="nav-icon fas fa-file-alt"></i>
+                            <i class="nav-icon fas fa-map-marker-alt"></i>
                             <p>地標管理</p>
                         </a>
                     </li>

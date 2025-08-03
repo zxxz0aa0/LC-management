@@ -5,6 +5,7 @@ use App\Http\Controllers\CustomerEventController;
 use App\Http\Controllers\LandmarkController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\CarpoolGroupController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -62,6 +63,15 @@ Route::middleware('auth')->group(function () {
     Route::post('/landmarks/batch-destroy', [LandmarkController::class, 'batchDestroy'])->name('landmarks.batchDestroy');
     Route::post('/landmarks/batch-toggle', [LandmarkController::class, 'batchToggle'])->name('landmarks.batchToggle');
     Route::post('/landmarks-usage', [OrderController::class, 'updateLandmarkUsage'])->name('landmarks.updateUsage');
+    
+    // 共乘群組管理路由
+    Route::post('/carpool-groups/batch-action', [CarpoolGroupController::class, 'batchAction'])->name('carpool-groups.batch-action');
+    Route::get('/carpool-groups', [CarpoolGroupController::class, 'index'])->name('carpool-groups.index');
+    Route::get('/carpool-groups/{groupId}', [CarpoolGroupController::class, 'show'])->name('carpool-groups.show');
+    Route::post('/carpool-groups/{groupId}/assign-driver', [CarpoolGroupController::class, 'assignDriver'])->name('carpool-groups.assign-driver');
+    Route::post('/carpool-groups/{groupId}/cancel', [CarpoolGroupController::class, 'cancelGroup'])->name('carpool-groups.cancel');
+    Route::post('/carpool-groups/{groupId}/dissolve', [CarpoolGroupController::class, 'dissolveGroup'])->name('carpool-groups.dissolve');
+    Route::post('/carpool-groups/{groupId}/update-status', [CarpoolGroupController::class, 'updateStatus'])->name('carpool-groups.update-status');
 });
 
 require __DIR__.'/auth.php';

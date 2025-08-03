@@ -15,11 +15,10 @@
                     </tr>
                     <tr>
                         <td><strong>用車日期：</strong></td>
-                        <td>{{ $order->ride_date ? (is_string($order->ride_date) ? $order->ride_date : $order->ride_date->format('Y-m-d')) : 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>用車時間：</strong></td>
-                        <td>{{ $order->ride_time ? \Carbon\Carbon::parse($order->ride_time)->format('H:i') : 'N/A' }}</td>
+                        <td>{{ $order->ride_date ? (is_string($order->ride_date) ? $order->ride_date : $order->ride_date->format('Y-m-d')) : 'N/A' }}
+
+                            {{ $order->ride_time ? \Carbon\Carbon::parse($order->ride_time)->format('H:i') : 'N/A' }}
+                        </td>
                     </tr>
                     <tr>
                         <td><strong>上車地址：</strong></td>
@@ -52,6 +51,10 @@
                     <tr>
                         <td><strong>陪同人數：</strong></td>
                         <td>{{ $order->companions }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>共乘對象：</strong></td>
+                        <td>{{ $order->carpool_name }} / {{ $order->carpool_id }}</td>
                     </tr>
                     <tr>
                         <td><strong>特殊狀態：</strong></td>
@@ -95,9 +98,9 @@
                 </table>
             </div>
         </div>
-        
+
     </div>
-    
+
     <div class="col-md-6">
         {{-- 客戶資訊 --}}
         <div class="card mb-4">
@@ -127,7 +130,7 @@
                 </table>
             </div>
         </div>
-        
+
         {{-- 駕駛資訊 --}}
         <div class="card mb-4">
             <div class="card-header bg-secondary text-white">
@@ -158,7 +161,7 @@
                 @endif
             </div>
         </div>
-        
+
         {{-- 共乘資訊 --}}
         @if($order->carpool_with)
         <div class="card mb-4">
