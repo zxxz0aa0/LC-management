@@ -6,6 +6,10 @@ class OrderForm {
     constructor() {
         this.currentAddressType = ''; // 'pickup' 或 'dropoff'
         this.landmarkModal = null;
+        this.selectedDates = [];
+        this.recurringDates = [];
+        this.datePicker = null;
+        this.previewUpdateTimer = null;
         this.init();
     }
 
@@ -15,6 +19,7 @@ class OrderForm {
         this.bindCarpoolEvents();
         this.bindDriverEvents();
         this.bindAddressEvents();
+        this.initializeBatchFeatures();
     }
 
     /**
@@ -254,14 +259,18 @@ class OrderForm {
         data.forEach(customer => {
             html += `
                 <div class="list-group-item list-group-item-action">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>${customer.name}</strong> / ${customer.id_number}<br>
-                            <small class="text-muted">${customer.phone_number} / ${customer.addresses}</small>
+                    <div class="justify-content-between align-items-center">
+                        <div class="row">
+                            <div class="col-md-1">
+                                <button type="button" class="btn btn-primary" onclick="orderForm.selectCarpoolCustomer(${JSON.stringify(customer).replace(/"/g, '&quot;')})">
+                                    選擇
+                                </button>
+                            </div>
+                            <div class="col-md-11">
+                                <strong>${customer.name}</strong> / ${customer.id_number}<br>
+                                <small class="text-muted">${customer.phone_number} / ${customer.addresses}</small>
+                            </div>
                         </div>
-                        <button type="button" class="btn btn-sm btn-primary" onclick="orderForm.selectCarpoolCustomer(${JSON.stringify(customer).replace(/"/g, '&quot;')})">
-                            選擇
-                        </button>
                     </div>
                 </div>
             `;
@@ -1191,6 +1200,653 @@ class OrderForm {
     clearDuplicateWarning() {
         $('.duplicate-warning').remove();
         $('input[name="ride_time"]').removeClass('is-invalid is-valid');
+    }
+
+    // ========== 批量訂單功能 ==========
+
+    /**
+     * 初始化批量功能
+     */
+    initializeBatchFeatures() {
+        this.bindDateModeEvents();
+        this.initializeFlatpickr();
+        this.bindRecurringEvents();
+        this.bindBatchPreviewEvents();
+    }
+
+    /**
+     * 綁定日期模式切換事件
+     */
+    bindDateModeEvents() {
+        // 日期模式切換
+        $('input[name="date_mode"]').on('change', this.handleDateModeChange.bind(this));
+
+        // 初始化時設定預設狀態
+        this.handleDateModeChange();
+    }
+
+    /**
+     * 初始化 Flatpickr
+     */
+    initializeFlatpickr() {
+        const multipleDatePicker = document.getElementById('multiple-date-picker');
+        if (multipleDatePicker) {
+            this.datePicker = flatpickr(multipleDatePicker, {
+                mode: 'multiple',
+                locale: 'zh-tw',
+                dateFormat: 'Y-m-d',
+                minDate: 'today',
+                maxDate: new Date().fp_incr(365), // 一年內
+                static: true, // 防止日曆自動滾動到視窗頂部
+                disableMobile: true, // 在行動裝置上也使用桌面版本
+                onChange: this.handleDatePickerChange.bind(this),
+                onReady: function(selectedDates, dateStr, instance) {
+                    // 設定中文星期顯示
+                    instance.calendarContainer.style.fontSize = '14px';
+                },
+                onOpen: function(selectedDates, dateStr, instance) {
+                    // 防止開啟時自動滾動
+                    instance.calendarContainer.style.position = 'absolute';
+                }
+            });
+        }
+    }
+
+    /**
+     * 綁定週期性選擇事件
+     */
+    bindRecurringEvents() {
+        // 快速選擇模板
+        $('.quick-select-templates button').on('click', this.handleQuickSelectTemplate.bind(this));
+
+        // 產生日期預覽按鈕
+        $('#generate-recurring-dates').on('click', this.handleGenerateRecurringDates.bind(this));
+
+        // 星期幾選擇變更
+        $('input[name="weekdays[]"]').on('change', this.handleWeekdayChange.bind(this));
+
+        // 日期範圍變更
+        $('input[name="start_date"], input[name="end_date"], select[name="recurrence_type"]')
+            .on('change', this.clearRecurringPreview.bind(this));
+    }
+
+    /**
+     * 綁定批量預覽事件
+     */
+    bindBatchPreviewEvents() {
+        // 建立批量訂單按鈕
+        $('#create-batch-btn').on('click', this.handleCreateBatch.bind(this));
+
+        // 取消批量按鈕
+        $('#cancel-batch-btn').on('click', this.handleCancelBatch.bind(this));
+
+        // 手動多日預覽按鈕
+        $('#generate-manual-preview').on('click', this.handleManualPreview.bind(this));
+
+        // 監聽用車資訊變更，自動更新批量預覽
+        $('input[name="ride_time"], input[name="back_time"], input[name="pickup_address"], input[name="dropoff_address"]')
+            .on('input change', this.handleBasicInfoChange.bind(this));
+    }
+
+    /**
+     * 處理基本資訊變更
+     */
+    handleBasicInfoChange() {
+        // 延遲執行，避免頻繁更新
+        clearTimeout(this.previewUpdateTimer);
+        this.previewUpdateTimer = setTimeout(() => {
+            const currentMode = $('input[name="date_mode"]:checked').val();
+
+            // 只有在多日模式且已有選擇的日期時才更新預覽
+            if (currentMode === 'manual' && this.selectedDates.length > 0) {
+                this.generateBatchPreview();
+            } else if (currentMode === 'recurring' && this.recurringDates.length > 0) {
+                this.generateBatchPreview();
+            }
+        }, 500); // 延遲500ms更新
+    }
+
+    /**
+     * 處理日期模式切換
+     */
+    handleDateModeChange() {
+        const selectedMode = $('input[name="date_mode"]:checked').val() || 'single';
+
+        // 隱藏所有模式區域
+        $('#single-date-section').toggle(selectedMode === 'single');
+        $('#manual-dates-section').toggle(selectedMode === 'manual');
+        $('#recurring-dates-section').toggle(selectedMode === 'recurring');
+        $('#batch-preview-section').hide();
+
+        // 清空相關資料
+        if (selectedMode !== 'manual') {
+            this.selectedDates = [];
+            if (this.datePicker) {
+                this.datePicker.clear();
+            }
+            this.updateSelectedDatesList();
+        }
+
+        if (selectedMode !== 'recurring') {
+            this.recurringDates = [];
+            this.clearRecurringPreview();
+            this.clearWeekdaySelection();
+        }
+
+        // 更新表單提交目標
+        this.updateFormAction(selectedMode);
+    }
+
+    /**
+     * 更新表單提交目標
+     */
+    updateFormAction(mode) {
+        const form = $('.order-form');
+        const currentAction = form.attr('action');
+
+        if (mode === 'single') {
+            // 單日模式使用原本的路由
+            if (currentAction.includes('/batch')) {
+                form.attr('action', currentAction.replace('/batch', ''));
+            }
+        } else {
+            // 多日模式使用批量路由
+            if (!currentAction.includes('/batch')) {
+                // 檢查是否為編輯模式
+                if (currentAction.includes('/orders/') && !currentAction.endsWith('/orders/store')) {
+                    // 編輯模式，保持原路由
+                    return;
+                } else {
+                    form.attr('action', '/orders/batch');
+                }
+            }
+        }
+    }
+
+    /**
+     * 處理日期選擇器變更
+     */
+    handleDatePickerChange(selectedDates, dateStr, instance) {
+        this.selectedDates = selectedDates.map(date => this.formatDateForBackend(date));
+        this.updateSelectedDatesList();
+
+        // 移除自動生成預覽，改為手動觸發
+        // 只有當預覽區域已經顯示時才更新預覽
+        if (selectedDates.length > 0 && $('#batch-preview-section').is(':visible')) {
+            this.generateBatchPreview();
+        } else if (selectedDates.length === 0) {
+            $('#batch-preview-section').hide();
+        }
+    }
+
+    /**
+     * 更新已選擇日期列表顯示
+     */
+    updateSelectedDatesList() {
+        const container = $('#selected-dates-list');
+
+        if (this.selectedDates.length === 0) {
+            container.html('<div class="text-muted">尚未選擇任何日期</div>');
+            return;
+        }
+
+        let html = '<div class="selected-dates-tags">';
+        this.selectedDates.forEach((dateStr, index) => {
+            const date = new Date(dateStr);
+            const weekday = this.getChineseWeekday(date.getDay());
+            const formattedDate = this.formatDate(dateStr);
+
+            html += `
+                <span class="badge bg-primary me-2 mb-2 fs-6 py-2">
+                    ${formattedDate} (${weekday})
+                    <button type="button" class="btn-close btn-close-white ms-2"
+                            onclick="orderForm.removeSelectedDate(${index})"
+                            style="font-size: 0.7em;"></button>
+                </span>
+            `;
+        });
+        html += '</div>';
+
+        container.html(html);
+    }
+
+    /**
+     * 移除選中的日期
+     */
+    removeSelectedDate(index) {
+        this.selectedDates.splice(index, 1);
+
+        // 更新 Flatpickr
+        if (this.datePicker) {
+            const dates = this.selectedDates.map(dateStr => new Date(dateStr));
+            this.datePicker.setDate(dates);
+        }
+
+        this.updateSelectedDatesList();
+
+        if (this.selectedDates.length > 0) {
+            this.generateBatchPreview();
+        } else {
+            $('#batch-preview-section').hide();
+        }
+    }
+
+    /**
+     * 處理快速選擇模板
+     */
+    handleQuickSelectTemplate(e) {
+        const template = e.target.dataset.template;
+
+        // 清除所有選擇
+        $('input[name="weekdays[]"]').prop('checked', false);
+
+        if (template === 'clear') {
+            this.clearRecurringPreview();
+            return;
+        }
+
+        // 根據模板選擇星期幾
+        const weekdays = {
+            '246': [2, 4, 6], // 洗腎模式 (二、四、六)
+            '135': [1, 3, 5], // 復健模式 (一、三、五)
+            '15': [1, 5]      // 週末模式 (一、五)
+        };
+
+        if (weekdays[template]) {
+            weekdays[template].forEach(day => {
+                $(`input[name="weekdays[]"][value="${day}"]`).prop('checked', true);
+            });
+
+            // 觸發變更事件
+            this.handleWeekdayChange();
+        }
+    }
+
+    /**
+     * 處理星期幾選擇變更
+     */
+    handleWeekdayChange() {
+        const selected = $('input[name="weekdays[]"]:checked').length;
+
+        if (selected > 0) {
+            // 清除之前的預覽
+            this.clearRecurringPreview();
+
+            // 顯示產生按鈕
+            $('#generate-recurring-dates').removeClass('d-none');
+        } else {
+            $('#generate-recurring-dates').addClass('d-none');
+            this.clearRecurringPreview();
+        }
+    }
+
+    /**
+     * 處理產生週期性日期
+     */
+    handleGenerateRecurringDates() {
+        const startDate = $('input[name="start_date"]').val();
+        const endDate = $('input[name="end_date"]').val();
+        const weekdays = $('input[name="weekdays[]"]:checked').map(function() {
+            return parseInt($(this).val());
+        }).get();
+        const recurrenceType = $('select[name="recurrence_type"]').val();
+
+        if (!startDate || !endDate) {
+            alert('請選擇開始和結束日期');
+            return;
+        }
+
+        if (weekdays.length === 0) {
+            alert('請至少選擇一個星期幾');
+            return;
+        }
+
+        // 驗證日期範圍
+        if (new Date(startDate) >= new Date(endDate)) {
+            alert('結束日期必須晚於開始日期');
+            return;
+        }
+
+        // 產生週期性日期
+        this.recurringDates = this.generateRecurringDates(startDate, endDate, weekdays, recurrenceType);
+
+        if (this.recurringDates.length === 0) {
+            alert('在指定範圍內沒有符合條件的日期');
+            return;
+        }
+
+        if (this.recurringDates.length > 50) {
+            alert(`產生的日期過多（${this.recurringDates.length} 個），請縮小日期範圍或調整重複週期`);
+            return;
+        }
+
+        this.displayRecurringPreview();
+        this.generateBatchPreview();
+    }
+
+    /**
+     * 產生週期性日期（JavaScript 版本）
+     * 注意：此方法主要用於前端預覽，實際日期生成由後端 BatchOrderService 處理
+     */
+    generateRecurringDates(startDate, endDate, weekdays, recurrenceType) {
+        const dates = [];
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        // 週期間隔天數
+        const intervals = {
+            'weekly': 7,
+            'biweekly': 14,
+            'monthly': 28  // 簡化為4週，避免月份天數差異
+        };
+        const interval = intervals[recurrenceType] || 7;
+
+        // 從開始日期的當週開始
+        let currentWeekStart = new Date(start);
+        // 移動到該週的週一（JavaScript: 1=Monday）
+        const dayOffset = currentWeekStart.getDay() === 0 ? 6 : currentWeekStart.getDay() - 1;
+        currentWeekStart.setDate(currentWeekStart.getDate() - dayOffset);
+
+        while (currentWeekStart <= end) {
+            // 檢查當前週的所有目標星期幾
+            weekdays.forEach(targetWeekday => {
+                const targetDate = new Date(currentWeekStart);
+                
+                // 統一星期幾映射：0=週日, 1=週一, ..., 6=週六
+                // 轉換為相對於週一的天數偏移
+                let dayOffset;
+                if (targetWeekday === 0) {
+                    dayOffset = 6; // 週日是週一後6天
+                } else {
+                    dayOffset = targetWeekday - 1; // 週一是0，週二是1，依此類推
+                }
+                
+                targetDate.setDate(currentWeekStart.getDate() + dayOffset);
+
+                // 檢查日期是否在指定範圍內
+                if (targetDate >= start && targetDate <= end) {
+                    const dateStr = this.formatDateForBackend(targetDate);
+                    if (!dates.includes(dateStr)) {
+                        dates.push(dateStr);
+                    }
+                }
+            });
+
+            // 移動到下一個週期
+            currentWeekStart.setDate(currentWeekStart.getDate() + interval);
+        }
+
+        return dates.sort();
+    }
+
+    /**
+     * 顯示週期性日期預覽
+     */
+    displayRecurringPreview() {
+        let html = '<div class="alert alert-info">';
+        html += `<h6><i class="fas fa-calendar-check me-2"></i>產生了 ${this.recurringDates.length} 個日期</h6>`;
+        html += '<div class="recurring-dates-preview">';
+
+        this.recurringDates.forEach((dateStr, index) => {
+            const date = new Date(dateStr);
+            const weekday = this.getChineseWeekday(date.getDay());
+            const formattedDate = this.formatDate(dateStr);
+
+            html += `
+                <span class="badge bg-secondary me-2 mb-2 fs-6 py-2">
+                    ${formattedDate} (${weekday})
+                </span>
+            `;
+
+            // 每 5 個換行
+            if ((index + 1) % 5 === 0) {
+                html += '<br>';
+            }
+        });
+
+        html += '</div></div>';
+
+        $('#recurring-dates-preview').html(html);
+    }
+
+    /**
+     * 產生批量訂單預覽
+     */
+    generateBatchPreview() {
+        const currentMode = $('input[name="date_mode"]:checked').val();
+        let dates = [];
+
+        if (currentMode === 'manual') {
+            dates = this.selectedDates;
+        } else if (currentMode === 'recurring') {
+            dates = this.recurringDates;
+        }
+
+        if (dates.length === 0) {
+            $('#batch-preview-section').hide();
+            return;
+        }
+
+        // 檢查必要欄位是否已填寫
+        const rideTime = $('input[name="ride_time"]').val();
+        const pickupAddress = $('input[name="pickup_address"]').val();
+        const dropoffAddress = $('input[name="dropoff_address"]').val();
+
+        if (!rideTime || !pickupAddress || !dropoffAddress) {
+            // 顯示提示訊息
+            const missingFields = [];
+            if (!rideTime) missingFields.push('用車時間');
+            if (!pickupAddress) missingFields.push('上車地址');
+            if (!dropoffAddress) missingFields.push('下車地址');
+
+            $('#batch-orders-preview').html(`
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    請先完成以下基本資訊後再預覽批量訂單：
+                    <strong>${missingFields.join('、')}</strong>
+                </div>
+            `);
+            $('#batch-preview-section').show();
+            return;
+        }
+
+        // 檢查是否有回程
+        const backTime = $('input[name="back_time"]').val();
+        const hasReturn = backTime && backTime.trim();
+        const totalOrders = dates.length * (hasReturn ? 2 : 1);
+
+        // 更新總訂單數
+        $('#total-orders').text(totalOrders);
+
+        // 產生預覽表格
+        let html = '<table class="table table-sm table-hover">';
+        html += `
+            <thead class="table-light">
+                <tr>
+                    <th>日期</th>
+                    <th>星期</th>
+                    <th>去程時間</th>
+                    ${hasReturn ? '<th>回程時間</th>' : ''}
+                    <th>地址</th>
+                </tr>
+            </thead>
+            <tbody>
+        `;
+
+        dates.forEach(dateStr => {
+            const date = new Date(dateStr);
+            const weekday = this.getChineseWeekday(date.getDay());
+            const formattedDate = this.formatDate(dateStr);
+
+            // 去程訂單
+            html += `
+                <tr>
+                    <td>${formattedDate}</td>
+                    <td>${weekday}</td>
+                    <td><span class="badge bg-primary">${rideTime}</span></td>
+                    ${hasReturn ? `<td>-</td>` : ''}
+                    <td>
+                        <small class="text-success">${this.truncateText(pickupAddress, 20)}</small>
+                        →
+                        <small class="text-danger">${this.truncateText(dropoffAddress, 20)}</small>
+                    </td>
+                </tr>
+            `;
+
+            // 回程訂單
+            if (hasReturn) {
+                html += `
+                    <tr class="table-secondary">
+                        <td>${formattedDate}</td>
+                        <td>${weekday}</td>
+                        <td>-</td>
+                        <td><span class="badge bg-warning">${backTime}</span></td>
+                        <td>
+                            <small class="text-danger">${this.truncateText(dropoffAddress, 20)}</small>
+                            →
+                            <small class="text-success">${this.truncateText(pickupAddress, 20)}</small>
+                        </td>
+                    </tr>
+                `;
+            }
+        });
+
+        html += '</tbody></table>';
+
+        $('#batch-orders-preview').html(html);
+        $('#batch-preview-section').show();
+
+        // 滾動到預覽區域
+        $('#batch-preview-section')[0].scrollIntoView({ behavior: 'smooth' });
+    }
+
+    /**
+     * 處理建立批量訂單
+     */
+    handleCreateBatch() {
+        if (!this.validateBatchForm()) {
+            return;
+        }
+
+        // 準備表單資料
+        const currentMode = $('input[name="date_mode"]:checked').val();
+        const form = $('.order-form');
+
+        if (currentMode === 'manual') {
+            // 手動多日模式：添加選中的日期
+            this.selectedDates.forEach(dateStr => {
+                form.append(`<input type="hidden" name="selected_dates[]" value="${dateStr}">`);
+            });
+        } else if (currentMode === 'recurring') {
+            // 週期性模式不需要添加隱藏日期字段
+            // 後端使用 start_date, end_date, weekdays 來生成日期
+        }
+
+        // 提交表單
+        form.submit();
+    }
+
+    /**
+     * 處理取消批量
+     */
+    handleCancelBatch() {
+        $('#batch-preview-section').hide();
+
+        // 清空資料
+        const currentMode = $('input[name="date_mode"]:checked').val();
+
+        if (currentMode === 'manual') {
+            this.selectedDates = [];
+            if (this.datePicker) {
+                this.datePicker.clear();
+            }
+            this.updateSelectedDatesList();
+        } else if (currentMode === 'recurring') {
+            this.recurringDates = [];
+            this.clearRecurringPreview();
+        }
+    }
+
+    /**
+     * 處理手動多日預覽
+     */
+    handleManualPreview() {
+        if (this.selectedDates.length === 0) {
+            alert('請先選擇至少一個日期');
+            return;
+        }
+
+        // 直接生成預覽
+        this.generateBatchPreview();
+    }
+
+    /**
+     * 驗證批量表單
+     */
+    validateBatchForm() {
+        const currentMode = $('input[name="date_mode"]:checked').val();
+
+        if (currentMode === 'manual') {
+            if (this.selectedDates.length === 0) {
+                alert('請至少選擇一個日期');
+                return false;
+            }
+        } else if (currentMode === 'recurring') {
+            if (this.recurringDates.length === 0) {
+                alert('請先產生週期性日期');
+                return false;
+            }
+        }
+
+        // 檢查基本欄位
+        const requiredFields = ['customer_id', 'ride_time', 'pickup_address', 'dropoff_address'];
+        for (let fieldName of requiredFields) {
+            const field = $(`input[name="${fieldName}"]`);
+            if (!field.val() || !field.val().trim()) {
+                const label = field.closest('.col-md-2, .col-md-3, .col-md-4, .col-md-6, .col-12').find('label').text() || fieldName;
+                alert(`請填寫 ${label}`);
+                field.focus();
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * 清除週期性預覽
+     */
+    clearRecurringPreview() {
+        $('#recurring-dates-preview').empty();
+        this.recurringDates = [];
+        $('#batch-preview-section').hide();
+    }
+
+    /**
+     * 清除星期幾選擇
+     */
+    clearWeekdaySelection() {
+        $('input[name="weekdays[]"]').prop('checked', false);
+        $('#generate-recurring-dates').addClass('d-none');
+    }
+
+    /**
+     * 格式化日期為後端格式（避免 UTC 時區轉換問題）
+     */
+    formatDateForBackend(date) {
+        // 使用本地時間格式化，避免 UTC 轉換造成日期相差問題
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    /**
+     * 取得中文星期幾
+     */
+    getChineseWeekday(dayIndex) {
+        const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+        return weekdays[dayIndex];
     }
 }
 

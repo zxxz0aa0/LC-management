@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Rules\UniqueOrderDateTime;
 use App\Services\CarpoolGroupService;
 use App\Services\OrderNumberService;
+use App\Services\BatchOrderService;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -21,11 +22,13 @@ class OrderController extends Controller
 {
     protected $carpoolGroupService;
     protected $orderNumberService;
+    protected $batchOrderService;
     
-    public function __construct(CarpoolGroupService $carpoolGroupService, OrderNumberService $orderNumberService)
+    public function __construct(CarpoolGroupService $carpoolGroupService, OrderNumberService $orderNumberService, BatchOrderService $batchOrderService)
     {
         $this->carpoolGroupService = $carpoolGroupService;
         $this->orderNumberService = $orderNumberService;
+        $this->batchOrderService = $batchOrderService;
     }
     
     public function index(Request $request)
@@ -212,6 +215,119 @@ class OrderController extends Controller
         return redirect()->route('orders.index', $redirectParams)->with('success', $successMessage);
     }
 
+    /**
+     * 批量建立訂單（支援三種日期模式）
+     */
+    public function storeBatch(Request $request)
+    {
+        try {
+            // 基本驗證規則
+            $rules = [
+                'date_mode' => 'required|in:single,manual,recurring',
+                
+                // 基本訂單欄位驗證
+                'customer_name' => 'required|string|max:255',
+                'customer_id_number' => 'required|string|max:255',
+                'customer_phone' => 'required|string|max:255',
+                'customer_id' => 'required|integer',
+                'order_type' => 'required|string',
+                'service_company' => 'required|string',
+                'ride_time' => 'required|date_format:H:i',
+                'back_time' => 'nullable|date_format:H:i',
+                'pickup_address' => [
+                    'required',
+                    'string',
+                    'regex:/^(.+市|.+縣)(.+區|.+鄉|.+鎮).+$/u',
+                ],
+                'dropoff_address' => [
+                    'required',
+                    'string',
+                    'regex:/^(.+市|.+縣)(.+區|.+鄉|.+鎮).+$/u',
+                ],
+                'companions' => 'required|integer|min:0',
+                'wheelchair' => 'nullable|boolean',
+                'stair_machine' => 'nullable|boolean',
+                'remark' => 'nullable|string',
+                'carpool_customer_id' => 'nullable|integer',
+                'carpool_name' => 'nullable|string',
+                'carpool_id' => 'nullable|string',
+            ];
+            
+            // 根據日期模式添加特定驗證規則
+            if ($request->input('date_mode') === 'manual') {
+                $rules['selected_dates'] = 'required|array|min:1|max:50';
+                $rules['selected_dates.*'] = 'date|after:today';
+            } elseif ($request->input('date_mode') === 'recurring') {
+                $rules['start_date'] = 'required|date|after:today';
+                $rules['end_date'] = 'required|date|after:start_date';
+                $rules['weekdays'] = 'required|array|min:1|max:7';
+                $rules['weekdays.*'] = 'integer|between:0,6';
+                $rules['recurrence_type'] = 'required|in:weekly,biweekly,monthly';
+            }
+            
+            $validated = $request->validate($rules);
+            
+            if ($validated['date_mode'] === 'single') {
+                // 使用現有的單日建立邏輯
+                return $this->store($request);
+            }
+            
+            $dates = [];
+            
+            if ($validated['date_mode'] === 'manual') {
+                // 手動多日模式
+                $dates = $validated['selected_dates'];
+            } elseif ($validated['date_mode'] === 'recurring') {
+                // 週期性模式
+                $dates = $this->batchOrderService->generateRecurringDates(
+                    $validated['start_date'],
+                    $validated['end_date'],
+                    $validated['weekdays'],
+                    $validated['recurrence_type']
+                );
+            }
+            
+            if (empty($dates)) {
+                throw new \Exception('未選擇任何日期，請檢查設定');
+            }
+            
+            // 解析地址中的縣市區域資訊
+            $validated = $this->extractAddressInfo($validated);
+            
+            $result = $this->batchOrderService->createMultipleDaysOrders($validated, $dates);
+            
+            $message = "批量建立完成：成功 {$result['total_created']} 筆";
+            if ($result['total_failed'] > 0) {
+                $message .= "，失敗 {$result['total_failed']} 筆";
+                
+                // 如果有失敗的訂單，添加詳細錯誤信息
+                $failedDates = array_column($result['failed_dates'], 'date');
+                $message .= "（失敗日期：" . implode(', ', $failedDates) . "）";
+            }
+            
+            // 記錄地標使用次數
+            if (isset($validated['pickup_landmark_id'])) {
+                $this->recordLandmarkUsage($validated['pickup_address'], $validated['pickup_landmark_id']);
+            }
+            if (isset($validated['dropoff_landmark_id'])) {
+                $this->recordLandmarkUsage($validated['dropoff_address'], $validated['dropoff_landmark_id']);
+            }
+            
+            // 保持搜尋參數（使用所有建立的訂單來設定搜尋範圍）
+            $redirectParams = $this->prepareBatchSearchParams($request, $result['successful_orders']);
+            
+            return redirect()->route('orders.index', $redirectParams)->with('success', $message);
+            
+        } catch (\Exception $e) {
+            Log::error('批量建立訂單失敗', [
+                'error' => $e->getMessage(),
+                'request_data' => $request->all()
+            ]);
+            
+            return back()->withErrors(['batch_error' => $e->getMessage()])->withInput();
+        }
+    }
+
     // 顯示單筆訂單資料（預留）
     public function show(Order $order)
     {
@@ -253,7 +369,7 @@ class OrderController extends Controller
             $validated = $request->validated();
 
             // 將表單中的共乘與駕駛資訊欄位轉成資料表對應欄位
-            $validated['carpool_name'] = $validated['carpoolSearchInput'] ?? null;
+            $validated['carpool_name'] = $validated['carpool_with'] ?? null;
             $validated['carpool_id'] = $validated['carpool_id_number'] ?? null;
 
             $pickupAddress = $validated['pickup_address'];
@@ -269,9 +385,18 @@ class OrderController extends Controller
             $validated['dropoff_county'] = $dropoffMatches[1] ?? null;
             $validated['dropoff_district'] = $dropoffMatches[2] ?? null;
 
-            unset($validated['carpoolSearchInput'], $validated['carpool_id_number']);
+            unset($validated['carpoolSearchInput'], $validated['carpool_id_number'], $validated['carpool_with']);
+
+            // 記錄原始駕駛ID，用於檢測駕駛變更
+            $originalDriverId = $order->driver_id;
+            $newDriverId = $validated['driver_id'] ?? null;
 
             $order->update($validated);
+
+            // 檢查共乘訂單的駕駛變更並同步群組
+            if ($order->carpool_group_id) {
+                $this->syncCarpoolGroupDriverChanges($order->carpool_group_id, $originalDriverId, $newDriverId);
+            }
 
             if ($request->ajax()) {
                 $query = Order::filter($request);
@@ -444,6 +569,73 @@ class OrderController extends Controller
     }
 
     /**
+     * 為批量建立的訂單準備搜尋參數
+     */
+    private function prepareBatchSearchParams(Request $request, array $orders)
+    {
+        $params = [];
+        
+        // 保留原有搜尋參數
+        if ($request->filled('keyword')) {
+            $params['keyword'] = $request->input('keyword');
+        }
+        
+        if ($request->filled('customer_id')) {
+            $params['customer_id'] = $request->input('customer_id');
+        }
+        
+        if (empty($orders)) {
+            return $params;
+        }
+        
+        // 找出所有新建立訂單的日期範圍
+        $orderDates = array_map(function($order) {
+            return Carbon::parse($order->ride_date);
+        }, $orders);
+        
+        $minNewDate = min($orderDates);
+        $maxNewDate = max($orderDates);
+        
+        // 取得現有的搜尋範圍
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        
+        if ($startDate && $endDate) {
+            // 如果原本有日期範圍，擴展範圍以包含所有新訂單
+            $start = Carbon::parse($startDate);
+            $end = Carbon::parse($endDate);
+            
+            $params['start_date'] = $minNewDate->lt($start) ? $minNewDate->format('Y-m-d') : $start->format('Y-m-d');
+            $params['end_date'] = $maxNewDate->gt($end) ? $maxNewDate->format('Y-m-d') : $end->format('Y-m-d');
+        } elseif ($startDate) {
+            // 只有開始日期
+            $start = Carbon::parse($startDate);
+            $params['start_date'] = $minNewDate->lt($start) ? $minNewDate->format('Y-m-d') : $start->format('Y-m-d');
+            $params['end_date'] = $maxNewDate->format('Y-m-d');
+        } elseif ($endDate) {
+            // 只有結束日期
+            $end = Carbon::parse($endDate);
+            $params['start_date'] = $minNewDate->format('Y-m-d');
+            $params['end_date'] = $maxNewDate->gt($end) ? $maxNewDate->format('Y-m-d') : $end->format('Y-m-d');
+        } else {
+            // 沒有設定日期範圍，設定範圍包含今天和所有新訂單
+            $today = Carbon::today();
+            $allDates = array_merge([$today], $orderDates);
+            
+            $absoluteMin = min($allDates);
+            $absoluteMax = max($allDates);
+            
+            // 如果所有新訂單都是今天，則不設定範圍
+            if (!$absoluteMin->isSameDay($absoluteMax)) {
+                $params['start_date'] = $absoluteMin->format('Y-m-d');
+                $params['end_date'] = $absoluteMax->format('Y-m-d');
+            }
+        }
+        
+        return $params;
+    }
+
+    /**
      * 檢查重複訂單的 API 端點
      */
     public function checkDuplicateOrder(Request $request)
@@ -577,5 +769,65 @@ class OrderController extends Controller
             'status' => $validated['status'],
             'special_status' => $validated['special_status'] ?? null,
         ]);
+    }
+
+    /**
+     * 同步共乘群組駕駛變更
+     */
+    private function syncCarpoolGroupDriverChanges($groupId, $originalDriverId, $newDriverId)
+    {
+        // 如果駕駛ID沒有變更，無需同步
+        if ($originalDriverId == $newDriverId) {
+            return;
+        }
+
+        // 情況1: 從無到有 - 指派駕駛
+        if (empty($originalDriverId) && !empty($newDriverId)) {
+            $this->carpoolGroupService->assignDriverToGroup($groupId, $newDriverId);
+            Log::info('共乘群組駕駛指派', [
+                'group_id' => $groupId,
+                'driver_id' => $newDriverId,
+                'action' => 'assign'
+            ]);
+        }
+        // 情況2: 從有到無 - 移除駕駛
+        elseif (!empty($originalDriverId) && empty($newDriverId)) {
+            $this->carpoolGroupService->unassignDriverFromGroup($groupId);
+            Log::info('共乘群組駕駛移除', [
+                'group_id' => $groupId,
+                'original_driver_id' => $originalDriverId,
+                'action' => 'unassign'
+            ]);
+        }
+        // 情況3: 從有到有（不同駕駛）- 更換駕駛
+        elseif (!empty($originalDriverId) && !empty($newDriverId) && $originalDriverId != $newDriverId) {
+            $this->carpoolGroupService->assignDriverToGroup($groupId, $newDriverId);
+            Log::info('共乘群組駕駛更換', [
+                'group_id' => $groupId,
+                'original_driver_id' => $originalDriverId,
+                'new_driver_id' => $newDriverId,
+                'action' => 'replace'
+            ]);
+        }
+    }
+
+    /**
+     * 解析地址中的縣市區域資訊
+     */
+    private function extractAddressInfo($validated)
+    {
+        // 拆解上車地址資訊
+        $pickupAddress = $validated['pickup_address'];
+        preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $pickupAddress, $pickupMatches);
+        $validated['pickup_county'] = $pickupMatches[1] ?? null;
+        $validated['pickup_district'] = $pickupMatches[2] ?? null;
+        
+        // 拆解下車地址資訊
+        $dropoffAddress = $validated['dropoff_address'];
+        preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $dropoffAddress, $dropoffMatches);
+        $validated['dropoff_county'] = $dropoffMatches[1] ?? null;
+        $validated['dropoff_district'] = $dropoffMatches[2] ?? null;
+        
+        return $validated;
     }
 }

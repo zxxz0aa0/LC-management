@@ -50,6 +50,7 @@ Route::middleware('auth')->group(function () {
 
     // 訂單管理
     Route::resource('orders', OrderController::class);
+    Route::post('/orders/batch', [OrderController::class, 'storeBatch'])->name('orders.storeBatch');
     Route::get('/carpool-search', [CustomerController::class, 'carpoolSearch']);
     Route::get('/customers/{customer}/history-orders', [OrderController::class, 'getCustomerHistoryOrders'])->name('customers.history-orders');
     Route::post('/orders/check-duplicate', [OrderController::class, 'checkDuplicateOrder'])->name('orders.checkDuplicate');

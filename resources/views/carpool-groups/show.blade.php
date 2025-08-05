@@ -175,7 +175,7 @@
                                         @endif
                                         <h6 class="mb-0">{{ $order->customer_name }}</h6>
                                     </div>
-                                    
+
                                     <dl class="row small">
                                         <dt class="col-sm-4">訂單編號</dt>
                                         <dd class="col-sm-8">
@@ -190,17 +190,17 @@
 
                                         <dt class="col-sm-4">用車時間</dt>
                                         <dd class="col-sm-8">
-                                            <span class="text-primary">{{ $order->ride_date }}</span>
-                                            <span class="text-primary">{{ $order->ride_time }}</span>
+                                            <span class="text-primary">{{ \Carbon\Carbon::parse($order->ride_date)->format('Y-m-d') }}</span>
+                                            <span class="text-primary">{{ \Carbon\Carbon::parse($order->ride_time)->format('H:i') }}</span>
                                         </dd>
                                     </dl>
                                 </div>
-                                
+
                                 <div class="col-md-6">
                                     <div class="mb-2">
                                         <label class="form-label small text-muted">路線資訊</label>
                                     </div>
-                                    
+
                                     <div class="route-info">
                                         <div class="d-flex align-items-start mb-2">
                                             <i class="fas fa-map-marker-alt text-success me-2 mt-1"></i>
@@ -209,7 +209,7 @@
                                                 <div>{{ $order->pickup_address }}</div>
                                             </div>
                                         </div>
-                                        
+
                                         <div class="d-flex align-items-start">
                                             <i class="fas fa-flag-checkered text-danger me-2 mt-1"></i>
                                             <div>

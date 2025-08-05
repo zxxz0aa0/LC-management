@@ -81,7 +81,9 @@ class Order extends Model
         // 檢查是否為搜尋模式
         $isSearching = $request->filled('keyword') || 
                        $request->filled('customer_id') || 
-                       $request->filled('order_number');
+                       $request->filled('order_number') ||
+                       $request->filled('start_date') ||
+                       $request->filled('end_date');
         
         // 關鍵字篩選
         if ($request->filled('keyword')) {

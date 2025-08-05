@@ -72,6 +72,185 @@
         </div>
     </div>
 
+    {{-- 日期資訊區塊 --}}
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-calendar-alt me-2"></i>日期設定
+            </h5>
+        </div>
+        <div class="card-body">
+            {{-- 建立模式選擇（僅在新增訂單時顯示） --}}
+            @if(!isset($order))
+            <div class="row mb-3">
+                <div class="col-12">
+                    <label class="form-label">建立模式</label>
+                    <div class="date-mode-selector">
+                        <div class="btn-group" role="group">
+                            <input type="radio" class="btn-check" name="date_mode" id="single_day" value="single" checked>
+                            <label class="btn btn-outline-primary" for="single_day">單日訂單</label>
+
+                            <input type="radio" class="btn-check" name="date_mode" id="manual_multiple" value="manual">
+                            <label class="btn btn-outline-primary" for="manual_multiple">手動多日</label>
+
+                            <input type="radio" class="btn-check" name="date_mode" id="recurring" value="recurring">
+                            <label class="btn btn-outline-primary" for="recurring">週期性</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
+
+            {{-- 單日模式 --}}
+            <div id="single-date-section">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">用車日期</label>
+                        <input type="date" name="ride_date" class="form-control" required
+                               value="{{ old('ride_date', isset($order) ? $order->ride_date?->format('Y-m-d') : now()->format('Y-m-d')) }}">
+                    </div>
+                </div>
+            </div>
+
+            {{-- 手動多日選擇區域 --}}
+            @if(!isset($order))
+            <div id="manual-dates-section" style="display: none;" class="mt-4">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">選擇日期</label>
+                        <input type="text" id="multiple-date-picker" class="form-control" placeholder="點擊選擇多個日期">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">已選擇的日期</label>
+                        <div id="selected-dates-list" class="selected-dates-container">
+                            <div class="text-muted">尚未選擇任何日期</div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- 預覽按鈕 --}}
+                <div class="mt-3">
+                    <button type="button" class="btn btn-outline-primary" id="generate-manual-preview">
+                        <i class="fas fa-eye me-2"></i>預覽批量訂單
+                    </button>
+                </div>
+            </div>
+
+            {{-- 週期性日期選擇區域 --}}
+            <div id="recurring-dates-section" style="display: none;" class="mt-4">
+                {{-- 日期範圍和重複週期 --}}
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">開始日期</label>
+                        <input type="date" name="start_date" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">結束日期</label>
+                        <input type="date" name="end_date" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">重複週期</label>
+                        <select name="recurrence_type" class="form-select">
+                            <option value="weekly">每週</option>
+                            <option value="biweekly">每兩週</option>
+                            <option value="monthly">每月</option>
+                        </select>
+                    </div>
+                </div>
+
+                {{-- 星期幾複選 --}}
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <label class="form-label">選擇星期幾（可複選）</label>
+                        <div class="weekday-selection">
+                            <div class="btn-group flex-wrap" role="group">
+                                <input type="checkbox" class="btn-check" id="weekday-1" name="weekdays[]" value="1">
+                                <label class="btn btn-outline-primary" for="weekday-1">一</label>
+
+                                <input type="checkbox" class="btn-check" id="weekday-2" name="weekdays[]" value="2">
+                                <label class="btn btn-outline-primary" for="weekday-2">二</label>
+
+                                <input type="checkbox" class="btn-check" id="weekday-3" name="weekdays[]" value="3">
+                                <label class="btn btn-outline-primary" for="weekday-3">三</label>
+
+                                <input type="checkbox" class="btn-check" id="weekday-4" name="weekdays[]" value="4">
+                                <label class="btn btn-outline-primary" for="weekday-4">四</label>
+
+                                <input type="checkbox" class="btn-check" id="weekday-5" name="weekdays[]" value="5">
+                                <label class="btn btn-outline-primary" for="weekday-5">五</label>
+
+                                <input type="checkbox" class="btn-check" id="weekday-6" name="weekdays[]" value="6">
+                                <label class="btn btn-outline-primary" for="weekday-6">六</label>
+
+                                <input type="checkbox" class="btn-check" id="weekday-0" name="weekdays[]" value="0">
+                                <label class="btn btn-outline-primary" for="weekday-0">日</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- 快速選擇模板 --}}
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <label class="form-label">快速選擇模板</label>
+                        <div class="quick-select-templates">
+                            <button type="button" class="btn btn-outline-secondary btn-sm me-2" data-template="246">
+                                模式ㄧ (二、四、六)
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm me-2" data-template="135">
+                                模式二 (一、三、五)
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm me-2" data-template="15">
+                                模式三 (一、五)
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-template="clear">
+                                清除選擇
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- 預覽生成的日期 --}}
+                <div class="mt-3">
+                    <button type="button" class="btn btn-outline-primary" id="generate-recurring-dates">
+                        <i class="fas fa-calendar-check me-2"></i>產生日期預覽
+                    </button>
+                    <div id="recurring-dates-preview" class="mt-3">
+                        <!-- 動態顯示生成的日期 -->
+                    </div>
+                </div>
+            </div>
+
+            {{-- 批量訂單預覽區域 --}}
+            <div id="batch-preview-section" style="display: none;" class="mt-4">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-eye me-2"></i>批量訂單預覽
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="batch-summary mb-3">
+                            <span class="badge bg-primary fs-6">將建立 <span id="total-orders">0</span> 筆訂單</span>
+                        </div>
+                        <div id="batch-orders-preview" class="table-responsive">
+                            <!-- 動態生成訂單預覽表格 -->
+                        </div>
+                        <div class="text-center mt-3">
+                            <button type="button" class="btn btn-success me-2" id="create-batch-btn">
+                                <i class="fas fa-plus me-2"></i>建立批量訂單
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="cancel-batch-btn">
+                                <i class="fas fa-times me-2"></i>取消
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
+        </div>
+    </div>
+
     {{-- 用車資訊區塊 --}}
     <div class="card mb-4">
         <div class="card-header bg-warning text-dark">
@@ -88,12 +267,8 @@
             </div>
         </div>
         <div class="card-body">
+            {{-- 用車基本資訊 --}}
             <div class="row g-3">
-                <div class="col-md-2">
-                    <label class="form-label">用車日期</label>
-                    <input type="date" name="ride_date" class="form-control" required
-                           value="{{ old('ride_date', isset($order) ? $order->ride_date?->format('Y-m-d') : now()->format('Y-m-d')) }}">
-                </div>
                 <div class="col-md-2">
                     <label class="form-label">用車時間</label>
                     <input type="text" name="ride_time" class="form-control time-auto-format" required
@@ -168,6 +343,12 @@
                     </div>
                 </div>
             </div>
+            <div class="mt-4" >
+                <label class="" >個案備注：</label>{{ isset($order) ? $order->customer_note : ($customer->note ?? '') }}
+
+            </div>
+
+
         </div>
     </div>
 
@@ -180,11 +361,11 @@
         </div>
         <div class="card-body">
             <div class="row g-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label">共乘對象搜尋</label>
                     <div class="input-group">
                         <input type="text" id="carpoolSearchInput" class="form-control"
-                               placeholder="輸入姓名、ID或電話">
+                               placeholder="輸入姓名、ID或電話" value="{{ old('carpool_with') }}">
                         <button type="button" class="btn btn-success" id="searchCarpoolBtn">
                             <i class="fas fa-search"></i>
                         </button>
@@ -193,29 +374,33 @@
                         </button>
                     </div>
                 </div>
-                <div class="col-md-8">
+                <div class="col-md-9">
                     <div id="carpoolResults"></div>
                 </div>
             </div>
             <div class="row g-3 mt-2">
                 <div class="col-md-3">
                     <label class="form-label">共乘姓名</label>
-                    <input type="text" name="carpool_with" id="carpool_with" class="form-control" readonly>
+                    <input type="text" name="carpool_with" id="carpool_with" class="form-control" readonly
+                    value="{{ old('carpool_with', isset($order) ? $order->carpool_name : '') }}">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">共乘身分證</label>
-                    <input type="text" name="carpool_id_number" id="carpool_id_number" class="form-control" readonly>
+                    <input type="text" name="carpool_id_number" id="carpool_id_number" class="form-control" readonly
+                    value="{{ old('carpool_id_number', isset($order) ? $order->carpool_id : '') }}">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">共乘電話</label>
-                    <input type="text" name="carpool_phone_number" id="carpool_phone_number" class="form-control" readonly>
+                    <input type="text" name="carpool_phone_number" id="carpool_phone_number" class="form-control" readonly
+                    value="{{ old('carpool_phone_number')}}">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">共乘地址</label>
-                    <input type="text" name="carpool_addresses" id="carpool_addresses" class="form-control" readonly>
+                    <input type="text" name="carpool_addresses" id="carpool_addresses" class="form-control" readonly
+                    value="{{ old('carpool_addresses')}}">
                 </div>
             </div>
-            <input type="hidden" name="carpool_customer_id" id="carpool_customer_id">
+            <input type="hidden" name="carpool_customer_id" id="carpool_customer_id" value="{{ old('carpool_customer_id') }}">
         </div>
     </div>
 
@@ -243,14 +428,16 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">駕駛姓名</label>
-                    <input type="text" name="driver_name" id="driver_name" class="form-control" readonly>
+                    <input type="text" name="driver_name" id="driver_name" class="form-control" readonly
+                    value="{{ old('driver_name', isset($order) ? $order->driver_name : '') }}">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">車牌號碼</label>
-                    <input type="text" name="driver_plate_number" id="driver_plate_number" class="form-control" readonly>
+                    <input type="text" name="driver_plate_number" id="driver_plate_number" class="form-control" readonly
+                    value="{{ old('driver_plate_number', isset($order) ? $order->driver_plate_number : '') }}">
                 </div>
             </div>
-            <input type="hidden" name="driver_id" id="driver_id">
+            <input type="hidden" name="driver_id" id="driver_id" value="{{ old('driver_id', isset($order) ? $order->driver_id : '') }}">
         </div>
     </div>
 
@@ -270,6 +457,7 @@
                         <option value="網頁" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '網頁' ? 'selected' : '' }}>網頁</option>
                         <option value="個管單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '個管單' ? 'selected' : '' }}>個管單</option>
                         <option value="黑名單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '黑名單' ? 'selected' : '' }}>黑名單</option>
+                        <option value="共乘" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '共乘' ? 'selected' : '' }}>共乘</option>
                     </select>
                 </div>
                 <div class="col-md-4">

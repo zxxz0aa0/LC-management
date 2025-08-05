@@ -25,8 +25,8 @@ class CarpoolGroupService
     public function createCarpoolGroup($mainCustomerId, $carpoolCustomerId, $orderData)
     {
         return DB::transaction(function () use ($mainCustomerId, $carpoolCustomerId, $orderData) {
-            // 生成唯一群組ID (使用UUID避免衝突)
-            $groupId = 'carpool_' . Str::uuid()->toString();
+            // 為去程生成獨立的群組ID
+            $outboundGroupId = 'carpool_' . Str::uuid()->toString();
             
             // 取得客戶資料
             $mainCustomer = Customer::findOrFail($mainCustomerId);
@@ -35,25 +35,31 @@ class CarpoolGroupService
             // 生成訂單編號
             $orderNumbers = $this->generateCarpoolOrderNumbers($mainCustomer, $carpoolCustomer, $orderData);
             
-            // 建立主訂單
-            $mainOrder = $this->createMainOrder($mainCustomer, $orderData, $groupId, $orderNumbers['main'], $carpoolCustomer);
-            
-            // 建立共乘成員訂單
-            $carpoolOrder = $this->createCarpoolMemberOrder($carpoolCustomer, $orderData, $groupId, $orderNumbers['carpool'], $orderNumbers['main'], $mainCustomer);
+            // 建立去程群組（主訂單 + 共乘成員）
+            $mainOrder = $this->createMainOrder($mainCustomer, $orderData, $outboundGroupId, $orderNumbers['main'], $carpoolCustomer);
+            $carpoolOrder = $this->createCarpoolMemberOrder($carpoolCustomer, $orderData, $outboundGroupId, $orderNumbers['carpool'], $orderNumbers['main'], $mainCustomer);
             
             $createdOrders = [$mainOrder, $carpoolOrder];
-            
-            // 處理回程訂單
-            if (!empty($orderData['back_time'])) {
-                $returnOrders = $this->createReturnOrders($mainCustomer, $carpoolCustomer, $orderData, $groupId, $orderNumbers);
-                $createdOrders = array_merge($createdOrders, $returnOrders);
-            }
-            
-            return [
-                'group_id' => $groupId,
+            $result = [
+                'outbound_group_id' => $outboundGroupId,
+                'return_group_id' => null,
                 'orders' => $createdOrders,
                 'total_orders' => count($createdOrders)
             ];
+            
+            // 處理回程訂單 - 建立獨立的回程群組
+            if (!empty($orderData['back_time'])) {
+                // 為回程生成獨立的群組ID
+                $returnGroupId = 'carpool_' . Str::uuid()->toString();
+                $returnOrders = $this->createReturnOrders($mainCustomer, $carpoolCustomer, $orderData, $returnGroupId, $orderNumbers);
+                $createdOrders = array_merge($createdOrders, $returnOrders);
+                
+                $result['return_group_id'] = $returnGroupId;
+                $result['orders'] = $createdOrders;
+                $result['total_orders'] = count($createdOrders);
+            }
+            
+            return $result;
         });
     }
     
@@ -62,7 +68,8 @@ class CarpoolGroupService
      */
     private function generateCarpoolOrderNumbers($mainCustomer, $carpoolCustomer, $orderData)
     {
-        $orderType = $orderData['order_type'];
+        // 安全存取 order_type，使用客戶資料作為後備
+        $orderType = $orderData['order_type'] ?? $mainCustomer->county_care ?? '一般長照';
         $mainCustomerIdNumber = $mainCustomer->id_number;
         $hasReturn = !empty($orderData['back_time']);
         
@@ -124,9 +131,9 @@ class CarpoolGroupService
     }
     
     /**
-     * 建立回程訂單
+     * 建立回程訂單（獨立群組）
      */
-    private function createReturnOrders($mainCustomer, $carpoolCustomer, $orderData, $groupId, $orderNumbers)
+    private function createReturnOrders($mainCustomer, $carpoolCustomer, $orderData, $returnGroupId, $orderNumbers)
     {
         // 準備回程訂單資料（地址對調）
         $returnOrderData = array_merge($orderData, [
@@ -141,7 +148,7 @@ class CarpoolGroupService
         
         // 建立主客戶回程訂單
         $returnMainOrder = Order::create(array_merge($this->prepareOrderData($mainCustomer, $returnOrderData, $orderNumbers['return_main']), [
-            'carpool_group_id' => $groupId,
+            'carpool_group_id' => $returnGroupId,
             'is_main_order' => true,
             'carpool_member_count' => 2,
             'main_order_number' => $orderNumbers['return_main'],
@@ -155,7 +162,7 @@ class CarpoolGroupService
         
         // 建立共乘客戶回程訂單
         $returnCarpoolOrder = Order::create(array_merge($this->prepareOrderData($carpoolCustomer, $returnOrderData, $orderNumbers['return_carpool']), [
-            'carpool_group_id' => $groupId,
+            'carpool_group_id' => $returnGroupId,
             'is_main_order' => false,
             'carpool_member_count' => 2,
             'main_order_number' => $orderNumbers['return_main'],
@@ -176,8 +183,8 @@ class CarpoolGroupService
     private function prepareOrderData($customer, $orderData, $orderNumber)
     {
         // 解析地址
-        $pickupAddress = $orderData['pickup_address'];
-        $dropoffAddress = $orderData['dropoff_address'];
+        $pickupAddress = $orderData['pickup_address'] ?? '';
+        $dropoffAddress = $orderData['dropoff_address'] ?? '';
         
         // 拆出縣市區域
         preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $pickupAddress, $pickupMatches);
@@ -192,30 +199,38 @@ class CarpoolGroupService
                 ? $customer->phone_number[0] 
                 : $customer->phone_number,
             
-            // 訂單基本資訊
-            'order_type' => $orderData['order_type'],
-            'service_company' => $orderData['service_company'],
+            // 訂單基本資訊（使用安全存取）
+            'order_type' => $orderData['order_type'] ?? null,
+            'service_company' => $orderData['service_company'] ?? null,
             'ride_date' => $orderData['ride_date'],
             'ride_time' => $orderData['ride_time'],
             'status' => $orderData['status'] ?? 'open',
             
             // 地址資訊
             'pickup_address' => $pickupAddress,
-            'pickup_county' => $pickupMatches[1] ?? null,
-            'pickup_district' => $pickupMatches[2] ?? null,
+            'pickup_county' => $orderData['pickup_county'] ?? $pickupMatches[1] ?? null,
+            'pickup_district' => $orderData['pickup_district'] ?? $pickupMatches[2] ?? null,
+            'pickup_lat' => $orderData['pickup_lat'] ?? null,
+            'pickup_lng' => $orderData['pickup_lng'] ?? null,
             'dropoff_address' => $dropoffAddress,
-            'dropoff_county' => $dropoffMatches[1] ?? null,
-            'dropoff_district' => $dropoffMatches[2] ?? null,
+            'dropoff_county' => $orderData['dropoff_county'] ?? $dropoffMatches[1] ?? null,
+            'dropoff_district' => $orderData['dropoff_district'] ?? $dropoffMatches[2] ?? null,
+            'dropoff_lat' => $orderData['dropoff_lat'] ?? null,
+            'dropoff_lng' => $orderData['dropoff_lng'] ?? null,
             
             // 服務需求
-            'wheelchair' => $orderData['wheelchair'] ?? false,
-            'stair_machine' => $orderData['stair_machine'] ?? false,
-            'companions' => $orderData['companions'] ?? 0,
+            'wheelchair' => (bool)($orderData['wheelchair'] ?? false),
+            'stair_machine' => (bool)($orderData['stair_machine'] ?? false),
+            'companions' => (int)($orderData['companions'] ?? 0),
             
             // 其他資訊
             'remark' => $orderData['remark'] ?? null,
-            'created_by' => $orderData['created_by'] ?? auth()->user()->name,
+            'created_by' => $orderData['created_by'] ?? auth()->user()->name ?? 'system',
             'identity' => $orderData['identity'] ?? null,
+            
+            // 批量建立訂單的專用欄位
+            'batch_id' => $orderData['batch_id'] ?? null,
+            'batch_sequence' => $orderData['batch_sequence'] ?? null,
         ];
     }
     
@@ -258,6 +273,24 @@ class CarpoolGroupService
             'success' => true,
             'message' => "已成功指派司機 {$driver->name} 給群組",
             'driver' => $driver
+        ];
+    }
+    
+    /**
+     * 移除群組駕駛指派
+     */
+    public function unassignDriverFromGroup($groupId)
+    {
+        $this->syncGroupStatus($groupId, 'open', [
+            'driver_id' => null,
+            'driver_name' => null,
+            'driver_fleet_number' => null,
+            'driver_plate_number' => null,
+        ]);
+        
+        return [
+            'success' => true,
+            'message' => '已成功移除群組駕駛指派',
         ];
     }
     
