@@ -96,6 +96,7 @@
                             <input type="radio" class="btn-check" name="date_mode" id="recurring" value="recurring">
                             <label class="btn btn-outline-primary" for="recurring">週期性</label>
                         </div>
+                            <label class="text text-danger ml-2"> 注意！！手動多日與週期性模式使用前要先把用車資訊填入資料</label>
                     </div>
                 </div>
             </div>
