@@ -320,7 +320,7 @@
                     <label class="form-label">上車地址</label>
                     <div class="input-group">
                         <input type="text" name="pickup_address" id="pickup_address" class="form-control landmark-input" required
-                               value="{{ old('pickup_address', isset($order) ? $order->pickup_address : '') }}"
+                               value="{{ old('pickup_address', isset($order) ? $order->pickup_address : (is_array($customer->addresses ?? []) && !empty($customer->addresses) ? $customer->addresses[0] : '')) }}"
                                placeholder="輸入地址或使用*觸發地標搜尋">
                         <button type="button" class="btn btn-outline-secondary" onclick="openLandmarkModal('pickup')">
                             <i class="fas fa-map-marker-alt"></i>
