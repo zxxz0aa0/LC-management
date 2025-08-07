@@ -1658,6 +1658,13 @@ class OrderForm {
         // 更新總訂單數
         $('#total-orders').text(totalOrders);
 
+        // 檢查重複訂單（先檢查客戶是否已選）
+        const customerId = $('input[name="customer_id"]').val();
+        if (customerId && rideTime) {
+            this.checkBatchDuplicateOrders(dates, customerId, rideTime);
+            return; // 檢查結果會在回調中處理預覽
+        }
+
         // 產生預覽表格
         let html = '<table class="table table-sm table-hover">';
         html += `
@@ -1842,11 +1849,300 @@ class OrderForm {
     }
 
     /**
+     * 批量檢查重複訂單
+     */
+    checkBatchDuplicateOrders(dates, customerId, rideTime) {
+        $.ajax({
+            url: '/orders/check-batch-duplicate',
+            method: 'POST',
+            data: {
+                customer_id: customerId,
+                dates: dates,
+                ride_time: rideTime,
+                _token: $('meta[name="csrf-token"]').attr('content')
+            },
+            success: (response) => {
+                this.handleBatchDuplicateResponse(response, dates);
+            },
+            error: (xhr) => {
+                console.error('批量檢查重複訂單時發生錯誤:', xhr);
+                // 發生錯誤時直接顯示預覽
+                this.generateBatchPreviewTable(dates, []);
+            }
+        });
+    }
+
+    /**
+     * 處理批量重複檢查回應
+     */
+    handleBatchDuplicateResponse(response, originalDates) {
+        // 儲存回應資料供後續使用
+        this.lastBatchCheckResponse = response;
+        
+        if (response.hasDuplicates) {
+            this.showBatchDuplicateWarning(response);
+        } else {
+            this.showBatchSuccess(response.message);
+        }
+        
+        // 生成預覽表格，並標示重複的日期
+        this.generateBatchPreviewTable(originalDates, response.duplicates || []);
+    }
+
+    /**
+     * 顯示批量重複警告
+     */
+    showBatchDuplicateWarning(response) {
+        const summary = response.summary;
+        const duplicates = response.duplicates;
+        
+        let duplicateDetails = duplicates.map(duplicate => {
+            const existingOrder = duplicate.existing_order;
+            return `
+                <div class="duplicate-item mb-2">
+                    <strong>${duplicate.formatted_date}</strong> - 
+                    已有訂單 <code>${existingOrder.order_number}</code>
+                    <br>
+                    <small class="text-muted">
+                        ${existingOrder.pickup_address} → ${existingOrder.dropoff_address}
+                        (建立於 ${existingOrder.created_at})
+                    </small>
+                </div>
+            `;
+        }).join('');
+
+        const warningHtml = `
+            <div class="batch-duplicate-warning alert alert-warning mt-3" role="alert">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <h6 class="mb-0">發現重複訂單</h6>
+                </div>
+                <div class="mb-3">
+                    <span class="badge bg-danger me-2">${summary.duplicates} 個重複</span>
+                    <span class="badge bg-success">${summary.available} 個可用</span>
+                </div>
+                <div class="duplicate-details mb-3" style="max-height: 200px; overflow-y: auto;">
+                    ${duplicateDetails}
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-success btn-sm" onclick="orderForm.skipDuplicatesAndCreate()">
+                        <i class="fas fa-check me-1"></i>跳過重複，建立 ${summary.available} 筆訂單
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="orderForm.cancelBatchDueToDuplicates()">
+                        <i class="fas fa-times me-1"></i>取消操作
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        $('#batch-orders-preview').prepend(warningHtml);
+    }
+
+    /**
+     * 顯示批量成功訊息
+     */
+    showBatchSuccess(message) {
+        const successHtml = `
+            <div class="batch-duplicate-success alert alert-success mt-3" role="alert">
+                <i class="fas fa-check-circle me-2"></i>
+                ${message}
+            </div>
+        `;
+        
+        $('#batch-orders-preview').prepend(successHtml);
+        
+        // 3秒後自動隱藏
+        setTimeout(() => {
+            $('.batch-duplicate-success').fadeOut(300);
+        }, 3000);
+    }
+
+    /**
+     * 產生批量預覽表格（支援重複標示）
+     */
+    generateBatchPreviewTable(dates, duplicates) {
+        const rideTime = $('input[name="ride_time"]').val();
+        const pickupAddress = $('input[name="pickup_address"]').val();
+        const dropoffAddress = $('input[name="dropoff_address"]').val();
+        const backTime = $('input[name="back_time"]').val();
+        const hasReturn = backTime && backTime.trim();
+        
+        // 建立重複日期查詢表 - 確保日期格式標準化
+        const duplicateMap = {};
+        duplicates.forEach(duplicate => {
+            // 標準化日期格式為 YYYY-MM-DD
+            const normalizedDate = this.normalizeDateFormat(duplicate.date);
+            duplicateMap[normalizedDate] = duplicate;
+        });
+        
+        // 除錯：顯示重複日期映射
+        console.log('=== 重複檢查除錯資訊 ===');
+        console.log('API 回傳的 duplicates:', duplicates);
+        console.log('建立的 duplicateMap:', duplicateMap);
+        console.log('要處理的 dates:', dates);
+        console.log('duplicateMap keys:', Object.keys(duplicateMap));
+
+        // 產生預覽表格
+        let html = '<table class="table table-sm table-hover">';
+        html += `
+            <thead class="table-light">
+                <tr>
+                    <th>日期</th>
+                    <th>星期</th>
+                    <th>去程時間</th>
+                    ${hasReturn ? '<th>回程時間</th>' : ''}
+                    <th>地址</th>
+                    <th>狀態</th>
+                </tr>
+            </thead>
+            <tbody>
+        `;
+
+        dates.forEach(dateStr => {
+            const date = new Date(dateStr);
+            const weekday = this.getChineseWeekday(date.getDay());
+            const formattedDate = this.formatDate(dateStr);
+            
+            // 標準化日期格式進行比對
+            const normalizedDateStr = this.normalizeDateFormat(dateStr);
+            const isDuplicate = duplicateMap[normalizedDateStr];
+            
+            // 除錯：顯示每個日期的檢查結果
+            console.log(`檢查日期 ${dateStr}:`, {
+                'original_dateStr': dateStr,
+                'normalized_dateStr': normalizedDateStr,
+                'isDuplicate': isDuplicate ? '✓ 重複' : '✗ 可用',
+                'duplicateMap中是否存在': duplicateMap.hasOwnProperty(normalizedDateStr),
+                'duplicateMap keys': Object.keys(duplicateMap)
+            });
+            
+            const rowClass = isDuplicate ? 'table-danger' : '';
+            const statusBadge = isDuplicate ? 
+                `<span class="badge bg-danger">重複</span>` : 
+                `<span class="badge bg-success">可用</span>`;
+
+            // 去程訂單
+            html += `
+                <tr class="${rowClass}">
+                    <td>${formattedDate}</td>
+                    <td>${weekday}</td>
+                    <td><span class="badge bg-primary">${rideTime}</span></td>
+                    ${hasReturn ? `<td>-</td>` : ''}
+                    <td>
+                        <small class="text-success">${this.truncateText(pickupAddress, 20)}</small>
+                        →
+                        <small class="text-danger">${this.truncateText(dropoffAddress, 20)}</small>
+                    </td>
+                    <td>${statusBadge}</td>
+                </tr>
+            `;
+
+            // 回程訂單
+            if (hasReturn) {
+                html += `
+                    <tr class="table-secondary ${isDuplicate ? 'table-danger' : ''}">
+                        <td>${formattedDate}</td>
+                        <td>${weekday}</td>
+                        <td>-</td>
+                        <td><span class="badge bg-warning">${backTime}</span></td>
+                        <td>
+                            <small class="text-danger">${this.truncateText(dropoffAddress, 20)}</small>
+                            →
+                            <small class="text-success">${this.truncateText(pickupAddress, 20)}</small>
+                        </td>
+                        <td>${statusBadge}</td>
+                    </tr>
+                `;
+            }
+        });
+
+        html += '</tbody></table>';
+        
+        // 清除舊的警告並新增新的表格
+        $('.batch-duplicate-warning, .batch-duplicate-success').remove();
+        $('#batch-orders-preview').html(html);
+        $('#batch-preview-section').show();
+
+        // 滾動到預覽區域
+        $('#batch-preview-section')[0].scrollIntoView({ behavior: 'smooth' });
+    }
+
+    /**
+     * 跳過重複日期並建立訂單
+     */
+    skipDuplicatesAndCreate() {
+        // 準備只包含非重複日期的表單
+        const form = $('.order-form');
+        const currentMode = $('input[name="date_mode"]:checked').val();
+
+        // 移除現有的 hidden inputs
+        form.find('input[name="selected_dates[]"]').remove();
+        
+        if (this.lastBatchCheckResponse && this.lastBatchCheckResponse.available_dates.length > 0) {
+            if (currentMode === 'manual') {
+                // 手動多日模式：使用可用日期
+                this.lastBatchCheckResponse.available_dates.forEach(dateStr => {
+                    form.append(`<input type="hidden" name="selected_dates[]" value="${dateStr}">`);
+                });
+            } else if (currentMode === 'recurring') {
+                // 週期性模式：需要修改後端邏輯來處理可用日期過濾
+                // 暫時轉換為手動模式提交
+                form.append(`<input type="hidden" name="date_mode" value="manual">`);
+                this.lastBatchCheckResponse.available_dates.forEach(dateStr => {
+                    form.append(`<input type="hidden" name="selected_dates[]" value="${dateStr}">`);
+                });
+            }
+            
+            // 提交表單
+            form.submit();
+        } else {
+            alert('沒有可用的日期可以建立訂單');
+        }
+    }
+
+    /**
+     * 因重複問題取消批量操作
+     */
+    cancelBatchDueToDuplicates() {
+        $('#batch-preview-section').hide();
+        $('.batch-duplicate-warning').remove();
+        
+        // 可以選擇性地清除日期選擇
+        // this.handleCancelBatch();
+    }
+
+    /**
      * 取得中文星期幾
      */
     getChineseWeekday(dayIndex) {
         const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
         return weekdays[dayIndex];
+    }
+
+    /**
+     * 標準化日期格式為 YYYY-MM-DD
+     */
+    normalizeDateFormat(dateStr) {
+        if (!dateStr) return '';
+        
+        try {
+            // 處理各種可能的日期格式
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) {
+                console.warn('Invalid date format:', dateStr);
+                return dateStr; // 回傳原始字串
+            }
+            
+            // 轉換為 YYYY-MM-DD 格式
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            
+            return `${year}-${month}-${day}`;
+        } catch (error) {
+            console.error('Date normalization error:', error, 'for date:', dateStr);
+            return dateStr; // 回傳原始字串
+        }
     }
 }
 

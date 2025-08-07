@@ -54,6 +54,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/carpool-search', [CustomerController::class, 'carpoolSearch']);
     Route::get('/customers/{customer}/history-orders', [OrderController::class, 'getCustomerHistoryOrders'])->name('customers.history-orders');
     Route::post('/orders/check-duplicate', [OrderController::class, 'checkDuplicateOrder'])->name('orders.checkDuplicate');
+    Route::post('/orders/check-batch-duplicate', [OrderController::class, 'checkBatchDuplicateOrders'])->name('orders.checkBatchDuplicate');
 
     // 地標管理路由 - 匯入匯出路由必須在 resource 路由之前，避免路由衝突
     Route::get('/landmarks/export', [LandmarkController::class, 'export'])->name('landmarks.export');

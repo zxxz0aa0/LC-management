@@ -674,6 +674,106 @@ class OrderController extends Controller
     }
 
     /**
+     * 批量檢查重複訂單
+     */
+    public function checkBatchDuplicateOrders(Request $request)
+    {
+        $request->validate([
+            'customer_id' => 'required|integer',
+            'dates' => 'required|array|min:1|max:50',
+            'dates.*' => 'date',
+            'ride_time' => 'required|date_format:H:i',
+            'order_id' => 'nullable|integer'
+        ]);
+
+        $customerId = $request->customer_id;
+        $dates = $request->dates;
+        $rideTime = $request->ride_time;
+        $orderId = $request->order_id;
+
+        // 查詢所有可能重複的訂單 - 使用 DATE() 函數確保純日期比對
+        $query = Order::where('customer_id', $customerId)
+            ->where('ride_time', $rideTime);
+
+        // 使用 whereIn 和 DATE() 函數進行日期比對
+        $query->where(function($q) use ($dates) {
+            foreach ($dates as $date) {
+                $q->orWhereRaw('DATE(ride_date) = ?', [$date]);
+            }
+        });
+
+        // 編輯模式時排除當前訂單
+        if ($orderId) {
+            $query->where('id', '!=', $orderId);
+        }
+
+        $existingOrders = $query->get();
+
+        // 除錯資訊
+        \Log::info('批量重複檢查除錯', [
+            'customer_id' => $customerId,
+            'ride_time' => $rideTime,
+            'dates' => $dates,
+            'existing_orders_count' => $existingOrders->count(),
+            'existing_orders' => $existingOrders->map(function($order) {
+                return [
+                    'id' => $order->id,
+                    'ride_date' => $order->ride_date,
+                    'ride_time' => $order->ride_time,
+                    'order_number' => $order->order_number
+                ];
+            })->toArray()
+        ]);
+
+        // 組織回應資料
+        $duplicates = [];
+        $availableDates = [];
+
+        foreach ($dates as $date) {
+            // 使用 Carbon 進行日期比對，確保格式一致
+            $existing = $existingOrders->first(function($order) use ($date) {
+                return Carbon::parse($order->ride_date)->format('Y-m-d') === $date;
+            });
+            
+            if ($existing) {
+                $duplicates[] = [
+                    'date' => $date,
+                    'formatted_date' => Carbon::parse($date)->format('Y-m-d (D)'),
+                    'existing_order' => [
+                        'id' => $existing->id,
+                        'order_number' => $existing->order_number,
+                        'pickup_address' => $existing->pickup_address,
+                        'dropoff_address' => $existing->dropoff_address,
+                        'status' => $existing->status,
+                        'created_at' => $existing->created_at->format('Y-m-d H:i')
+                    ]
+                ];
+            } else {
+                $availableDates[] = $date;
+            }
+        }
+
+        $hasDuplicates = count($duplicates) > 0;
+        $totalDates = count($dates);
+        $duplicateCount = count($duplicates);
+        $availableCount = count($availableDates);
+
+        return response()->json([
+            'hasDuplicates' => $hasDuplicates,
+            'summary' => [
+                'total' => $totalDates,
+                'duplicates' => $duplicateCount,
+                'available' => $availableCount
+            ],
+            'message' => $hasDuplicates 
+                ? "發現 {$duplicateCount} 個重複日期，{$availableCount} 個日期可用"
+                : "所有 {$totalDates} 個日期都可以使用",
+            'duplicates' => $duplicates,
+            'available_dates' => $availableDates
+        ]);
+    }
+
+    /**
      * 建立單人訂單
      */
     private function createSingleOrder($validated)
