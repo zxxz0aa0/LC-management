@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="test-token">
+    <title>共乘功能測試</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>共乘群組功能測試</h2>
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>個別操作測試</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-warning mb-2" onclick="showCancelModal('test-group-1')">
+                            測試取消群組Modal
+                        </button>
+                        <br>
+                        <button class="btn btn-danger mb-2" onclick="showDissolveModal('test-group-1')">
+                            測試解除群組Modal
+                        </button>
+                        <br>
+                        <button class="btn btn-primary" onclick="showAssignDriverModal('test-group-1')">
+                            測試指派司機Modal
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>功能說明</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6>修復內容：</h6>
+                        <ul>
+                            <li>✅ 新增個別取消群組表單提交處理</li>
+                            <li>✅ 新增個別解除群組表單提交處理</li>
+                            <li>✅ 新增指派司機表單提交處理</li>
+                            <li>✅ 統一錯誤處理和用戶反馈</li>
+                            <li>✅ 操作完成後自動重新載入頁面</li>
+                        </ul>
+                        
+                        <h6>測試步驟：</h6>
+                        <ol>
+                            <li>點擊上方按鈕測試Modal顯示</li>
+                            <li>檢查表單欄位是否正確顯示</li>
+                            <li>在實際系統中測試表單提交</li>
+                        </ol>
+                        
+                        <div class="alert alert-info">
+                            <strong>注意：</strong>這是測試頁面，API呼叫會失敗是正常的。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入Modal組件 -->
+    @include('carpool-groups.components.action-modal')
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ asset('js/carpool-groups/index.js') }}"></script>
+    
+    <script>
+        // 模擬一些數據
+        window.showAlert = function(message, type) {
+            alert(`${type.toUpperCase()}: ${message}`);
+        };
+        
+        // 用於測試的空函數
+        window.loadAvailableDrivers = function() {
+            console.log('載入司機列表...');
+        };
+        
+        console.log('共乘功能測試頁面已載入');
+        console.log('可用函數:', {
+            showCancelModal: typeof window.showCancelModal,
+            showDissolveModal: typeof window.showDissolveModal,
+            showAssignDriverModal: typeof window.showAssignDriverModal
+        });
+    </script>
+</body>
+</html>

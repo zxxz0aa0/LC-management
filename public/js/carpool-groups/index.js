@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeEventListeners();
     initializeCheckboxes();
     loadAvailableDrivers();
+    initializeFormHandlers();
 });
 
 /**
@@ -392,6 +393,220 @@ function createToastContainer() {
     container.style.zIndex = '9999';
     document.body.appendChild(container);
     return container;
+}
+
+/**
+ * 初始化表單處理器
+ */
+function initializeFormHandlers() {
+    // 指派司機表單處理
+    const assignDriverForm = document.getElementById('assignDriverForm');
+    if (assignDriverForm) {
+        assignDriverForm.addEventListener('submit', handleAssignDriverSubmit);
+    }
+    
+    // 取消群組表單處理
+    const cancelGroupForm = document.getElementById('cancelGroupForm');
+    if (cancelGroupForm) {
+        cancelGroupForm.addEventListener('submit', handleCancelGroupSubmit);
+    }
+    
+    // 解除群組表單處理
+    const dissolveGroupForm = document.getElementById('dissolveGroupForm');
+    if (dissolveGroupForm) {
+        dissolveGroupForm.addEventListener('submit', handleDissolveGroupSubmit);
+    }
+}
+
+/**
+ * 處理指派司機表單提交
+ */
+async function handleAssignDriverSubmit(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    const groupId = formData.get('group_id');
+    const driverId = formData.get('driver_id');
+    
+    if (!driverId) {
+        showAlert('請選擇司機', 'warning');
+        return;
+    }
+    
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const spinner = submitBtn.querySelector('.spinner-border');
+    
+    // 顯示載入狀態
+    submitBtn.disabled = true;
+    spinner.classList.remove('d-none');
+    
+    try {
+        const response = await fetch(`/carpool-groups/${groupId}/assign-driver`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                driver_id: driverId,
+                _token: formData.get('_token')
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert(result.message, 'success');
+            // 關閉 Modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('assignDriverModal'));
+            modal.hide();
+            // 重新載入頁面
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showAlert(result.message, 'error');
+        }
+        
+    } catch (error) {
+        console.error('指派司機失敗:', error);
+        showAlert('指派司機失敗，請稍後再試', 'error');
+    } finally {
+        // 恢復按鈕狀態
+        submitBtn.disabled = false;
+        spinner.classList.add('d-none');
+    }
+}
+
+/**
+ * 處理取消群組表單提交
+ */
+async function handleCancelGroupSubmit(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    const groupId = formData.get('group_id');
+    const reason = formData.get('reason');
+    
+    if (!reason.trim()) {
+        showAlert('請輸入取消原因', 'warning');
+        return;
+    }
+    
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const spinner = submitBtn.querySelector('.spinner-border');
+    
+    // 顯示載入狀態
+    submitBtn.disabled = true;
+    spinner.classList.remove('d-none');
+    
+    try {
+        const response = await fetch(`/carpool-groups/${groupId}/cancel`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                reason: reason,
+                _token: formData.get('_token')
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert(result.message, 'success');
+            // 關閉 Modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('cancelGroupModal'));
+            modal.hide();
+            // 重新載入頁面
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showAlert(result.message, 'error');
+        }
+        
+    } catch (error) {
+        console.error('取消群組失敗:', error);
+        showAlert('取消群組失敗，請稍後再試', 'error');
+    } finally {
+        // 恢復按鈕狀態
+        submitBtn.disabled = false;
+        spinner.classList.add('d-none');
+    }
+}
+
+/**
+ * 處理解除群組表單提交
+ */
+async function handleDissolveGroupSubmit(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    const groupId = formData.get('group_id');
+    const reason = formData.get('reason');
+    const force = form.querySelector('input[name="force"]').checked;
+    
+    if (!reason.trim()) {
+        showAlert('請輸入解除原因', 'warning');
+        return;
+    }
+    
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const spinner = submitBtn.querySelector('.spinner-border');
+    
+    // 顯示載入狀態
+    submitBtn.disabled = true;
+    spinner.classList.remove('d-none');
+    
+    try {
+        const response = await fetch(`/carpool-groups/${groupId}/dissolve`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                reason: reason,
+                force: force,
+                _token: formData.get('_token')
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert(result.message, 'success');
+            // 關閉 Modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('dissolveGroupModal'));
+            modal.hide();
+            // 重新載入頁面
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showAlert(result.message, 'error');
+        }
+        
+    } catch (error) {
+        console.error('解除群組失敗:', error);
+        showAlert('解除群組失敗，請稍後再試', 'error');
+    } finally {
+        // 恢復按鈕狀態
+        submitBtn.disabled = false;
+        spinner.classList.add('d-none');
+    }
 }
 
 // 暴露全域函數供 HTML 調用
