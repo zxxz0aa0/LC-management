@@ -819,6 +819,12 @@ class OrderController extends Controller
             'identity' => $validated['identity'],
             'status' => $validated['status'],
             'special_status' => $validated['special_status'] ?? null,
+            
+            // 駕駛資訊
+            'driver_id' => $validated['driver_id'] ?? null,
+            'driver_name' => $validated['driver_name'] ?? null,
+            'driver_plate_number' => $validated['driver_plate_number'] ?? null,
+            'driver_fleet_number' => $validated['driver_fleet_number'] ?? null,
         ]);
     }
 
@@ -868,6 +874,12 @@ class OrderController extends Controller
             'identity' => $validated['identity'],
             'status' => $validated['status'],
             'special_status' => $validated['special_status'] ?? null,
+            
+            // 駕駛資訊（回程訂單使用相同駕駛）
+            'driver_id' => $validated['driver_id'] ?? null,
+            'driver_name' => $validated['driver_name'] ?? null,
+            'driver_plate_number' => $validated['driver_plate_number'] ?? null,
+            'driver_fleet_number' => $validated['driver_fleet_number'] ?? null,
         ]);
     }
 
