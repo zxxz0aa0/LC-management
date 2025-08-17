@@ -123,16 +123,16 @@
                             </div>
                             <div class="col-md-5">
                                 <div class="d-flex justify-content-between align-items-start">
-                                    <div class="flex-grow-1">
-                                        <strong>乘客備註：</strong><br>
-                                        <span id="customer-note-{{ $customer->id }}">{{ $customer->note ?: '無備註' }}</span>
-                                    </div>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2"
+                                    <button type="button" class="btn btn-sm btn-outline-success ms-2"
                                             data-bs-toggle="modal"
                                             data-bs-target="#noteModal{{ $customer->id }}"
                                             title="編輯備註">
                                         <i class="fas fa-edit"></i>
                                     </button>
+                                    <div class="flex-grow-1 ms-2">
+                                        <strong>乘客備註：</strong><br>
+                                        <span id="customer-note-{{ $customer->id }}">{{ $customer->note ?: '無備註' }}</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-2">
