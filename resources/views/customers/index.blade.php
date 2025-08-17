@@ -45,6 +45,7 @@
                 <thead class="table-success align-middle">
                     <tr>
                         <!--<th style="width:40px;"><input type="checkbox" id="select-all"></th>--> <!--備註：可批次刪除選項-->
+                        <th style="width: 7%;">照會日期</th>
                         <th style="width: 7%;">姓名</th>
                         <th style="width: 7%;">身分證字號</th>
                         <th style="width: 10%;">聯絡電話</th>
@@ -62,6 +63,7 @@
                     @foreach ($customers as $customer)
                         <tr>
                             <!--<td><input class="me-2" type="checkbox" name="ids[]" value="{{ $customer->id }}" form="batch-delete-form">{{ $loop->iteration }}</td>-->
+                            <td>{{ $customer->created_at ? $customer->created_at->format('Y-m-d') : 'N/A' }}</td>
                             <td>{{ $customer->name }}</td>
                             <td>{{ $customer->id_number }}</td>
                             <td>{{ is_array($customer->phone_number) ? implode(' / ', $customer->phone_number) : $customer->phone_number }}</td>

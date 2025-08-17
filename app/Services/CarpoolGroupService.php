@@ -135,6 +135,25 @@ class CarpoolGroupService
      */
     private function createReturnOrders($mainCustomer, $carpoolCustomer, $orderData, $returnGroupId, $orderNumbers)
     {
+        // 處理回程駕駛資訊：如果有填入回程駕駛，使用回程駕駛；否則留空
+        $returnDriverData = [];
+        if (!empty($orderData['return_driver_fleet_number']) || !empty($orderData['return_driver_name'])) {
+            $returnDriverData = [
+                'driver_id' => $orderData['return_driver_id'] ?? null,
+                'driver_name' => $orderData['return_driver_name'] ?? null,
+                'driver_plate_number' => $orderData['return_driver_plate_number'] ?? null,
+                'driver_fleet_number' => $orderData['return_driver_fleet_number'] ?? null,
+            ];
+        } else {
+            // 回程駕駛資訊留空
+            $returnDriverData = [
+                'driver_id' => null,
+                'driver_name' => null,
+                'driver_plate_number' => null,
+                'driver_fleet_number' => null,
+            ];
+        }
+
         // 準備回程訂單資料（地址對調）
         $returnOrderData = array_merge($orderData, [
             'ride_time' => $orderData['back_time'],
@@ -144,7 +163,7 @@ class CarpoolGroupService
             'dropoff_address' => $orderData['pickup_address'],
             'dropoff_county' => $orderData['pickup_county'] ?? null,
             'dropoff_district' => $orderData['pickup_district'] ?? null,
-        ]);
+        ], $returnDriverData);
         
         // 建立主客戶回程訂單
         $returnMainOrder = Order::create(array_merge($this->prepareOrderData($mainCustomer, $returnOrderData, $orderNumbers['return_main']), [
@@ -222,6 +241,12 @@ class CarpoolGroupService
             'wheelchair' => (bool)($orderData['wheelchair'] ?? false),
             'stair_machine' => (bool)($orderData['stair_machine'] ?? false),
             'companions' => (int)($orderData['companions'] ?? 0),
+            
+            // 駕駛資訊
+            'driver_id' => $orderData['driver_id'] ?? null,
+            'driver_name' => $orderData['driver_name'] ?? null,
+            'driver_plate_number' => $orderData['driver_plate_number'] ?? null,
+            'driver_fleet_number' => $orderData['driver_fleet_number'] ?? null,
             
             // 其他資訊
             'remark' => $orderData['remark'] ?? null,

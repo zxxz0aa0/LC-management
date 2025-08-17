@@ -68,6 +68,12 @@
                             value="黑名單" readonly>
                     </div>
                 @endif
+                @if(!isset($order))
+                <button type="button" class="btn btn-outline-warning btn-sm" id="historyOrderBtn"
+                        style="display: none;" title="選擇歷史訂單快速填入">
+                    <i class="fas fa-history me-1"></i>歷史訂單
+                </button>
+                @endif
             </div>
         </div>
     </div>
@@ -152,7 +158,7 @@
                     <div class="col-md-4">
                         <label class="form-label">重複週期</label>
                         <select name="recurrence_type" class="form-select">
-                            <option value="weekly">每週</option>
+                            <option value="weekly" >每週</option>
                             <option value="biweekly">每兩週</option>
                             <option value="monthly">每月</option>
                         </select>
@@ -195,14 +201,17 @@
                     <div class="col-12">
                         <label class="form-label">快速選擇模板</label>
                         <div class="quick-select-templates">
+                            <button type="button" class="btn btn-outline-secondary btn-sm me-2" data-template="12345">
+                                一、二、三、四、五
+                            </button>
                             <button type="button" class="btn btn-outline-secondary btn-sm me-2" data-template="246">
-                                模式ㄧ (二、四、六)
+                                二、四、六
                             </button>
                             <button type="button" class="btn btn-outline-secondary btn-sm me-2" data-template="135">
-                                模式二 (一、三、五)
+                                一、三、五
                             </button>
                             <button type="button" class="btn btn-outline-secondary btn-sm me-2" data-template="15">
-                                模式三 (一、五)
+                                一、五
                             </button>
                             <button type="button" class="btn btn-outline-secondary btn-sm" data-template="clear">
                                 清除選擇
@@ -259,12 +268,6 @@
                 <h5 class="mb-0">
                     <i class="fas fa-car me-2"></i>用車資訊
                 </h5>
-                @if(!isset($order))
-                <button type="button" class="btn btn-outline-secondary btn-sm" id="historyOrderBtn"
-                        style="display: none;" title="選擇歷史訂單快速填入">
-                    <i class="fas fa-history me-1"></i>歷史訂單
-                </button>
-                @endif
             </div>
         </div>
         <div class="card-body">
@@ -355,90 +358,151 @@
 
     {{-- 共乘資訊區塊 --}}
     <div class="card mb-4">
-        <div class="card-header bg-success text-white">
-            <h5 class="mb-0">
-                <i class="fas fa-users me-2"></i>共乘資訊
+        <div class="card-header bg-success text-white"
+                data-bs-toggle="collapse"
+                data-bs-target="#carpoolInfoCollapse"
+                style="cursor: pointer;">
+            <h5 class="mb-0 d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-users me-2"></i>共乘資訊</span>
+                <i class="fas fa-chevron-down"></i>
             </h5>
         </div>
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label">共乘對象搜尋</label>
-                    <div class="input-group">
-                        <input type="text" id="carpoolSearchInput" class="form-control"
-                               placeholder="輸入姓名、ID或電話" value="{{ old('carpool_with') }}">
-                        <button type="button" class="btn btn-success" id="searchCarpoolBtn">
-                            <i class="fas fa-search"></i>
-                        </button>
-                        <button type="button" class="btn btn-outline-danger" id="clearCarpoolBtn">
-                            <i class="fas fa-times"></i>
-                        </button>
+        <div class="collapse class" id="carpoolInfoCollapse">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">共乘對象搜尋</label>
+                        <div class="input-group">
+                            <input type="text" id="carpoolSearchInput" class="form-control"
+                                placeholder="輸入姓名、ID或電話" value="{{ old('carpool_with') }}">
+                            <button type="button" class="btn btn-success" id="searchCarpoolBtn">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger" id="clearCarpoolBtn">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-9">
+                        <div id="carpoolResults"></div>
                     </div>
                 </div>
-                <div class="col-md-9">
-                    <div id="carpoolResults"></div>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-3">
+                        <label class="form-label">共乘姓名</label>
+                        <input type="text" name="carpool_with" id="carpool_with" class="form-control" readonly
+                        value="{{ old('carpool_with', isset($order) ? $order->carpool_name : '') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">共乘身分證</label>
+                        <input type="text" name="carpool_id_number" id="carpool_id_number" class="form-control" readonly
+                        value="{{ old('carpool_id_number', isset($order) ? $order->carpool_id : '') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">共乘電話</label>
+                        <input type="text" name="carpool_phone_number" id="carpool_phone_number" class="form-control" readonly
+                        value="{{ old('carpool_phone_number')}}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">共乘地址</label>
+                        <input type="text" name="carpool_addresses" id="carpool_addresses" class="form-control" readonly
+                        value="{{ old('carpool_addresses')}}">
+                    </div>
                 </div>
+                <input type="hidden" name="carpool_customer_id" id="carpool_customer_id" value="{{ old('carpool_customer_id') }}">
             </div>
-            <div class="row g-3 mt-2">
-                <div class="col-md-3">
-                    <label class="form-label">共乘姓名</label>
-                    <input type="text" name="carpool_with" id="carpool_with" class="form-control" readonly
-                    value="{{ old('carpool_with', isset($order) ? $order->carpool_name : '') }}">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">共乘身分證</label>
-                    <input type="text" name="carpool_id_number" id="carpool_id_number" class="form-control" readonly
-                    value="{{ old('carpool_id_number', isset($order) ? $order->carpool_id : '') }}">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">共乘電話</label>
-                    <input type="text" name="carpool_phone_number" id="carpool_phone_number" class="form-control" readonly
-                    value="{{ old('carpool_phone_number')}}">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">共乘地址</label>
-                    <input type="text" name="carpool_addresses" id="carpool_addresses" class="form-control" readonly
-                    value="{{ old('carpool_addresses')}}">
-                </div>
-            </div>
-            <input type="hidden" name="carpool_customer_id" id="carpool_customer_id" value="{{ old('carpool_customer_id') }}">
         </div>
     </div>
 
     {{-- 駕駛資訊區塊 --}}
     <div class="card mb-4">
-        <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0">
-                <i class="fas fa-user-tie me-2"></i>駕駛資訊
+        <div class="card-header bg-secondary text-white"
+            data-bs-toggle="collapse"
+            data-bs-target="#driverInfoCollapse"
+            style="cursor: pointer;">
+            <h5 class="mb-0 d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-user-tie me-2"></i>駕駛資訊</span>
+                <i class="fas fa-chevron-down"></i>
             </h5>
         </div>
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <label class="form-label">駕駛隊編</label>
-                    <div class="input-group">
-                        <input type="text" name="driver_fleet_number" id="driver_fleet_number" class="form-control"
-                               value="{{ old('driver_fleet_number', isset($order) ? $order->driver_fleet_number : '') }}">
-                        <button type="button" class="btn btn-success" id="searchDriverBtn">
-                            <i class="fas fa-search"></i>
-                        </button>
-                        <button type="button" class="btn btn-outline-danger" id="clearDriverBtn">
-                            <i class="fas fa-times"></i>
-                        </button>
+        <div class="collapse class" id="driverInfoCollapse">
+            <div class="card-body">
+                {{-- 去程駕駛資訊 --}}
+                <div class="mb-4">
+                    <h6 class="text-primary mb-3">
+                        <i class="fas fa-arrow-right me-2"></i>去程駕駛
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">駕駛隊編</label>
+                            <div class="input-group">
+                                <input type="text" name="driver_fleet_number" id="driver_fleet_number" class="form-control"
+                                    value="{{ old('driver_fleet_number', isset($order) ? $order->driver_fleet_number : '') }}">
+                                <button type="button" class="btn btn-success" id="searchDriverBtn" data-target="outbound">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" id="clearDriverBtn" data-target="outbound">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">駕駛姓名</label>
+                            <input type="text" name="driver_name" id="driver_name" class="form-control" readonly
+                            value="{{ old('driver_name', isset($order) ? $order->driver_name : '') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">車牌號碼</label>
+                            <input type="text" name="driver_plate_number" id="driver_plate_number" class="form-control" readonly
+                            value="{{ old('driver_plate_number', isset($order) ? $order->driver_plate_number : '') }}">
+                        </div>
                     </div>
+                    <input type="hidden" name="driver_id" id="driver_id" value="{{ old('driver_id', isset($order) ? $order->driver_id : '') }}">
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">駕駛姓名</label>
-                    <input type="text" name="driver_name" id="driver_name" class="form-control" readonly
-                    value="{{ old('driver_name', isset($order) ? $order->driver_name : '') }}">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">車牌號碼</label>
-                    <input type="text" name="driver_plate_number" id="driver_plate_number" class="form-control" readonly
-                    value="{{ old('driver_plate_number', isset($order) ? $order->driver_plate_number : '') }}">
+
+                {{-- 回程駕駛資訊 --}}
+                <div class="mb-3">
+                    <div class="row justify-content-between align-items-center mb-3">
+                        <div class ="col-md-5">
+                        <h6 class="text-success mb-0">
+                            <i class="fas fa-arrow-left me-2"></i>回程駕駛
+                        </h6>
+                        </div>
+                        <div class ="col-md-7">
+                        <button type="button" class="btn btn-sm btn-outline-info" id="copyOutboundDriverBtn">
+                            <i class="fas fa-copy me-1"></i>複製去程駕駛
+                        </button>
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">駕駛隊編</label>
+                            <div class="input-group">
+                                <input type="text" name="return_driver_fleet_number" id="return_driver_fleet_number" class="form-control"
+                                    value="{{ old('return_driver_fleet_number', '') }}">
+                                <button type="button" class="btn btn-success" id="searchReturnDriverBtn" data-target="return">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" id="clearReturnDriverBtn" data-target="return">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">駕駛姓名</label>
+                            <input type="text" name="return_driver_name" id="return_driver_name" class="form-control" readonly
+                            value="{{ old('return_driver_name', '') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">車牌號碼</label>
+                            <input type="text" name="return_driver_plate_number" id="return_driver_plate_number" class="form-control" readonly
+                            value="{{ old('return_driver_plate_number', '') }}">
+                        </div>
+                    </div>
+                    <input type="hidden" name="return_driver_id" id="return_driver_id" value="{{ old('return_driver_id', '') }}">
+
                 </div>
             </div>
-            <input type="hidden" name="driver_id" id="driver_id" value="{{ old('driver_id', isset($order) ? $order->driver_id : '') }}">
         </div>
     </div>
 
@@ -485,9 +549,46 @@
 
     {{-- 提交按鈕 --}}
     <div class="text-center py-4">
-        <button type="submit" class="btn btn-primary btn-lg px-5">
+        <button type="submit" class="btn btn-primary btn-lg px-5 me-3">
             <i class="fas fa-save me-2"></i>
             {{ isset($order) ? '更新訂單' : '建立訂單' }}
         </button>
+        <button type="button" class="btn btn-outline-info btn-lg px-4" id="copyOrderInfoBtn">
+            <i class="fas fa-copy me-2"></i>
+            複製訂單資訊
+        </button>
     </div>
 </form>
+
+{{-- 訂單資訊複製 Modal --}}
+<div class="modal fade" id="orderInfoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-copy me-2"></i>複製訂單資訊
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">訂單資訊文字</label>
+                    <textarea id="orderInfoText" class="form-control" rows="8" readonly 
+                              style="font-family: monospace; background-color: #f8f9fa;"></textarea>
+                </div>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    點擊下方「複製」按鈕將訂單資訊複製到剪貼板
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>關閉
+                </button>
+                <button type="button" class="btn btn-primary" id="copyToClipboardBtn">
+                    <i class="fas fa-copy me-2"></i>複製到剪貼板
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

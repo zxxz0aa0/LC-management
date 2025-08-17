@@ -181,6 +181,25 @@ class CustomerController extends Controller
         return redirect()->route('customers.index')->with('error', '請先勾選要刪除的資料');
     }
 
+    // 更新客戶備註
+    public function updateNote(Request $request, Customer $customer)
+    {
+        $request->validate([
+            'note' => 'nullable|string|max:1000',
+        ]);
+
+        $customer->update([
+            'note' => $request->note,
+            'updated_by' => auth()->user()->name ?? 'system',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => '備註已更新',
+            'note' => $customer->note,
+        ]);
+    }
+
     // 共乘對象查詢
     public function carpoolSearch(Request $request)
     {

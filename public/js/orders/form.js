@@ -76,6 +76,18 @@ class OrderForm {
             console.log('日期或上車點輸入框事件觸發');
             this.checkDatePickupDuplicate();
         });
+
+        // 訂單資訊複製功能
+        $('#copyOrderInfoBtn').on('click', () => {
+            console.log('複製訂單資訊按鈕被點擊');
+            this.showOrderInfoModal();
+        });
+
+        // Modal 內的複製按鈕
+        $('#copyToClipboardBtn').on('click', () => {
+            console.log('複製到剪貼板按鈕被點擊');
+            this.copyOrderInfoToClipboard();
+        });
     }
 
     /**
@@ -2384,6 +2396,148 @@ class OrderForm {
             console.error('Date normalization error:', error, 'for date:', dateStr);
             return dateStr; // 回傳原始字串
         }
+    }
+
+    // ========== 訂單資訊複製功能 ==========
+
+    /**
+     * 顯示訂單資訊複製 Modal
+     */
+    showOrderInfoModal() {
+        console.log('顯示訂單資訊複製 Modal');
+        
+        // 生成訂單資訊文字
+        const orderText = this.generateOrderInfoText();
+        
+        // 設置 Modal 內容
+        $('#orderInfoText').val(orderText);
+        
+        // 顯示 Modal
+        const modal = new bootstrap.Modal(document.getElementById('orderInfoModal'));
+        modal.show();
+    }
+
+    /**
+     * 生成格式化的訂單資訊文字
+     */
+    generateOrderInfoText() {
+        const rideDate = $('input[name="ride_date"]').val();
+        const rideTime = $('input[name="ride_time"]').val();
+        const backTime = $('input[name="back_time"]').val();
+        const pickupAddress = $('input[name="pickup_address"]').val();
+        const dropoffAddress = $('input[name="dropoff_address"]').val();
+
+        let orderText = '';
+        
+        // 用車日期（只有不是今天才顯示）
+        if (rideDate) {
+            const date = new Date(rideDate);
+            const today = new Date();
+            
+            // 比較日期（忽略時間）
+            const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            
+            if (dateOnly.getTime() !== todayOnly.getTime()) {
+                const formattedDate = date.toLocaleDateString('zh-TW', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+                orderText += `用車日期：${formattedDate}\n`;
+            }
+        }
+
+        // 用車時間
+        if (rideTime) {
+            orderText += `用車時間：${rideTime}\n`;
+        }
+
+        // 回程時間（如果有）
+        if (backTime) {
+            orderText += `回程時間：${backTime}\n`;
+        }
+
+        // 上車地址
+        if (pickupAddress) {
+            orderText += `上車地址：${pickupAddress}\n`;
+        }
+
+        // 下車地址
+        if (dropoffAddress) {
+            orderText += `下車地址：${dropoffAddress}\n`;
+        }
+
+        // 如果沒有任何資訊
+        if (!orderText) {
+            orderText = '請先填寫訂單資訊';
+        }
+
+        return orderText;
+    }
+
+    /**
+     * 複製訂單資訊到剪貼板
+     */
+    copyOrderInfoToClipboard() {
+        const orderText = $('#orderInfoText').val();
+        
+        if (!orderText || orderText === '請先填寫訂單資訊') {
+            alert('沒有訂單資訊可以複製');
+            return;
+        }
+
+        // 使用現代 Clipboard API
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(orderText).then(() => {
+                // 顯示成功提示
+                const btn = $('#copyToClipboardBtn');
+                const originalText = btn.html();
+                btn.html('<i class="fas fa-check me-2"></i>已複製！');
+                btn.removeClass('btn-primary').addClass('btn-success');
+                
+                // 3秒後恢復原狀
+                setTimeout(() => {
+                    btn.html(originalText);
+                    btn.removeClass('btn-success').addClass('btn-primary');
+                }, 3000);
+                
+                console.log('訂單資訊已複製到剪貼板');
+            }).catch(err => {
+                console.error('複製失敗:', err);
+                this.fallbackCopyToClipboard(orderText);
+            });
+        } else {
+            // 後備方案
+            this.fallbackCopyToClipboard(orderText);
+        }
+    }
+
+    /**
+     * 後備複製方法（適用於舊瀏覽器）
+     */
+    fallbackCopyToClipboard(text) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                alert('訂單資訊已複製到剪貼板');
+            } else {
+                alert('複製失敗，請手動複製');
+            }
+        } catch (err) {
+            console.error('後備複製方法失敗:', err);
+            alert('複製失敗，請手動複製');
+        }
+        
+        document.body.removeChild(textArea);
     }
 }
 

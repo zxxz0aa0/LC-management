@@ -43,6 +43,8 @@ namespace App\Models{
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\CustomerEvent> $events
  * @property-read int|null $events_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Order> $orders
+ * @property-read int|null $orders_count
  * @method static \Illuminate\Database\Eloquent\Builder|Customer newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder|Customer newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder|Customer query()
@@ -149,6 +151,49 @@ namespace App\Models{
  * 
  *
  * @property int $id
+ * @property string $name 地標名稱
+ * @property string $address 完整地址
+ * @property string $city 城市
+ * @property string $district 區域
+ * @property string $category 分類（medical, transport, general等）
+ * @property string|null $description 地標描述
+ * @property array|null $coordinates 座標資訊（可選）
+ * @property bool $is_active 是否啟用
+ * @property int $usage_count 使用次數統計
+ * @property string|null $created_by 建立者
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read mixed $category_name
+ * @property-read mixed $full_address
+ * @method static \Illuminate\Database\Eloquent\Builder|Landmark active()
+ * @method static \Illuminate\Database\Eloquent\Builder|Landmark category($category)
+ * @method static \Illuminate\Database\Eloquent\Builder|Landmark newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|Landmark newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|Landmark popular()
+ * @method static \Illuminate\Database\Eloquent\Builder|Landmark query()
+ * @method static \Illuminate\Database\Eloquent\Builder|Landmark search($keyword)
+ * @method static \Illuminate\Database\Eloquent\Builder|Landmark whereAddress($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Landmark whereCategory($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Landmark whereCity($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Landmark whereCoordinates($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Landmark whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Landmark whereCreatedBy($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Landmark whereDescription($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Landmark whereDistrict($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Landmark whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Landmark whereIsActive($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Landmark whereName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Landmark whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Landmark whereUsageCount($value)
+ */
+	class Landmark extends \Eloquent {}
+}
+
+namespace App\Models{
+/**
+ * 
+ *
+ * @property int $id
  * @property string $order_number
  * @property int $customer_id
  * @property int|null $driver_id
@@ -156,11 +201,11 @@ namespace App\Models{
  * @property string $customer_id_number
  * @property string $customer_phone
  * @property string|null $driver_name
- * @property string|null $driver_fleet_number
  * @property string|null $driver_plate_number
+ * @property string|null $driver_fleet_number
  * @property string|null $order_type
  * @property string|null $service_company
- * @property string $ride_date
+ * @property \Illuminate\Support\Carbon $ride_date
  * @property string $ride_time
  * @property string|null $pickup_county
  * @property string|null $pickup_district
@@ -172,8 +217,8 @@ namespace App\Models{
  * @property string $dropoff_address
  * @property string|null $dropoff_lat
  * @property string|null $dropoff_lng
- * @property int $wheelchair
- * @property int $stair_machine
+ * @property bool $wheelchair
+ * @property bool $stair_machine
  * @property int $companions
  * @property int|null $carpool_customer_id
  * @property string|null $carpool_name
@@ -187,13 +232,33 @@ namespace App\Models{
  * @property string $status
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property string|null $carpool_group_id 共乘群組ID
+ * @property bool $is_main_order 是否為主訂單
+ * @property int $carpool_member_count 群組成員數量
+ * @property string|null $main_order_number 主訂單編號（用於追蹤）
+ * @property int|null $member_sequence 成員序號
+ * @property bool $is_group_dissolved 群組是否已解除
+ * @property \Illuminate\Support\Carbon|null $dissolved_at 群組解除時間
+ * @property string|null $dissolved_by 解除操作人
+ * @property string|null $original_group_id 原群組ID（保留歷史記錄）
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, Order> $allGroupOrders
+ * @property-read int|null $all_group_orders_count
  * @property-read \App\Models\Customer $customer
  * @property-read \App\Models\Driver|null $driver
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, Order> $groupMembers
+ * @property-read int|null $group_members_count
+ * @property-read Order|null $mainOrder
+ * @method static \Illuminate\Database\Eloquent\Builder|Order dissolvedGroups()
+ * @method static \Illuminate\Database\Eloquent\Builder|Order filter($request)
+ * @method static \Illuminate\Database\Eloquent\Builder|Order groupOrders()
+ * @method static \Illuminate\Database\Eloquent\Builder|Order mainOrders()
  * @method static \Illuminate\Database\Eloquent\Builder|Order newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder|Order newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder|Order query()
  * @method static \Illuminate\Database\Eloquent\Builder|Order whereCarpoolCustomerId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Order whereCarpoolGroupId($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Order whereCarpoolId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Order whereCarpoolMemberCount($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Order whereCarpoolName($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Order whereCarpoolWith($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Order whereCompanions($value)
@@ -203,6 +268,8 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder|Order whereCustomerIdNumber($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Order whereCustomerName($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Order whereCustomerPhone($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Order whereDissolvedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Order whereDissolvedBy($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Order whereDriverFleetNumber($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Order whereDriverId($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Order whereDriverName($value)
@@ -214,8 +281,13 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder|Order whereDropoffLng($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Order whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Order whereIdentity($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Order whereIsGroupDissolved($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Order whereIsMainOrder($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Order whereMainOrderNumber($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Order whereMemberSequence($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Order whereOrderNumber($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Order whereOrderType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Order whereOriginalGroupId($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Order wherePickupAddress($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Order wherePickupCounty($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Order wherePickupDistrict($value)

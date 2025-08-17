@@ -1,5 +1,5 @@
 <div class="card">
-    <div class="card-header">
+    <div class="card-header bg-info">
         <div class="d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
                 <i class="fas fa-list me-2"></i>訂單列表
@@ -19,9 +19,10 @@
 
         <div class="table-responsive">
             <table class="table table-hover" id="ordersTable">
-                <thead class="table-dark">
+                <thead class="table-secondary">
                     <tr>
                         <th>客戶姓名</th>
+                        <th>電話</th>
                         <th>用車日期</th>
                         <th>用車時間</th>
                         <th>上車地址</th>
@@ -37,6 +38,7 @@
                     @forelse($orders as $order)
                     <tr>
                         <td>{{ $order->customer_name }}</td>
+                        <td>{{ $order->customer_phone }}</td>
                         <td>{{ $order->ride_date ? (is_string($order->ride_date) ? $order->ride_date : $order->ride_date->format('Y-m-d')) : 'N/A' }}</td>
                         <td>{{ $order->ride_time ? \Illuminate\Support\Carbon::parse($order->ride_time)->format('H:i') : 'N/A' }}</td>
                         <td>{{ Str::limit($order->pickup_address, 30) }}</td>
@@ -48,7 +50,7 @@
                             @endif
                             @switch($order->special_status)
                                 @case('一般')
-                                    <span class="badge bg-success">一般</span>
+                                    <span class="badge bg-success"></span>
                                     @break
                                 @case('網頁單')
                                     <span class="badge bg-danger">網頁單</span>

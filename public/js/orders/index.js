@@ -324,6 +324,59 @@ function showErrorMessage(message) {
     }, 5000);
 }
 
+/**
+ * 更新客戶備註
+ */
+function updateCustomerNote(customerId) {
+    const noteValue = $(`#note${customerId}`).val();
+    const updateBtn = $(`.modal-footer .btn-primary[onclick="updateCustomerNote(${customerId})"]`);
+    
+    // 顯示載入狀態
+    const originalText = updateBtn.text();
+    updateBtn.html('<i class="fas fa-spinner fa-spin me-2"></i>儲存中...').prop('disabled', true);
+
+    $.ajax({
+        url: `/customers/${customerId}/note`,
+        method: 'PATCH',
+        data: {
+            note: noteValue,
+            _token: $('meta[name="csrf-token"]').attr('content')
+        },
+        success: (response) => {
+            if (response.success) {
+                // 更新頁面顯示的備註
+                $(`#customer-note-${customerId}`).text(response.note || '無備註');
+                
+                // 關閉 modal
+                $(`#noteModal${customerId}`).modal('hide');
+                
+                // 顯示成功訊息
+                showSuccessMessage('備註已更新');
+            } else {
+                showErrorMessage(response.message || '更新失敗');
+            }
+        },
+        error: (xhr, status, error) => {
+            console.error('更新備註失敗:', error);
+            let errorMessage = '更新失敗，請稍後再試';
+            
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                // Laravel 驗證錯誤
+                const errors = Object.values(xhr.responseJSON.errors).flat();
+                errorMessage = errors.join('，');
+            }
+            
+            showErrorMessage(errorMessage);
+        },
+        complete: () => {
+            // 恢復按鈕狀態
+            updateBtn.text(originalText).prop('disabled', false);
+        }
+    });
+}
+
 // 初始化
 $(document).ready(function() {
     // 確保 DataTable 正確初始化
