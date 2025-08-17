@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function () {
     Route::post('customers/batch-delete', [CustomerController::class, 'batchDelete'])->name('customers.batchDelete');
     Route::get('customers/export', [CustomerController::class, 'export'])->name('customers.export');
     Route::post('customers/import', [CustomerController::class, 'import'])->name('customers.import');
+    Route::patch('customers/{customer}/note', [CustomerController::class, 'updateNote'])->name('customers.updateNote');
     Route::resource('customers', CustomerController::class)->except(['show']);
 
     // 客戶事件
@@ -54,6 +55,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/carpool-search', [CustomerController::class, 'carpoolSearch']);
     Route::get('/customers/{customer}/history-orders', [OrderController::class, 'getCustomerHistoryOrders'])->name('customers.history-orders');
     Route::post('/orders/check-duplicate', [OrderController::class, 'checkDuplicateOrder'])->name('orders.checkDuplicate');
+    Route::post('/orders/check-date-pickup-duplicate', [OrderController::class, 'checkDatePickupDuplicate'])->name('orders.checkDatePickupDuplicate');
     Route::post('/orders/check-batch-duplicate', [OrderController::class, 'checkBatchDuplicateOrders'])->name('orders.checkBatchDuplicate');
 
     // 地標管理路由 - 匯入匯出路由必須在 resource 路由之前，避免路由衝突

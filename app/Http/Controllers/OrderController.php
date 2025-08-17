@@ -130,6 +130,13 @@ class OrderController extends Controller
                 'driver_name' => 'nullable|string',
                 'driver_plate_number' => 'nullable|string',
                 'driver_fleet_number' => 'nullable|string',
+                
+                // 回程駕駛相關欄位
+                'return_driver_id' => 'nullable|integer',
+                'return_driver_name' => 'nullable|string',
+                'return_driver_plate_number' => 'nullable|string',
+                'return_driver_fleet_number' => 'nullable|string',
+                
                 'carpoolSearchInput' => 'nullable|string',
                 'carpool_id_number' => 'nullable|string',
             ], [
@@ -674,6 +681,44 @@ class OrderController extends Controller
     }
 
     /**
+     * 檢查日期與上車點重複的 API 端點
+     */
+    public function checkDatePickupDuplicate(Request $request)
+    {
+        $request->validate([
+            'customer_id' => 'required|integer',
+            'ride_date' => 'required|date',
+            'pickup_address' => 'required|string',
+            'order_id' => 'nullable|integer'
+        ]);
+
+        $query = Order::where('customer_id', $request->customer_id)
+            ->where('ride_date', $request->ride_date)
+            ->where('pickup_address', $request->pickup_address);
+
+        // 編輯模式時排除當前訂單
+        if ($request->order_id) {
+            $query->where('id', '!=', $request->order_id);
+        }
+
+        $existingOrder = $query->first();
+
+        return response()->json([
+            'isDuplicate' => $existingOrder !== null,
+            'message' => $existingOrder 
+                ? '該客戶在此日期地點已有訂單（訂單編號：' . $existingOrder->order_number . '）'
+                : '此日期地點可以使用',
+            'existingOrder' => $existingOrder ? [
+                'id' => $existingOrder->id,
+                'order_number' => $existingOrder->order_number,
+                'ride_time' => $existingOrder->ride_time,
+                'dropoff_address' => $existingOrder->dropoff_address,
+                'created_at' => $existingOrder->created_at->format('Y-m-d H:i')
+            ] : null
+        ]);
+    }
+
+    /**
      * 批量檢查重複訂單
      */
     public function checkBatchDuplicateOrders(Request $request)
@@ -850,6 +895,25 @@ class OrderController extends Controller
         $returnSerial = str_pad($returnCountToday, 4, '0', STR_PAD_LEFT);
         $returnOrderNumber = $typeCode . $idSuffix . $date . $time . $returnSerial;
 
+        // 處理回程駕駛資訊：如果有填入回程駕駛，使用回程駕駛；否則留空
+        $returnDriverData = [];
+        if (!empty($validated['return_driver_fleet_number']) || !empty($validated['return_driver_name'])) {
+            $returnDriverData = [
+                'driver_id' => $validated['return_driver_id'] ?? null,
+                'driver_name' => $validated['return_driver_name'] ?? null,
+                'driver_plate_number' => $validated['return_driver_plate_number'] ?? null,
+                'driver_fleet_number' => $validated['return_driver_fleet_number'] ?? null,
+            ];
+        } else {
+            // 回程駕駛資訊留空
+            $returnDriverData = [
+                'driver_id' => null,
+                'driver_name' => null,
+                'driver_plate_number' => null,
+                'driver_fleet_number' => null,
+            ];
+        }
+        
         return Order::create([
             'order_number' => $returnOrderNumber,
             'customer_id' => $validated['customer_id'],
@@ -874,13 +938,7 @@ class OrderController extends Controller
             'identity' => $validated['identity'],
             'status' => $validated['status'],
             'special_status' => $validated['special_status'] ?? null,
-            
-            // 駕駛資訊（回程訂單使用相同駕駛）
-            'driver_id' => $validated['driver_id'] ?? null,
-            'driver_name' => $validated['driver_name'] ?? null,
-            'driver_plate_number' => $validated['driver_plate_number'] ?? null,
-            'driver_fleet_number' => $validated['driver_fleet_number'] ?? null,
-        ]);
+        ] + $returnDriverData);
     }
 
     /**

@@ -20,6 +20,9 @@ class OrderForm {
         this.bindDriverEvents();
         this.bindAddressEvents();
         this.initializeBatchFeatures();
+        
+        // 頁面載入時檢查日期與上車點重複（如果有預填資料）
+        this.performInitialDatePickupCheck();
     }
 
     /**
@@ -63,6 +66,16 @@ class OrderForm {
 
         // 重複訂單檢查
         $('input[name="ride_date"], input[name="ride_time"]').on('change blur', this.checkDuplicateOrder.bind(this));
+        
+        // 日期與上車點重複檢查
+        console.log('綁定日期與上車點事件');
+        console.log('pickup_address 元素數量:', $('input[name="pickup_address"]').length);
+        console.log('ride_date 元素數量:', $('input[name="ride_date"]').length);
+        
+        $('input[name="ride_date"], input[name="pickup_address"]').on('change blur', () => {
+            console.log('日期或上車點輸入框事件觸發');
+            this.checkDatePickupDuplicate();
+        });
     }
 
     /**
@@ -88,20 +101,37 @@ class OrderForm {
      * 綁定駕駛相關事件
      */
     bindDriverEvents() {
-        // 駕駛搜尋
-        $('#searchDriverBtn').on('click', this.handleDriverSearch.bind(this));
+        // 去程駕駛搜尋
+        $('#searchDriverBtn').on('click', () => this.handleDriverSearch('outbound'));
 
-        // 清除駕駛
-        $('#clearDriverBtn').on('click', this.handleDriverClear.bind(this));
+        // 去程駕駛清除
+        $('#clearDriverBtn').on('click', () => this.handleDriverClear('outbound'));
+
+        // 回程駕駛搜尋
+        $('#searchReturnDriverBtn').on('click', () => this.handleDriverSearch('return'));
+
+        // 回程駕駛清除
+        $('#clearReturnDriverBtn').on('click', () => this.handleDriverClear('return'));
+
+        // 複製去程駕駛到回程
+        $('#copyOutboundDriverBtn').on('click', this.handleCopyOutboundDriver.bind(this));
 
         // 駕駛隊編輸入監聽
         $('#driver_fleet_number').on('input', this.handleDriverFleetInput.bind(this));
+        $('#return_driver_fleet_number').on('input', this.handleReturnDriverFleetInput.bind(this));
 
         // 駕駛搜尋輸入框 Enter 鍵
         $('#driver_fleet_number').on('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                this.handleDriverSearch();
+                this.handleDriverSearch('outbound');
+            }
+        });
+
+        $('#return_driver_fleet_number').on('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.handleDriverSearch('return');
             }
         });
     }
@@ -311,8 +341,10 @@ class OrderForm {
     /**
      * 處理駕駛搜尋
      */
-    handleDriverSearch() {
-        const fleetNumber = $('#driver_fleet_number').val().trim();
+    handleDriverSearch(type = 'outbound') {
+        const prefix = type === 'return' ? 'return_' : '';
+        const fleetNumber = $(`#${prefix}driver_fleet_number`).val().trim();
+        
         if (!fleetNumber) {
             alert('請輸入駕駛隊編');
             return;
@@ -324,14 +356,17 @@ class OrderForm {
                 if (data.error) {
                     alert(data.error);
                 } else {
-                    $('#driver_id').val(data.id);
-                    $('#driver_name').val(data.name);
-                    $('#driver_plate_number').val(data.plate_number);
+                    $(`#${prefix}driver_id`).val(data.id);
+                    $(`#${prefix}driver_name`).val(data.name);
+                    $(`#${prefix}driver_plate_number`).val(data.plate_number);
 
-                    // 自動設定為已指派
-                    $('select[name="status"]').val('assigned');
+                    // 只有去程駕駛時才自動設定為已指派
+                    if (type === 'outbound') {
+                        $('select[name="status"]').val('assigned');
+                    }
 
-                    this.showSuccessMessage('已找到駕駛：' + data.name);
+                    const driverType = type === 'return' ? '回程' : '去程';
+                    this.showSuccessMessage(`已找到${driverType}駕駛：` + data.name);
                 }
             })
             .catch(() => {
@@ -342,14 +377,43 @@ class OrderForm {
     /**
      * 清除駕駛資料
      */
-    handleDriverClear() {
-        $('#driver_fleet_number').val('');
-        $('#driver_id').val('');
-        $('#driver_name').val('');
-        $('#driver_plate_number').val('');
+    handleDriverClear(type = 'outbound') {
+        const prefix = type === 'return' ? 'return_' : '';
+        
+        $(`#${prefix}driver_fleet_number`).val('');
+        $(`#${prefix}driver_id`).val('');
+        $(`#${prefix}driver_name`).val('');
+        $(`#${prefix}driver_plate_number`).val('');
 
-        // 恢復狀態選擇
-        $('select[name="status"]').val('open');
+        // 只有清除去程駕駛時才恢復為可派遣狀態
+        if (type === 'outbound') {
+            $('select[name="status"]').val('open');
+        }
+
+        const driverType = type === 'return' ? '回程' : '去程';
+        this.showSuccessMessage(`${driverType}駕駛資料已清除`);
+    }
+
+    /**
+     * 複製去程駕駛到回程
+     */
+    handleCopyOutboundDriver() {
+        const outboundDriverId = $('#driver_id').val();
+        const outboundDriverName = $('#driver_name').val();
+        const outboundDriverPlate = $('#driver_plate_number').val();
+        const outboundDriverFleet = $('#driver_fleet_number').val();
+
+        if (!outboundDriverFleet && !outboundDriverName) {
+            alert('請先填入去程駕駛資訊');
+            return;
+        }
+
+        $('#return_driver_id').val(outboundDriverId);
+        $('#return_driver_name').val(outboundDriverName);
+        $('#return_driver_plate_number').val(outboundDriverPlate);
+        $('#return_driver_fleet_number').val(outboundDriverFleet);
+
+        this.showSuccessMessage('已複製去程駕駛至回程');
     }
 
     /**
@@ -363,6 +427,19 @@ class OrderForm {
             statusSelect.val('assigned');
         } else {
             statusSelect.val('open');
+        }
+    }
+
+    /**
+     * 處理回程駕駛隊編輸入
+     */
+    handleReturnDriverFleetInput(e) {
+        // 回程駕駛輸入不影響訂單狀態，只是清除相關駕駛資訊
+        const fleetNumber = e.target.value.trim();
+        if (!fleetNumber) {
+            $('#return_driver_id').val('');
+            $('#return_driver_name').val('');
+            $('#return_driver_plate_number').val('');
         }
     }
 
@@ -383,7 +460,7 @@ class OrderForm {
         $('#pickup_address').attr('data-landmark-id', dropoffLandmarkId || '');
         $('#dropoff_address').attr('data-landmark-id', pickupLandmarkId || '');
 
-        this.showSuccessMessage('已交換上下車地址');
+        /**this.showSuccessMessage('已交換上下車地址'); 目前是關掉成功提示**/
     }
 
     /**
@@ -1141,6 +1218,78 @@ class OrderForm {
     }
 
     /**
+     * 檢查日期與上車點重複
+     */
+    checkDatePickupDuplicate() {
+        console.log('=== 開始檢查日期與上車點重複 ===');
+        
+        const customerId = $('input[name="customer_id"]').val();
+        const rideDate = $('input[name="ride_date"]').val();
+        const pickupAddress = $('input[name="pickup_address"]').val();
+
+        console.log('檢查參數:', {
+            customerId: customerId,
+            rideDate: rideDate,
+            pickupAddress: pickupAddress
+        });
+
+        // 檢查必要欄位是否已填寫
+        if (!customerId || !rideDate || !pickupAddress) {
+            console.log('缺少必要欄位，清除警告');
+            this.clearDatePickupWarning();
+            return;
+        }
+
+        // 檢查地址是否有基本內容
+        if (pickupAddress.trim().length < 3) {
+            console.log('地址內容太短，清除警告');
+            this.clearDatePickupWarning();
+            return;
+        }
+
+        // 取得當前訂單 ID（編輯模式用）
+        const orderId = window.location.pathname.includes('/edit') ?
+            window.location.pathname.split('/').slice(-2, -1)[0] : null;
+
+        console.log('準備發送 AJAX 請求:', {
+            url: '/orders/check-date-pickup-duplicate',
+            orderId: orderId
+        });
+
+        // 發送 AJAX 請求檢查重複
+        $.ajax({
+            url: '/orders/check-date-pickup-duplicate',
+            method: 'POST',
+            data: {
+                customer_id: customerId,
+                ride_date: rideDate,
+                pickup_address: pickupAddress,
+                order_id: orderId,
+                _token: $('meta[name="csrf-token"]').attr('content')
+            },
+            success: (response) => {
+                console.log('AJAX 請求成功，回應:', response);
+                if (response.isDuplicate) {
+                    console.log('發現重複，顯示警告');
+                    this.showDatePickupWarning(response.message, response.existingOrder);
+                } else {
+                    console.log('無重複，顯示成功');
+                    this.showDatePickupSuccess(response.message);
+                }
+            },
+            error: (xhr) => {
+                console.error('檢查日期地點重複時發生錯誤:', xhr);
+                console.error('錯誤詳細:', {
+                    status: xhr.status,
+                    statusText: xhr.statusText,
+                    responseText: xhr.responseText
+                });
+                this.clearDatePickupWarning();
+            }
+        });
+    }
+
+    /**
      * 顯示重複訂單警告
      */
     showDuplicateWarning(message, existingOrder) {
@@ -1200,6 +1349,97 @@ class OrderForm {
     clearDuplicateWarning() {
         $('.duplicate-warning').remove();
         $('input[name="ride_time"]').removeClass('is-invalid is-valid');
+    }
+
+    /**
+     * 顯示日期地點重複警告
+     */
+    showDatePickupWarning(message, existingOrder) {
+        console.log('顯示日期地點重複警告:', message);
+        this.clearDatePickupWarning();
+
+        const dropoffAddressInput = $('input[name="dropoff_address"]');
+        console.log('下車地址輸入框:', dropoffAddressInput.length);
+        
+        const warningHtml = `
+            <div class="date-pickup-warning alert alert-warning mt-2" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <div>
+                        <strong>日期地點重複提醒：</strong>${message}
+                        ${existingOrder ? `
+                        <br><small class="text-muted">
+                            用車時間：${existingOrder.ride_time} → 下車地址：${existingOrder.dropoff_address}
+                            <br>建立時間：${existingOrder.created_at}
+                        </small>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        dropoffAddressInput.parent().after(warningHtml);
+        $('input[name="pickup_address"]').addClass('is-invalid');
+        console.log('警告已插入 DOM');
+    }
+
+    /**
+     * 顯示日期地點可用提示
+     */
+    showDatePickupSuccess(message) {
+        console.log('顯示日期地點可用提示:', message);
+        this.clearDatePickupWarning();
+
+        const dropoffAddressInput = $('input[name="dropoff_address"]');
+        const successHtml = `
+            <div class="date-pickup-warning alert alert-success mt-2" role="alert">
+                <i class="fas fa-check me-2"></i>${message}
+            </div>
+        `;
+
+        dropoffAddressInput.parent().after(successHtml);
+        $('input[name="pickup_address"]').removeClass('is-invalid').addClass('is-valid');
+
+        // 3秒後自動隱藏成功提示
+        setTimeout(() => {
+            $('.date-pickup-warning.alert-success').fadeOut(300);
+        }, 3000);
+    }
+
+    /**
+     * 清除日期地點重複警告
+     */
+    clearDatePickupWarning() {
+        $('.date-pickup-warning').remove();
+        $('input[name="pickup_address"]').removeClass('is-invalid is-valid');
+    }
+
+    /**
+     * 頁面載入時執行初始檢查（如果有預填資料）
+     */
+    performInitialDatePickupCheck() {
+        console.log('執行初始日期地點檢查');
+        
+        // 短暫延遲確保 DOM 完全載入
+        setTimeout(() => {
+            const customerId = $('input[name="customer_id"]').val();
+            const rideDate = $('input[name="ride_date"]').val();
+            const pickupAddress = $('input[name="pickup_address"]').val();
+
+            console.log('初始檢查參數:', {
+                customerId: customerId,
+                rideDate: rideDate,
+                pickupAddress: pickupAddress
+            });
+
+            // 只有在所有必要欄位都有值時才執行檢查
+            if (customerId && rideDate && pickupAddress && pickupAddress.trim().length >= 3) {
+                console.log('有完整資料，執行初始檢查');
+                this.checkDatePickupDuplicate();
+            } else {
+                console.log('資料不完整，跳過初始檢查');
+            }
+        }, 100); // 100ms 延遲確保表單完全載入
     }
 
     // ========== 批量訂單功能 ==========
@@ -1447,6 +1687,7 @@ class OrderForm {
 
         // 根據模板選擇星期幾
         const weekdays = {
+            '12345': [1, 2, 3, 4, 5], // 模式一 (一至五)
             '246': [2, 4, 6], // 洗腎模式 (二、四、六)
             '135': [1, 3, 5], // 復健模式 (一、三、五)
             '15': [1, 5]      // 週末模式 (一、五)
@@ -1532,7 +1773,7 @@ class OrderForm {
         const dates = [];
         const start = new Date(startDate);
         const end = new Date(endDate);
-        
+
         // 週期間隔天數
         const intervals = {
             'weekly': 7,
@@ -1551,7 +1792,7 @@ class OrderForm {
             // 檢查當前週的所有目標星期幾
             weekdays.forEach(targetWeekday => {
                 const targetDate = new Date(currentWeekStart);
-                
+
                 // 統一星期幾映射：0=週日, 1=週一, ..., 6=週六
                 // 轉換為相對於週一的天數偏移
                 let dayOffset;
@@ -1560,7 +1801,7 @@ class OrderForm {
                 } else {
                     dayOffset = targetWeekday - 1; // 週一是0，週二是1，依此類推
                 }
-                
+
                 targetDate.setDate(currentWeekStart.getDate() + dayOffset);
 
                 // 檢查日期是否在指定範圍內
@@ -1878,13 +2119,13 @@ class OrderForm {
     handleBatchDuplicateResponse(response, originalDates) {
         // 儲存回應資料供後續使用
         this.lastBatchCheckResponse = response;
-        
+
         if (response.hasDuplicates) {
             this.showBatchDuplicateWarning(response);
         } else {
             this.showBatchSuccess(response.message);
         }
-        
+
         // 生成預覽表格，並標示重複的日期
         this.generateBatchPreviewTable(originalDates, response.duplicates || []);
     }
@@ -1895,12 +2136,12 @@ class OrderForm {
     showBatchDuplicateWarning(response) {
         const summary = response.summary;
         const duplicates = response.duplicates;
-        
+
         let duplicateDetails = duplicates.map(duplicate => {
             const existingOrder = duplicate.existing_order;
             return `
                 <div class="duplicate-item mb-2">
-                    <strong>${duplicate.formatted_date}</strong> - 
+                    <strong>${duplicate.formatted_date}</strong> -
                     已有訂單 <code>${existingOrder.order_number}</code>
                     <br>
                     <small class="text-muted">
@@ -1934,7 +2175,7 @@ class OrderForm {
                 </div>
             </div>
         `;
-        
+
         $('#batch-orders-preview').prepend(warningHtml);
     }
 
@@ -1948,9 +2189,9 @@ class OrderForm {
                 ${message}
             </div>
         `;
-        
+
         $('#batch-orders-preview').prepend(successHtml);
-        
+
         // 3秒後自動隱藏
         setTimeout(() => {
             $('.batch-duplicate-success').fadeOut(300);
@@ -1966,7 +2207,7 @@ class OrderForm {
         const dropoffAddress = $('input[name="dropoff_address"]').val();
         const backTime = $('input[name="back_time"]').val();
         const hasReturn = backTime && backTime.trim();
-        
+
         // 建立重複日期查詢表 - 確保日期格式標準化
         const duplicateMap = {};
         duplicates.forEach(duplicate => {
@@ -1974,7 +2215,7 @@ class OrderForm {
             const normalizedDate = this.normalizeDateFormat(duplicate.date);
             duplicateMap[normalizedDate] = duplicate;
         });
-        
+
         // 除錯：顯示重複日期映射
         console.log('=== 重複檢查除錯資訊 ===');
         console.log('API 回傳的 duplicates:', duplicates);
@@ -2002,11 +2243,11 @@ class OrderForm {
             const date = new Date(dateStr);
             const weekday = this.getChineseWeekday(date.getDay());
             const formattedDate = this.formatDate(dateStr);
-            
+
             // 標準化日期格式進行比對
             const normalizedDateStr = this.normalizeDateFormat(dateStr);
             const isDuplicate = duplicateMap[normalizedDateStr];
-            
+
             // 除錯：顯示每個日期的檢查結果
             console.log(`檢查日期 ${dateStr}:`, {
                 'original_dateStr': dateStr,
@@ -2015,10 +2256,10 @@ class OrderForm {
                 'duplicateMap中是否存在': duplicateMap.hasOwnProperty(normalizedDateStr),
                 'duplicateMap keys': Object.keys(duplicateMap)
             });
-            
+
             const rowClass = isDuplicate ? 'table-danger' : '';
-            const statusBadge = isDuplicate ? 
-                `<span class="badge bg-danger">重複</span>` : 
+            const statusBadge = isDuplicate ?
+                `<span class="badge bg-danger">重複</span>` :
                 `<span class="badge bg-success">可用</span>`;
 
             // 去程訂單
@@ -2057,7 +2298,7 @@ class OrderForm {
         });
 
         html += '</tbody></table>';
-        
+
         // 清除舊的警告並新增新的表格
         $('.batch-duplicate-warning, .batch-duplicate-success').remove();
         $('#batch-orders-preview').html(html);
@@ -2077,7 +2318,7 @@ class OrderForm {
 
         // 移除現有的 hidden inputs
         form.find('input[name="selected_dates[]"]').remove();
-        
+
         if (this.lastBatchCheckResponse && this.lastBatchCheckResponse.available_dates.length > 0) {
             if (currentMode === 'manual') {
                 // 手動多日模式：使用可用日期
@@ -2092,7 +2333,7 @@ class OrderForm {
                     form.append(`<input type="hidden" name="selected_dates[]" value="${dateStr}">`);
                 });
             }
-            
+
             // 提交表單
             form.submit();
         } else {
@@ -2106,7 +2347,7 @@ class OrderForm {
     cancelBatchDueToDuplicates() {
         $('#batch-preview-section').hide();
         $('.batch-duplicate-warning').remove();
-        
+
         // 可以選擇性地清除日期選擇
         // this.handleCancelBatch();
     }
@@ -2124,7 +2365,7 @@ class OrderForm {
      */
     normalizeDateFormat(dateStr) {
         if (!dateStr) return '';
-        
+
         try {
             // 處理各種可能的日期格式
             const date = new Date(dateStr);
@@ -2132,12 +2373,12 @@ class OrderForm {
                 console.warn('Invalid date format:', dateStr);
                 return dateStr; // 回傳原始字串
             }
-            
+
             // 轉換為 YYYY-MM-DD 格式
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const day = String(date.getDate()).padStart(2, '0');
-            
+
             return `${year}-${month}-${day}`;
         } catch (error) {
             console.error('Date normalization error:', error, 'for date:', dateStr);
