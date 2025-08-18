@@ -78,6 +78,14 @@
                                     <p class="text-muted mb-0">請輸入關鍵字搜尋地標</p>
                                 </div>
                             </div>
+                            {{-- 分頁控制區域 --}}
+                            <div id="landmarkPagination" class="p-3 border-top bg-light" style="display: none;">
+                                <nav aria-label="地標搜尋分頁">
+                                    <ul class="pagination pagination-sm justify-content-center mb-0" id="landmarkPaginationList">
+                                        {{-- 分頁項目將由 JavaScript 動態生成 --}}
+                                    </ul>
+                                </nav>
+                            </div>
                         </div>
                         <div class="tab-pane fade" id="popular-content" role="tabpanel">
                             <div id="landmarkPopularResults" class="p-3"></div>

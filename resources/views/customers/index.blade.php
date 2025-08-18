@@ -5,15 +5,6 @@
     <div class="card-header">
         <div class="d-flex justify-content-between align-items-center flex-wrap">
             <h3 class="mb-0">個案列表</h3>
-            <div class="d-flex flex-wrap gap-2">
-                <a href="{{ route('customers.create') }}" class="btn btn-primary btn-sm me-2 d-flex align-items-center">新增個案</a>
-                <form action="{{ route('customers.import') }}" method="POST" enctype="multipart/form-data" class="d-inline-flex align-items-center">
-                    @csrf
-                    <input type="file" name="file" accept=".xlsx,.xls" class="form-control form-control me-2" required>
-                    <button class="btn btn-dark btn-sm me-2">匯入 Excel</button>
-                    <a href="{{ route('customers.export') }}" class="btn btn-success btn-sm">匯出 Excel</a>
-                </form>
-            </div>
         </div>
     </div>
 
@@ -34,10 +25,36 @@
             </div>
         @endif
 
-        <form method="GET" action="{{ route('customers.index') }}" class="mb-3 d-flex flex-wrap gap-2">
-            <input type="text" name="keyword" value="{{ request('keyword') }}" class="form-control me-2" placeholder="輸入姓名、電話或身分證查詢" style="max-width: 250px;">
-            <button type="submit" class="btn btn-outline-success me-2">搜尋</button>
-            <a href="{{ route('customers.index') }}" class="btn btn-outline-secondary">清除</a>
+        <form method="GET" action="{{ route('customers.index') }}" class="mb-3">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <input type="text" name="keyword" value="{{ request('keyword') }}" class="form-control" placeholder="輸入姓名、電話或身分證查詢">
+                        <button type="submit" class="btn btn-primary me-0">搜尋</button>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ route('customers.index') }}" class="btn btn-outline-secondary">清除</a>
+                </div>
+                <div class="col-md-6 text-end">
+
+                        <!-- 匯入匯出功能 -->
+                        <div class="btn-group me-2">
+                            <a href="{{ route('customers.export') }}" class="btn btn-success">
+                                <i class="fas fa-download me-1"></i>匯出 Excel
+                            </a>
+                            <button type="button" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#importModal">
+                                <i class="fas fa-upload me-1"></i>匯入 Excel
+                            </button>
+                            <a href="{{ route('customers.template') }}" class="btn btn-info">
+                                <i class="fas fa-file-excel me-1"></i>下載範例
+                            </a>
+                            <a href="{{ route('customers.create') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>新增個案
+                            </a>
+                        </div>
+                </div>
+            </div>
         </form>
 
         <div class="table-responsive">
@@ -173,6 +190,34 @@
     </div>
 </div>
 
+<!-- 匯入 Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">匯入客戶資料</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('customers.import') }}" method="POST" enctype="multipart/form-data">
+                <div class="modal-body">
+                    @csrf
+                    <div class="mb-3">
+                        <label for="importFile" class="form-label">選擇 Excel 檔案</label>
+                        <input type="file" name="file" id="importFile" accept=".xlsx,.xls" class="form-control" required>
+                        <div class="form-text">支援 .xlsx 和 .xls 格式</div>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>提示：</strong>請先下載範例檔案，並按照範例格式填入資料。
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-dark">開始匯入</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 @endsection
 

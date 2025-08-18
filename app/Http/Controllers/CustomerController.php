@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\CustomersExport;
+use App\Exports\CustomerTemplateExport;
 use App\Models\Customer;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
@@ -41,6 +42,7 @@ class CustomerController extends Controller
             'email' => 'nullable|email|unique:customers,email',
             'phone_number' => 'required|string',
             'addresses' => 'required|string',
+            'referral_date' => 'required|date',
             'status' => 'required|in:開案中,暫停中,已結案',
         ]);
 
@@ -69,6 +71,7 @@ class CustomerController extends Controller
             'stair_climbing_machine' => $request->stair_climbing_machine,
             'ride_sharing' => $request->ride_sharing,
             'identity' => $request->identity,
+            'referral_date' => $validated['referral_date'],
             'note' => $request->note,
             'a_mechanism' => $request->a_mechanism,
             'a_manager' => $request->a_manager,
@@ -221,5 +224,13 @@ class CustomerController extends Controller
         });
 
         return response()->json($customers);
+    }
+
+    /**
+     * 下載客戶匯入範例檔案
+     */
+    public function downloadTemplate()
+    {
+        return Excel::download(new CustomerTemplateExport, '客戶匯入範例檔案.xlsx');
     }
 }

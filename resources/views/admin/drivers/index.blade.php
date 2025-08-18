@@ -4,22 +4,20 @@
 <div class="container-fluid">
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">駕駛管理</h3>
+            <h3>駕駛管理</h3>
         </div>
-
         <div class="card-body">
             <!-- 搜尋和篩選 -->
             <form method="GET" action="{{ route('drivers.index') }}" class="mb-3">
                 <div class="row">
                     <div class="col-md-4">
                         <div class="input-group">
-                            <input type="text" name="keyword" class="form-control" 
+                            <input type="text" name="keyword" class="form-control"
                                    placeholder="搜尋姓名、手機、身分證..." value="{{ request('keyword') }}">
                             <button class="btn btn-primary" type="submit">搜尋</button>
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <button type="submit" class="btn btn-secondary">篩選</button>
                         <a href="{{ route('drivers.index') }}" class="btn btn-outline-secondary">重置</a>
                     </div>
                     <div class="col-md-6 text-end">
@@ -116,7 +114,7 @@
                             支援的檔案格式：.xlsx, .xls
                         </div>
                     </div>
-                    
+
                     <div class="alert alert-info">
                         <h6><i class="fas fa-info-circle me-2"></i>匯入須知：</h6>
                         <ul class="mb-0">
@@ -127,7 +125,7 @@
                             <li>其他欄位為選填</li>
                         </ul>
                     </div>
-                    
+
                     <!-- 匯入錯誤訊息顯示 -->
                     @if(session('import_errors') && count(session('import_errors')) > 0)
                         <div class="alert alert-warning">

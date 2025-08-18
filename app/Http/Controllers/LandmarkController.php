@@ -157,8 +157,7 @@ class LandmarkController extends Controller
         $landmarks = Landmark::active()
             ->search($keyword)
             ->popular()
-            ->limit(10)
-            ->get(['id', 'name', 'address', 'city', 'district', 'category', 'usage_count']);
+            ->paginate(10, ['id', 'name', 'address', 'city', 'district', 'category', 'usage_count']);
 
         return response()->json([
             'success' => true,
@@ -237,5 +236,46 @@ class LandmarkController extends Controller
     public function downloadTemplate()
     {
         return Excel::download(new LandmarkTemplateExport, '地標匯入範例檔案.xlsx');
+    }
+
+    /**
+     * 獲取熱門地標
+     */
+    public function popular()
+    {
+        $landmarks = Landmark::active()
+            ->popular()
+            ->limit(20)
+            ->get(['id', 'name', 'address', 'city', 'district', 'category', 'usage_count']);
+
+        return response()->json([
+            'success' => true,
+            'data' => $landmarks,
+        ]);
+    }
+
+    /**
+     * 根據ID陣列獲取地標
+     */
+    public function getByIds(Request $request)
+    {
+        $ids = $request->input('ids', []);
+
+        if (empty($ids)) {
+            return response()->json([
+                'success' => false,
+                'message' => '請提供地標ID',
+                'data' => [],
+            ]);
+        }
+
+        $landmarks = Landmark::active()
+            ->whereIn('id', $ids)
+            ->get(['id', 'name', 'address', 'city', 'district', 'category', 'usage_count']);
+
+        return response()->json([
+            'success' => true,
+            'data' => $landmarks,
+        ]);
     }
 }

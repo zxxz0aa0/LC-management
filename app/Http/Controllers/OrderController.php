@@ -121,7 +121,7 @@ class OrderController extends Controller
                 'carpool_customer_id' => 'nullable|exists:customers,id',
                 'remark' => 'nullable|string',
                 'created_by' => 'required|string',
-                'identity' => 'required|string',
+                'identity' => 'nullable|string',
                 'carpool_name' => 'nullable|string',
                 'special_status' => 'nullable|string',
                 'carpool_customer_id' => 'nullable|integer',

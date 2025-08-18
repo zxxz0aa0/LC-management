@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function () {
     Route::post('customers/batch-delete', [CustomerController::class, 'batchDelete'])->name('customers.batchDelete');
     Route::get('customers/export', [CustomerController::class, 'export'])->name('customers.export');
     Route::post('customers/import', [CustomerController::class, 'import'])->name('customers.import');
+    Route::get('customers/template', [CustomerController::class, 'downloadTemplate'])->name('customers.template');
     Route::patch('customers/{customer}/note', [CustomerController::class, 'updateNote'])->name('customers.updateNote');
     Route::resource('customers', CustomerController::class)->except(['show']);
 
@@ -64,6 +65,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/landmarks/template', [LandmarkController::class, 'downloadTemplate'])->name('landmarks.template');
     Route::resource('landmarks', LandmarkController::class);
     Route::get('/landmarks-search', [LandmarkController::class, 'search'])->name('landmarks.search');
+    Route::get('/landmarks-popular', [LandmarkController::class, 'popular'])->name('landmarks.popular');
+    Route::post('/landmarks-by-ids', [LandmarkController::class, 'getByIds'])->name('landmarks.getByIds');
     Route::post('/landmarks/batch-destroy', [LandmarkController::class, 'batchDestroy'])->name('landmarks.batchDestroy');
     Route::post('/landmarks/batch-toggle', [LandmarkController::class, 'batchToggle'])->name('landmarks.batchToggle');
     Route::post('/landmarks-usage', [OrderController::class, 'updateLandmarkUsage'])->name('landmarks.updateUsage');

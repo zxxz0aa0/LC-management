@@ -27,6 +27,7 @@ class Customer extends Model
         'special_status', // 特殊狀態
         'county_care',   // 縣市照顧
         'service_company',  // 服務公司
+        'referral_date', // 照會日期
         'created_by', // 建立者
         'updated_by', // 更新者
         'status', // 狀態
@@ -36,6 +37,7 @@ class Customer extends Model
     protected $casts = [
         'phone_number' => 'array',
         'addresses' => 'array',
+        'referral_date' => 'date',
     ];
 
     // 定義與 User 事件關聯

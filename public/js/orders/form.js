@@ -20,7 +20,7 @@ class OrderForm {
         this.bindDriverEvents();
         this.bindAddressEvents();
         this.initializeBatchFeatures();
-        
+
         // 頁面載入時檢查日期與上車點重複（如果有預填資料）
         this.performInitialDatePickupCheck();
     }
@@ -66,12 +66,12 @@ class OrderForm {
 
         // 重複訂單檢查
         $('input[name="ride_date"], input[name="ride_time"]').on('change blur', this.checkDuplicateOrder.bind(this));
-        
+
         // 日期與上車點重複檢查
         console.log('綁定日期與上車點事件');
         console.log('pickup_address 元素數量:', $('input[name="pickup_address"]').length);
         console.log('ride_date 元素數量:', $('input[name="ride_date"]').length);
-        
+
         $('input[name="ride_date"], input[name="pickup_address"]').on('change blur', () => {
             console.log('日期或上車點輸入框事件觸發');
             this.checkDatePickupDuplicate();
@@ -87,6 +87,24 @@ class OrderForm {
         $('#copyToClipboardBtn').on('click', () => {
             console.log('複製到剪貼板按鈕被點擊');
             this.copyOrderInfoToClipboard();
+        });
+
+        // 去程複製按鈕
+        $('#copyOutboundBtn').on('click', () => {
+            console.log('複製去程資訊按鈕被點擊');
+            this.copyOutboundToClipboard();
+        });
+
+        // 回程複製按鈕
+        $('#copyReturnBtn').on('click', () => {
+            console.log('複製回程資訊按鈕被點擊');
+            this.copyReturnToClipboard();
+        });
+
+        // 複製完整資訊按鈕
+        $('#copyAllBtn').on('click', () => {
+            console.log('複製完整資訊按鈕被點擊');
+            this.copyAllToClipboard();
         });
     }
 
@@ -356,7 +374,7 @@ class OrderForm {
     handleDriverSearch(type = 'outbound') {
         const prefix = type === 'return' ? 'return_' : '';
         const fleetNumber = $(`#${prefix}driver_fleet_number`).val().trim();
-        
+
         if (!fleetNumber) {
             alert('請輸入駕駛隊編');
             return;
@@ -391,7 +409,7 @@ class OrderForm {
      */
     handleDriverClear(type = 'outbound') {
         const prefix = type === 'return' ? 'return_' : '';
-        
+
         $(`#${prefix}driver_fleet_number`).val('');
         $(`#${prefix}driver_id`).val('');
         $(`#${prefix}driver_name`).val('');
@@ -540,7 +558,7 @@ class OrderForm {
     /**
      * 處理地標搜尋
      */
-    handleLandmarkSearch() {
+    handleLandmarkSearch(page = 1) {
         const keyword = $('#landmarkSearchInput').val().trim();
         if (!keyword) {
             alert('請輸入搜尋關鍵字');
@@ -548,19 +566,23 @@ class OrderForm {
         }
 
         $('#landmarkSearchResults').html('<div class="text-center py-3"><div class="spinner-border text-primary"></div></div>');
+        $('#landmarkPagination').hide();
 
-        fetch(`/landmarks-search?keyword=${encodeURIComponent(keyword)}`)
+        fetch(`/landmarks-search?keyword=${encodeURIComponent(keyword)}&page=${page}`)
             .then(response => response.json())
             .then(data => {
-                if (data.success && data.data.length > 0) {
-                    this.displayLandmarkResults(data.data, '#landmarkSearchResults');
+                if (data.success && data.data.data && data.data.data.length > 0) {
+                    this.displayLandmarkResults(data.data.data, '#landmarkSearchResults');
+                    this.displayLandmarkPagination(data.data);
                 } else {
                     $('#landmarkSearchResults').html('<div class="text-center py-4"><p class="text-muted">查無符合條件的地標</p></div>');
+                    $('#landmarkPagination').hide();
                 }
             })
             .catch(error => {
                 console.error('搜尋地標錯誤:', error);
                 $('#landmarkSearchResults').html('<div class="alert alert-danger">搜尋失敗，請稍後再試</div>');
+                $('#landmarkPagination').hide();
             });
     }
 
@@ -595,6 +617,64 @@ class OrderForm {
         });
 
         $(container).html(html);
+    }
+
+    /**
+     * 顯示地標搜尋分頁
+     */
+    displayLandmarkPagination(paginationData) {
+        const { current_page, last_page, per_page, total } = paginationData;
+
+        if (last_page <= 1) {
+            $('#landmarkPagination').hide();
+            return;
+        }
+
+        let paginationHtml = '';
+
+        // 上一頁
+        if (current_page > 1) {
+            paginationHtml += `
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="orderForm.handleLandmarkSearch(${current_page - 1}); return false;">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+            `;
+        }
+
+        // 頁碼
+        const startPage = Math.max(1, current_page - 2);
+        const endPage = Math.min(last_page, current_page + 2);
+
+        for (let i = startPage; i <= endPage; i++) {
+            const activeClass = i === current_page ? 'active' : '';
+            paginationHtml += `
+                <li class="page-item ${activeClass}">
+                    <a class="page-link" href="#" onclick="orderForm.handleLandmarkSearch(${i}); return false;">${i}</a>
+                </li>
+            `;
+        }
+
+        // 下一頁
+        if (current_page < last_page) {
+            paginationHtml += `
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="orderForm.handleLandmarkSearch(${current_page + 1}); return false;">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+            `;
+        }
+
+        $('#landmarkPaginationList').html(paginationHtml);
+
+        // 清除舊的資訊並顯示新的總數資訊
+        $('#landmarkPagination').find('.pagination-info').remove();
+        const info = `<small class="text-muted">共 ${total} 個地標，第 ${current_page}/${last_page} 頁</small>`;
+        $('#landmarkPagination').prepend(`<div class="text-center mb-2 pagination-info">${info}</div>`);
+
+        $('#landmarkPagination').show();
     }
 
     /**
@@ -660,7 +740,12 @@ class OrderForm {
         $('#landmarkPopularResults').html('<div class="text-center py-3"><div class="spinner-border text-primary"></div></div>');
 
         fetch('/landmarks-popular')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success && data.data.length > 0) {
                     this.displayLandmarkResults(data.data, '#landmarkPopularResults');
@@ -668,8 +753,9 @@ class OrderForm {
                     $('#landmarkPopularResults').html('<div class="text-center py-4"><p class="text-muted">暫無熱門地標</p></div>');
                 }
             })
-            .catch(() => {
-                $('#landmarkPopularResults').html('<div class="alert alert-danger">載入失敗</div>');
+            .catch(error => {
+                console.error('熱門地標載入錯誤:', error);
+                $('#landmarkPopularResults').html(`<div class="alert alert-danger">載入失敗: ${error.message}</div>`);
             });
     }
 
@@ -696,7 +782,12 @@ class OrderForm {
             },
             body: JSON.stringify({ ids: landmarkIds })
         })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success && data.data.length > 0) {
                     this.displayLandmarkResults(data.data, '#landmarkRecentResults');
@@ -704,8 +795,9 @@ class OrderForm {
                     $('#landmarkRecentResults').html('<div class="text-center py-4"><p class="text-muted">無法載入最近使用記錄</p></div>');
                 }
             })
-            .catch(() => {
-                $('#landmarkRecentResults').html('<div class="alert alert-danger">載入失敗</div>');
+            .catch(error => {
+                console.error('最近使用地標載入錯誤:', error);
+                $('#landmarkRecentResults').html(`<div class="alert alert-danger">載入失敗: ${error.message}</div>`);
             });
     }
 
@@ -1234,7 +1326,7 @@ class OrderForm {
      */
     checkDatePickupDuplicate() {
         console.log('=== 開始檢查日期與上車點重複 ===');
-        
+
         const customerId = $('input[name="customer_id"]').val();
         const rideDate = $('input[name="ride_date"]').val();
         const pickupAddress = $('input[name="pickup_address"]').val();
@@ -1372,7 +1464,7 @@ class OrderForm {
 
         const dropoffAddressInput = $('input[name="dropoff_address"]');
         console.log('下車地址輸入框:', dropoffAddressInput.length);
-        
+
         const warningHtml = `
             <div class="date-pickup-warning alert alert-warning mt-2" role="alert">
                 <div class="d-flex align-items-center">
@@ -1431,7 +1523,7 @@ class OrderForm {
      */
     performInitialDatePickupCheck() {
         console.log('執行初始日期地點檢查');
-        
+
         // 短暫延遲確保 DOM 完全載入
         setTimeout(() => {
             const customerId = $('input[name="customer_id"]').val();
@@ -2405,13 +2497,35 @@ class OrderForm {
      */
     showOrderInfoModal() {
         console.log('顯示訂單資訊複製 Modal');
-        
+
         // 生成訂單資訊文字
-        const orderText = this.generateOrderInfoText();
-        
-        // 設置 Modal 內容
-        $('#orderInfoText').val(orderText);
-        
+        const orderInfo = this.generateOrderInfoText();
+
+        if (orderInfo.single) {
+            // 單程顯示
+            $('#singleTripArea').show();
+            $('#roundTripArea').hide();
+            $('#copyToClipboardBtn').show();
+            $('#copyAllBtn').hide();
+
+            // 設置單程內容
+            $('#orderInfoText').val(orderInfo.single);
+        } else {
+            // 去回程分離顯示
+            $('#singleTripArea').hide();
+            $('#roundTripArea').show();
+            $('#copyToClipboardBtn').hide();
+            $('#copyAllBtn').show();
+
+            // 設置去程和回程內容
+            $('#outboundInfoText').val(orderInfo.outbound);
+            $('#returnInfoText').val(orderInfo.return);
+
+            // 儲存完整資訊到 modal 的 data 屬性，供複製完整資訊使用
+            const fullText = `=== 去程 ===\n${orderInfo.outbound}\n\n=== 回程 ===\n${orderInfo.return}`;
+            $('#orderInfoModal').data('fullText', fullText);
+        }
+
         // 顯示 Modal
         const modal = new bootstrap.Modal(document.getElementById('orderInfoModal'));
         modal.show();
@@ -2427,53 +2541,81 @@ class OrderForm {
         const pickupAddress = $('input[name="pickup_address"]').val();
         const dropoffAddress = $('input[name="dropoff_address"]').val();
 
-        let orderText = '';
-        
-        // 用車日期（只有不是今天才顯示）
+        // 生成日期文字（只有不是今天才顯示）
+        let dateText = '';
         if (rideDate) {
             const date = new Date(rideDate);
             const today = new Date();
-            
+
             // 比較日期（忽略時間）
             const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
             const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-            
+
             if (dateOnly.getTime() !== todayOnly.getTime()) {
                 const formattedDate = date.toLocaleDateString('zh-TW', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit'
+                    month: 'numeric',
+                    day: 'numeric'
                 });
-                orderText += `用車日期：${formattedDate}\n`;
+                dateText = `${formattedDate}\n`;
             }
         }
 
-        // 用車時間
-        if (rideTime) {
-            orderText += `用車時間：${rideTime}\n`;
-        }
+        // 檢查是否有回程時間
+        if (backTime && backTime.trim()) {
+            // 有回程時間，分成去程和回程
+            let outboundText = dateText;
+            let returnText = dateText;
 
-        // 回程時間（如果有）
-        if (backTime) {
-            orderText += `回程時間：${backTime}\n`;
-        }
+            // 去程資訊
+            if (rideTime) {
+                outboundText += `${rideTime}\n`;
+            }
+            if (pickupAddress) {
+                outboundText += `${pickupAddress} >\n`;
+            }
+            if (dropoffAddress) {
+                outboundText += `${dropoffAddress}`;
+            }
 
-        // 上車地址
-        if (pickupAddress) {
-            orderText += `上車地址：${pickupAddress}\n`;
-        }
+            // 回程資訊
+            returnText += `${backTime}\n`;
+            if (dropoffAddress) {
+                returnText += `${dropoffAddress} >\n`;
+            }
+            if (pickupAddress) {
+                returnText += `${pickupAddress}`;
+            }
 
-        // 下車地址
-        if (dropoffAddress) {
-            orderText += `下車地址：${dropoffAddress}\n`;
-        }
+            // 檢查是否有資訊
+            if (!outboundText.replace(dateText, '').trim() && !returnText.replace(dateText, '').trim()) {
+                return { single: '請先填寫訂單資訊' };
+            }
 
-        // 如果沒有任何資訊
-        if (!orderText) {
-            orderText = '請先填寫訂單資訊';
-        }
+            return {
+                outbound: outboundText || '去程資訊不完整',
+                return: returnText || '回程資訊不完整'
+            };
+        } else {
+            // 沒有回程時間，單程顯示
+            let singleText = dateText;
 
-        return orderText;
+            if (rideTime) {
+                singleText += `${rideTime}\n`;
+            }
+            if (pickupAddress) {
+                singleText += `${pickupAddress} >\n`;
+            }
+            if (dropoffAddress) {
+                singleText += `${dropoffAddress}`;
+            }
+
+            // 如果沒有任何資訊
+            if (!singleText.replace(dateText, '').trim()) {
+                singleText = '請先填寫訂單資訊';
+            }
+
+            return { single: singleText };
+        }
     }
 
     /**
@@ -2481,7 +2623,7 @@ class OrderForm {
      */
     copyOrderInfoToClipboard() {
         const orderText = $('#orderInfoText').val();
-        
+
         if (!orderText || orderText === '請先填寫訂單資訊') {
             alert('沒有訂單資訊可以複製');
             return;
@@ -2495,13 +2637,13 @@ class OrderForm {
                 const originalText = btn.html();
                 btn.html('<i class="fas fa-check me-2"></i>已複製！');
                 btn.removeClass('btn-primary').addClass('btn-success');
-                
+
                 // 3秒後恢復原狀
                 setTimeout(() => {
                     btn.html(originalText);
                     btn.removeClass('btn-success').addClass('btn-primary');
                 }, 3000);
-                
+
                 console.log('訂單資訊已複製到剪貼板');
             }).catch(err => {
                 console.error('複製失敗:', err);
@@ -2524,7 +2666,7 @@ class OrderForm {
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
-        
+
         try {
             const successful = document.execCommand('copy');
             if (successful) {
@@ -2536,8 +2678,80 @@ class OrderForm {
             console.error('後備複製方法失敗:', err);
             alert('複製失敗，請手動複製');
         }
-        
+
         document.body.removeChild(textArea);
+    }
+
+    /**
+     * 複製去程資訊到剪貼板
+     */
+    copyOutboundToClipboard() {
+        const outboundText = $('#outboundInfoText').val();
+
+        if (!outboundText || outboundText === '去程資訊不完整') {
+            alert('沒有去程資訊可以複製');
+            return;
+        }
+
+        this.performCopy(outboundText, '#copyOutboundBtn', 'btn-primary', '已複製去程！');
+    }
+
+    /**
+     * 複製回程資訊到剪貼板
+     */
+    copyReturnToClipboard() {
+        const returnText = $('#returnInfoText').val();
+
+        if (!returnText || returnText === '回程資訊不完整') {
+            alert('沒有回程資訊可以複製');
+            return;
+        }
+
+        this.performCopy(returnText, '#copyReturnBtn', 'btn-success', '已複製回程！');
+    }
+
+    /**
+     * 複製完整資訊到剪貼板
+     */
+    copyAllToClipboard() {
+        const fullText = $('#orderInfoModal').data('fullText');
+
+        if (!fullText) {
+            alert('沒有完整資訊可以複製');
+            return;
+        }
+
+        this.performCopy(fullText, '#copyAllBtn', 'btn-outline-primary', '已複製完整資訊！');
+    }
+
+    /**
+     * 執行複製操作的通用方法
+     */
+    performCopy(text, buttonSelector, originalClass, successText) {
+        // 使用現代 Clipboard API
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(() => {
+                // 顯示成功提示
+                const btn = $(buttonSelector);
+                const originalText = btn.html();
+                btn.html(`<i class="fas fa-check me-2"></i>${successText}`);
+                btn.removeClass(originalClass).addClass('btn-success');
+
+                // 3秒後恢復原狀
+                setTimeout(() => {
+                    btn.html(originalText);
+                    btn.removeClass('btn-success').addClass(originalClass);
+                }, 3000);
+
+                console.log(`${successText} - 已複製到剪貼板`);
+            }).catch(err => {
+                console.error('複製失敗:', err);
+                this.fallbackCopyToClipboard(text);
+            });
+        } else {
+            // 後備方案
+            this.fallbackCopyToClipboard(text);
+        }
     }
 }
 

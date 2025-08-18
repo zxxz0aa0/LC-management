@@ -23,6 +23,11 @@
             @csrf
 
             <div class="form-group">
+                <label>照會日期</label>
+                <input type="date" name="referral_date" id="referral_date" class="form-control" readonly value="{{ old('referral_date') }}">
+            </div>
+
+            <div class="form-group">
                 <label>個案姓名 *</label>
                 <input type="text" name="name" class="form-control" required value="{{ old('name') }}">
             </div>
@@ -37,7 +42,7 @@
                 <div class="input-group">
                     <input type="text" id="birthday-input" class="form-control" placeholder="可輸入民國年：077/07/07 或西元年：1988/07/07" value="{{ old('birthday') }}">
                     <input type="hidden" name="birthday" id="birthday-hidden">
-                </div>           
+                </div>
             </div>
 
             <div class="form-group">
@@ -108,9 +113,12 @@
                 <label>身份別</label>
                 <select name="identity" class="form-control">
                     <option value="">請選擇</option>
-                    @foreach(['市區-一般','市區-中低收','市區-低收','偏區-一般','偏區-中低收','偏區-低收'] as $option)
-                        <option value="{{ $option }}" {{ old('identity') == $option ? 'selected' : '' }}>{{ $option }}</option>
-                    @endforeach
+                    <option value="市區-一般" {{ old('identity') == '市區-一般' ? 'selected' : '' }}>市區-一般</option>
+                    <option value="市區-中低收" {{ old('identity') == '市區-中低收' ? 'selected' : '' }}>市區-中低收</option>
+                    <option value="市區-低收" {{ old('identity') == '市區-低收' ? 'selected' : '' }}>市區-低收</option>
+                    <option value="偏區-一般" {{ old('identity') == '偏區-一般' ? 'selected' : '' }}>偏區-一般</option>
+                    <option value="偏區-中低收" {{ old('identity') == '偏區-中低收' ? 'selected' : '' }}>偏區-中低收</option>
+                    <option value="偏區-低收" {{ old('identity') == '偏區-低收' ? 'selected' : '' }}>偏區-低收</option>
                 </select>
             </div>
 
@@ -157,7 +165,7 @@
                     <option value="大立亨" {{ old('service_company') == '大立亨' ? 'selected' : '' }}>大立亨</option>
                     <option value="太豐與大立亨" {{ old('service_company') == '太豐與大立亨' ? 'selected' : '' }}>太豐與大立亨</option>
                 </select>
-                
+
             </div>
 
             <div class="form-group">
@@ -170,7 +178,7 @@
             </div>
         </form>
     </div>
-    
+
     <div class="card-footer">
         <button type="submit" class="btn btn-primary" form="create-customer-form">儲存客戶</button>
         <a href="{{ route('customers.index') }}" class="btn btn-secondary">返回</a>
@@ -184,32 +192,32 @@
 document.addEventListener('DOMContentLoaded', function() {
     const birthdayInput = document.getElementById('birthday-input');
     const birthdayHidden = document.getElementById('birthday-hidden');
-    
+
     // 民國年轉西元年的函數
     function convertToWesternDate(inputValue) {
         // 移除所有空格
         const cleanValue = inputValue.replace(/\s+/g, '');
-        
+
         // 支援的格式：077/01/06, 077-01-06, 0770106
         const rocPatterns = [
             /^(\d{3})\/(\d{2})\/(\d{2})$/,  // 077/01/06
-            /^(\d{3})-(\d{2})-(\d{2})$/,   // 077-01-06  
+            /^(\d{3})-(\d{2})-(\d{2})$/,   // 077-01-06
             /^(\d{7})$/                     // 0770106
         ];
-        
+
         // 西元年格式：1988/01/06, 1988-01-06, 19880106
         const westernPatterns = [
             /^(\d{4})\/(\d{2})\/(\d{2})$/,  // 1988/01/06
             /^(\d{4})-(\d{2})-(\d{2})$/,   // 1988-01-06
             /^(\d{8})$/                     // 19880106
         ];
-        
+
         // 檢查是否為民國年格式
         for (let pattern of rocPatterns) {
             const match = cleanValue.match(pattern);
             if (match) {
                 let year, month, day;
-                
+
                 if (pattern.source.includes('(\\d{7})')) {
                     // 格式：0770106
                     year = parseInt(match[1].substring(0, 3));
@@ -221,19 +229,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     month = match[2];
                     day = match[3];
                 }
-                
+
                 // 民國年轉西元年 (民國年 + 1911)
                 const westernYear = year + 1911;
                 return `${westernYear}-${month}-${day}`;
             }
         }
-        
+
         // 檢查是否為西元年格式
         for (let pattern of westernPatterns) {
             const match = cleanValue.match(pattern);
             if (match) {
                 let year, month, day;
-                
+
                 if (pattern.source.includes('(\\d{8})')) {
                     // 格式：19880106
                     year = match[1].substring(0, 4);
@@ -245,19 +253,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     month = match[2];
                     day = match[3];
                 }
-                
+
                 return `${year}-${month}-${day}`;
             }
         }
-        
+
         return null;
     }
-    
+
     // 輸入時即時轉換
     birthdayInput.addEventListener('input', function() {
         const inputValue = this.value;
         const convertedDate = convertToWesternDate(inputValue);
-        
+
         if (convertedDate) {
             birthdayHidden.value = convertedDate;
             this.classList.remove('is-invalid');
@@ -271,7 +279,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.add('is-invalid');
         }
     });
-    
+
     // 失去焦點時格式化顯示
     birthdayInput.addEventListener('blur', function() {
         const convertedDate = convertToWesternDate(this.value);
@@ -286,7 +294,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-    
+
+    // 設定照會日期為當天日期
+    document.getElementById('referral_date').value = new Date().toISOString().split('T')[0];
+
     // 表單提交前確保日期格式正確
     document.getElementById('create-customer-form').addEventListener('submit', function(e) {
         const birthdayValue = birthdayInput.value;

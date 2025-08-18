@@ -562,7 +562,7 @@
 
 {{-- 訂單資訊複製 Modal --}}
 <div class="modal fade" id="orderInfoModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
@@ -571,14 +571,47 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">訂單資訊文字</label>
-                    <textarea id="orderInfoText" class="form-control" rows="8" readonly 
-                              style="font-family: monospace; background-color: #f8f9fa;"></textarea>
+                {{-- 單程顯示區域 --}}
+                <div id="singleTripArea">
+                    <div class="mb-3">
+                        <label class="form-label">訂單資訊文字</label>
+                        <textarea id="orderInfoText" class="form-control" rows="8" readonly
+                                  style="font-family: monospace; background-color: #f8f9fa;"></textarea>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        點擊下方「複製」按鈕將訂單資訊複製到剪貼板
+                    </div>
                 </div>
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    點擊下方「複製」按鈕將訂單資訊複製到剪貼板
+
+                {{-- 去回程分離顯示區域 --}}
+                <div id="roundTripArea" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-primary">
+                                <i class="fas fa-arrow-right me-1"></i>去程資訊
+                            </label>
+                            <textarea id="outboundInfoText" class="form-control" rows="6" readonly
+                                      style="font-family: monospace; background-color: #f8f9fa;"></textarea>
+                            <button type="button" class="btn btn-primary btn-sm mt-2 w-100" id="copyOutboundBtn">
+                                <i class="fas fa-copy me-1"></i>複製去程資訊
+                            </button>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-success">
+                                <i class="fas fa-arrow-left me-1"></i>回程資訊
+                            </label>
+                            <textarea id="returnInfoText" class="form-control" rows="6" readonly
+                                      style="font-family: monospace; background-color: #f8f9fa;"></textarea>
+                            <button type="button" class="btn btn-success btn-sm mt-2 w-100" id="copyReturnBtn">
+                                <i class="fas fa-copy me-1"></i>複製回程資訊
+                            </button>
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        您可以分別複製去程和回程資訊，或使用下方按鈕複製完整資訊
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -587,6 +620,9 @@
                 </button>
                 <button type="button" class="btn btn-primary" id="copyToClipboardBtn">
                     <i class="fas fa-copy me-2"></i>複製到剪貼板
+                </button>
+                <button type="button" class="btn btn-outline-primary" id="copyAllBtn" style="display: none;">
+                    <i class="fas fa-copy me-2"></i>複製完整資訊
                 </button>
             </div>
         </div>
