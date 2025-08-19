@@ -117,6 +117,7 @@
                                 </div>
                             @endif
                         </div>
+                        <hr style="border-top: 1px solid #000000;">
                         <div class="row mt-4">
                             <div class="col-md-3">
                                 <strong>住址：</strong><br>{{ is_array($customer->addresses) ? implode(' / ', $customer->addresses) : $customer->addresses }}
@@ -131,13 +132,13 @@
                                     </button>
                                     <div class="flex-grow-1 ms-2">
                                         <strong>乘客備註：</strong><br>
-                                        <span id="customer-note-{{ $customer->id }}">{{ $customer->note ?: '無備註' }}</span>
+                                        <span style="color: red" id="customer-note-{{ $customer->id }}">{{ $customer->note ?: '無備註' }}</span>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-2">
                                 <strong>訂單來源：</strong>{{ $customer->county_care }}<br>
-                                <strong>照會日期：</strong>{{ $customer->created_at ? $customer->created_at->format('Y-m-d') : 'N/A' }}
+                                <strong>照會日期：</strong>{{ $customer->referral_date ? $customer->referral_date->format('Y-m-d') : 'N/A' }}
                             </div>
                         </div>
                     </div>

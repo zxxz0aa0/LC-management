@@ -52,11 +52,11 @@
                     <input type="text" name="order_type" class="form-control"
                         value="{{ old('order_type', isset($order) ? $order->order_type : ($customer->county_care ?? '')) }}" readonly>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">身份別</label>
-                    <input type="text" name="identity" class="form-control"
+                <!--<div class="col-md-2"> 這邊主要先隱藏欄位，有需要用再打開
+                    <label class="form-label">身份別</label>-->
+                    <input type="hidden" name="identity" class="form-control"
                         value="{{ old('identity', isset($order) ? $order->identity : ($customer->identity ?? '')) }}" readonly>
-                </div>
+                <!--</div>-->
                 <div class="col-md-2">
                     <label class="form-label">交通公司</label>
                     <input type="text" name="service_company" class="form-control"

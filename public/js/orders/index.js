@@ -85,7 +85,7 @@ class OrderIndex {
                     }
                 },
                 pageLength: 50,
-                order: [[1, 'desc']], // 按用車日期降序
+                order: [[2, 'asc']], // 按用車日期降序desc 升序asc
                 columnDefs: [
                     { targets: [columnCount - 1], orderable: false } // 最後一欄（操作欄）不可排序
                 ],
@@ -330,7 +330,7 @@ function showErrorMessage(message) {
 function updateCustomerNote(customerId) {
     const noteValue = $(`#note${customerId}`).val();
     const updateBtn = $(`.modal-footer .btn-primary[onclick="updateCustomerNote(${customerId})"]`);
-    
+
     // 顯示載入狀態
     const originalText = updateBtn.text();
     updateBtn.html('<i class="fas fa-spinner fa-spin me-2"></i>儲存中...').prop('disabled', true);
@@ -346,10 +346,10 @@ function updateCustomerNote(customerId) {
             if (response.success) {
                 // 更新頁面顯示的備註
                 $(`#customer-note-${customerId}`).text(response.note || '無備註');
-                
+
                 // 關閉 modal
                 $(`#noteModal${customerId}`).modal('hide');
-                
+
                 // 顯示成功訊息
                 showSuccessMessage('備註已更新');
             } else {
@@ -359,7 +359,7 @@ function updateCustomerNote(customerId) {
         error: (xhr, status, error) => {
             console.error('更新備註失敗:', error);
             let errorMessage = '更新失敗，請稍後再試';
-            
+
             if (xhr.responseJSON && xhr.responseJSON.message) {
                 errorMessage = xhr.responseJSON.message;
             } else if (xhr.responseJSON && xhr.responseJSON.errors) {
@@ -367,7 +367,7 @@ function updateCustomerNote(customerId) {
                 const errors = Object.values(xhr.responseJSON.errors).flat();
                 errorMessage = errors.join('，');
             }
-            
+
             showErrorMessage(errorMessage);
         },
         complete: () => {

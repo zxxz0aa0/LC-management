@@ -148,7 +148,6 @@
             <div class="form-group">
                 <label>個案來源</label>
                 <select name="county_care" class="form-control">
-                    <option value="">請選擇</option>
                     @foreach(['新北長照','台北長照','愛接送','新北復康','一般乘客'] as $option)
                         <option value="{{ $option }}" {{ old('county_care',$customer->county_care) == $option ? 'selected' : '' }}>{{ $option }}</option>
                     @endforeach
@@ -191,32 +190,32 @@
 document.addEventListener('DOMContentLoaded', function() {
     const birthdayInput = document.getElementById('birthday-input');
     const birthdayHidden = document.getElementById('birthday-hidden');
-    
+
     // 民國年轉西元年的函數
     function convertToWesternDate(inputValue) {
         // 移除所有空格
         const cleanValue = inputValue.replace(/\s+/g, '');
-        
+
         // 支援的格式：077/01/06, 077-01-06, 0770106
         const rocPatterns = [
             /^(\d{3})\/(\d{2})\/(\d{2})$/,  // 077/01/06
             /^(\d{3})-(\d{2})-(\d{2})$/,   // 077-01-06
             /^(\d{7})$/                     // 0770106
         ];
-        
+
         // 西元年格式：1988/01/06, 1988-01-06, 19880106
         const westernPatterns = [
             /^(\d{4})\/(\d{2})\/(\d{2})$/,  // 1988/01/06
             /^(\d{4})-(\d{2})-(\d{2})$/,   // 1988-01-06
             /^(\d{8})$/                     // 19880106
         ];
-        
+
         // 檢查是否為民國年格式
         for (let pattern of rocPatterns) {
             const match = cleanValue.match(pattern);
             if (match) {
                 let year, month, day;
-                
+
                 if (pattern.source.includes('(\\d{7})')) {
                     // 格式：0770106
                     year = parseInt(match[1].substring(0, 3));
@@ -228,19 +227,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     month = match[2];
                     day = match[3];
                 }
-                
+
                 // 民國年轉西元年 (民國年 + 1911)
                 const westernYear = year + 1911;
                 return `${westernYear}-${month}-${day}`;
             }
         }
-        
+
         // 檢查是否為西元年格式
         for (let pattern of westernPatterns) {
             const match = cleanValue.match(pattern);
             if (match) {
                 let year, month, day;
-                
+
                 if (pattern.source.includes('(\\d{8})')) {
                     // 格式：19880106
                     year = match[1].substring(0, 4);
@@ -252,19 +251,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     month = match[2];
                     day = match[3];
                 }
-                
+
                 return `${year}-${month}-${day}`;
             }
         }
-        
+
         return null;
     }
-    
+
     // 輸入時即時轉換
     birthdayInput.addEventListener('input', function() {
         const inputValue = this.value;
         const convertedDate = convertToWesternDate(inputValue);
-        
+
         if (convertedDate) {
             birthdayHidden.value = convertedDate;
             this.classList.remove('is-invalid');
@@ -278,7 +277,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.add('is-invalid');
         }
     });
-    
+
     // 失去焦點時格式化顯示
     birthdayInput.addEventListener('blur', function() {
         const convertedDate = convertToWesternDate(this.value);
@@ -293,7 +292,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-    
+
     // 表單提交前確保日期格式正確
     document.getElementById('edit-customer-form').addEventListener('submit', function(e) {
         const birthdayValue = birthdayInput.value;
