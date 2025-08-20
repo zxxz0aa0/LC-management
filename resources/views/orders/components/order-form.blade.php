@@ -347,8 +347,8 @@
                     </div>
                 </div>
             </div>
-            <div class="mt-4" >
-                <label class="" >個案備注：</label>{{ isset($order) ? $order->customer_note : ($customer->note ?? '') }}
+            <div class="mt-4" style="color:red">
+                <label class="">個案備注：</label>{{ isset($order) ? $order->customer_note : ($customer->note ?? '') }}
 
             </div>
 

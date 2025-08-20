@@ -40,6 +40,9 @@
 
                         <!-- 匯入匯出功能 -->
                         <div class="btn-group me-2">
+                            <a href="{{ route('customers.create') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>新增個案
+                            </a>
                             <a href="{{ route('customers.export') }}" class="btn btn-success">
                                 <i class="fas fa-download me-1"></i>匯出 Excel
                             </a>
@@ -48,9 +51,6 @@
                             </button>
                             <a href="{{ route('customers.template') }}" class="btn btn-info">
                                 <i class="fas fa-file-excel me-1"></i>下載範例
-                            </a>
-                            <a href="{{ route('customers.create') }}" class="btn btn-primary">
-                                <i class="fas fa-plus me-1"></i>新增個案
                             </a>
                         </div>
                 </div>
