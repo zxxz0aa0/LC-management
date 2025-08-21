@@ -559,27 +559,32 @@ class OrderForm {
     /**
      * 處理地標搜尋
      */
-    handleLandmarkSearch(page = 1) {
+    handleLandmarkSearch(page = 1, category = null) {
         const keyword = $('#landmarkSearchInput').val().trim();
         if (!keyword) {
             alert('請輸入搜尋關鍵字');
             return;
         }
 
+        // 如果沒有指定分類，使用當前分類
+        if (category === null) {
+            category = this.currentCategory;
+        }
+
         $('#landmarkSearchResults').html('<div class="text-center py-3"><div class="spinner-border text-primary"></div></div>');
         $('#landmarkPagination').hide();
 
-        fetch(`/landmarks-search?keyword=${encodeURIComponent(keyword)}&page=${page}`)
+        let url = `/landmarks-search?keyword=${encodeURIComponent(keyword)}&page=${page}`;
+        if (category && category !== 'all') {
+            url += `&category=${encodeURIComponent(category)}`;
+        }
+
+        fetch(url)
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.data.data && data.data.data.length > 0) {
                     this.displayLandmarkResults(data.data.data, '#landmarkSearchResults');
                     this.displayLandmarkPagination(data.data);
-                    
-                    // 重新套用分類篩選
-                    if (this.currentCategory !== 'all') {
-                        this.applyCategoryFilter(this.currentCategory);
-                    }
                 } else {
                     $('#landmarkSearchResults').html('<div class="text-center py-4"><p class="text-muted">查無符合條件的地標</p></div>');
                     $('#landmarkPagination').hide();
@@ -823,8 +828,11 @@ class OrderForm {
         $('.category-filter').removeClass('active');
         $(button).addClass('active');
 
-        // 套用篩選
-        this.applyCategoryFilter(category);
+        // 如果有關鍵字，重新搜尋該分類；否則不執行任何操作
+        const keyword = $('#landmarkSearchInput').val().trim();
+        if (keyword) {
+            this.handleLandmarkSearch(1, category);
+        }
     }
 
     /**

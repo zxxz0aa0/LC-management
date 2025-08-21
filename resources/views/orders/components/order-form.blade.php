@@ -25,7 +25,7 @@
 
     {{-- 客戶資訊區塊 --}}
     <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header bg-info text-white">
             <h5 class="mb-0">
                 <i class="fas fa-user me-2"></i>客戶資訊
             </h5>
@@ -62,17 +62,19 @@
                     <input type="text" name="service_company" class="form-control"
                         value="{{ old('service_company', isset($order) ? $order->service_company : ($customer->service_company ?? '')) }}" readonly>
                 </div>
+                <div class="col-md-2 d-flex justify-content-center align-items-center">
+                @if(!isset($order))
+                <button type="button" class="btn btn-outline-primary btn-lg" id="historyOrderBtn"
+                        style="display: none;" title="選擇歷史訂單快速填入">
+                    <i class="fas fa-history me-1"></i>歷史訂單
+                </button>
+                @endif
+                </div>
                 @if(old('special_status', isset($order) ? $order->special_status : ($customer->special_status ?? '')) == '黑名單')
                     <div class="col-md-12">
                         <input type="text" name="special_status" class="form-control bg-danger text-white text-center fs-1" style="height:100px;"
                             value="黑名單" readonly>
                     </div>
-                @endif
-                @if(!isset($order))
-                <button type="button" class="btn btn-outline-warning btn-sm" id="historyOrderBtn"
-                        style="display: none;" title="選擇歷史訂單快速填入">
-                    <i class="fas fa-history me-1"></i>歷史訂單
-                </button>
                 @endif
             </div>
         </div>
@@ -111,7 +113,7 @@
             {{-- 單日模式 --}}
             <div id="single-date-section">
                 <div class="row g-3">
-                    <div class="col-md-6">
+                    <div class="col-md-3">
                         <label class="form-label">用車日期</label>
                         <input type="date" name="ride_date" class="form-control" required
                                value="{{ old('ride_date', isset($order) ? $order->ride_date?->format('Y-m-d') : now()->format('Y-m-d')) }}">
@@ -201,19 +203,19 @@
                     <div class="col-12">
                         <label class="form-label">快速選擇模板</label>
                         <div class="quick-select-templates">
-                            <button type="button" class="btn btn-outline-secondary btn-sm me-2" data-template="12345">
+                            <button type="button" class="btn btn-outline-primary btn-sm me-2" data-template="12345">
                                 一、二、三、四、五
                             </button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm me-2" data-template="246">
+                            <button type="button" class="btn btn-outline-primary btn-sm me-2" data-template="246">
                                 二、四、六
                             </button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm me-2" data-template="135">
+                            <button type="button" class="btn btn-outline-primary btn-sm me-2" data-template="135">
                                 一、三、五
                             </button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm me-2" data-template="15">
+                            <button type="button" class="btn btn-outline-primary btn-sm me-2" data-template="15">
                                 一、五
                             </button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" data-template="clear">
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-template="clear">
                                 清除選擇
                             </button>
                         </div>
@@ -263,7 +265,7 @@
 
     {{-- 用車資訊區塊 --}}
     <div class="card mb-4">
-        <div class="card-header bg-warning text-dark">
+        <div class="card-header bg-info text-dark">
             <div class="d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
                     <i class="fas fa-car me-2"></i>用車資訊
@@ -333,7 +335,7 @@
                     </div>
                 </div>
                 <div class="col-12 text-center">
-                    <button type="button" class="btn btn-outline-info" id="swapAddressBtn">
+                    <button type="button" class="btn btn-outline-primary" id="swapAddressBtn">
                         <i class="fas fa-exchange-alt"></i> 交換地址
                     </button>
                 </div>
@@ -349,7 +351,7 @@
                     </div>
                 </div>
             </div>
-            <div class="mt-4" style="color:red">
+            <div class="mt-4 h5" style="color:red">
                 <label class="">個案備注：</label>{{ isset($order) ? $order->customer_note : ($customer->note ?? '') }}
 
             </div>
@@ -360,7 +362,7 @@
 
     {{-- 共乘資訊區塊 --}}
     <div class="card mb-4">
-        <div class="card-header bg-success text-white"
+        <div class="card-header bg-info text-white"
                 data-bs-toggle="collapse"
                 data-bs-target="#carpoolInfoCollapse"
                 style="cursor: pointer;">
@@ -418,7 +420,7 @@
 
     {{-- 駕駛資訊區塊 --}}
     <div class="card mb-4">
-        <div class="card-header bg-secondary text-white"
+        <div class="card-header bg-info text-white"
             data-bs-toggle="collapse"
             data-bs-target="#driverInfoCollapse"
             style="cursor: pointer;">
@@ -431,7 +433,7 @@
             <div class="card-body">
                 {{-- 去程駕駛資訊 --}}
                 <div class="mb-4">
-                    <h6 class="text-primary mb-3">
+                    <h6 class="mb-3" style="color: rgb(183, 110, 20)">
                         <i class="fas fa-arrow-right me-2"></i>去程駕駛
                     </h6>
                     <div class="row g-3">
@@ -466,12 +468,12 @@
                 <div class="mb-3">
                     <div class="row justify-content-between align-items-center mb-3">
                         <div class ="col-md-5">
-                        <h6 class="text-success mb-0">
+                        <h6 class="mb-0" style="color: rgb(183, 110, 20)">
                             <i class="fas fa-arrow-left me-2"></i>回程駕駛
                         </h6>
                         </div>
                         <div class ="col-md-7">
-                        <button type="button" class="btn btn-sm btn-outline-info" id="copyOutboundDriverBtn">
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="copyOutboundDriverBtn">
                             <i class="fas fa-copy me-1"></i>複製去程駕駛
                         </button>
                         </div>
@@ -553,7 +555,7 @@
     <div class="text-center py-4">
         <button type="submit" class="btn btn-primary btn-lg px-5 me-3">
             <i class="fas fa-save me-2"></i>
-            {{ isset($order) ? '更新訂單' : '建立訂單' }}
+            {{ isset($order) ? '更新訂單' : '建立單日訂單' }}
         </button>
         <button type="button" class="btn btn-outline-info btn-lg px-4" id="copyOrderInfoBtn">
             <i class="fas fa-copy me-2"></i>

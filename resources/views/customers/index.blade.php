@@ -43,13 +43,13 @@
                             <a href="{{ route('customers.create') }}" class="btn btn-primary">
                                 <i class="fas fa-plus me-1"></i>新增個案
                             </a>
-                            <a href="{{ route('customers.export') }}" class="btn btn-success">
+                            <a href="{{ route('customers.export') }}" class="btn btn-outline-success">
                                 <i class="fas fa-download me-1"></i>匯出 Excel
                             </a>
-                            <button type="button" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#importModal">
+                            <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#importModal">
                                 <i class="fas fa-upload me-1"></i>匯入 Excel
                             </button>
-                            <a href="{{ route('customers.template') }}" class="btn btn-info">
+                            <a href="{{ route('customers.template') }}" class="btn btn-outline-secondary">
                                 <i class="fas fa-file-excel me-1"></i>下載範例
                             </a>
                         </div>
@@ -69,7 +69,7 @@
                         <th style="width: 19%;">地址</th>
                         <th style="width: 8%;">個案來源</th>
                         <th style="width: 8%;">服務公司</th>
-                        <th style="width: 6%;">共乘</th>
+                        <th style="width: 6%;">輪椅</th>
                         <th style="width: 6%;">爬梯</th>
                         <th style="width: 6%;">特殊</th>
                         <th style="width: 6%;">狀態</th>
@@ -87,7 +87,7 @@
                             <td>{{ is_array($customer->addresses) ? implode(', ', $customer->addresses) : $customer->addresses }}</td>
                             <td>{{ $customer->county_care }}</td>
                             <td>{{ $customer->service_company }}</td>
-                            <td>{{ $customer->ride_sharing }}</td>
+                            <td>{{ $customer->wheelchair }}</td>
                             <td>{{ $customer->stair_climbing_machine }}</td>
                             <td>{{ $customer->special_status === '一般' ? '' : $customer->special_status }}</td>
                             <td>
@@ -185,8 +185,6 @@
                         </button>
                     </form>-->
         </div>
-        {{-- 原本的 Laravel 分頁已由 DataTables 取代 --}}
-        {{-- {{ $customers->links() }} --}}
     </div>
 </div>
 

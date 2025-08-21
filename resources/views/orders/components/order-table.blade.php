@@ -19,7 +19,7 @@
 
         <div class="table-responsive">
             <table class="table table-hover" id="ordersTable">
-                <thead class="table-secondary">
+                <thead class="table-success">
                     <tr>
                         <th>客戶姓名</th>
                         <th>電話</th>

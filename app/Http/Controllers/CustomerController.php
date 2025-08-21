@@ -23,7 +23,7 @@ class CustomerController extends Controller
             });
         }
 
-        $customers = $query->latest()->paginate(10);
+        $customers = $query->latest()->get();
 
         return view('customers.index', compact('customers'));
     }

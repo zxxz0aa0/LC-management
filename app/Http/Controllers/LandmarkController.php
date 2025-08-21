@@ -146,6 +146,7 @@ class LandmarkController extends Controller
     public function search(Request $request)
     {
         $keyword = $request->get('keyword', '');
+        $category = $request->get('category', '');
 
         if (empty($keyword)) {
             return response()->json([
@@ -154,9 +155,15 @@ class LandmarkController extends Controller
             ]);
         }
 
-        $landmarks = Landmark::active()
-            ->search($keyword)
-            ->popular()
+        $query = Landmark::active()
+            ->search($keyword);
+
+        // 如果有指定分類且不是 'all'，則加入分類篩選
+        if (!empty($category) && $category !== 'all') {
+            $query->category($category);
+        }
+
+        $landmarks = $query->popular()
             ->paginate(10, ['id', 'name', 'address', 'city', 'district', 'category', 'usage_count']);
 
         return response()->json([
