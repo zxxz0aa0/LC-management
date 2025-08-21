@@ -31,8 +31,10 @@
                     <tr>
                         <td><strong>是否輪椅：</strong></td>
                         <td>
-                            @if($order->wheelchair)
+                            @if($order->wheelchair == '是')
                                 <span class="badge bg-warning">是</span>
+                            @elseif($order->wheelchair == '未知')
+                                <span class="badge bg-secondary">未知</span>
                             @else
                                 <span class="badge bg-secondary">否</span>
                             @endif
@@ -41,8 +43,10 @@
                     <tr>
                         <td><strong>爬梯機：</strong></td>
                         <td>
-                            @if($order->stair_machine)
+                            @if($order->stair_machine == '是')
                                 <span class="badge bg-danger">是</span>
+                            @elseif($order->stair_machine == '未知')
+                                <span class="badge bg-secondary">未知</span>
                             @else
                                 <span class="badge bg-secondary">否</span>
                             @endif

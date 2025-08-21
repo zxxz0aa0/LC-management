@@ -29,7 +29,8 @@ class Landmark extends Model
 
     // 地標分類常數
     const CATEGORIES = [
-        'medical' => '醫療',
+        'hospital' => '醫院',
+        'clinic' => '診所',
         'transport' => '交通',
         'education' => '教育',
         'government' => '政府機關',

@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Landmark;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use App\Exports\LandmarksExport;
 use App\Exports\LandmarkTemplateExport;
 use App\Imports\LandmarksImport;
+use App\Models\Landmark;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 
 class LandmarkController extends Controller
@@ -205,7 +205,7 @@ class LandmarkController extends Controller
      */
     public function export()
     {
-        return Excel::download(new LandmarksExport, '地標資料_' . date('Y-m-d') . '.xlsx');
+        return Excel::download(new LandmarksExport, '地標資料_'.date('Y-m-d').'.xlsx');
     }
 
     /**
@@ -241,12 +241,17 @@ class LandmarkController extends Controller
     /**
      * 獲取熱門地標
      */
-    public function popular()
+    public function popular(Request $request)
     {
-        $landmarks = Landmark::active()
-            ->popular()
-            ->limit(20)
-            ->get(['id', 'name', 'address', 'city', 'district', 'category', 'usage_count']);
+        $category = $request->get('category');
+        
+        $query = Landmark::active()->popular()->limit(20);
+        
+        if ($category && $category !== 'all') {
+            $query->category($category);
+        }
+        
+        $landmarks = $query->get(['id', 'name', 'address', 'city', 'district', 'category', 'usage_count']);
 
         return response()->json([
             'success' => true,
@@ -260,6 +265,7 @@ class LandmarkController extends Controller
     public function getByIds(Request $request)
     {
         $ids = $request->input('ids', []);
+        $category = $request->get('category');
 
         if (empty($ids)) {
             return response()->json([
@@ -269,9 +275,13 @@ class LandmarkController extends Controller
             ]);
         }
 
-        $landmarks = Landmark::active()
-            ->whereIn('id', $ids)
-            ->get(['id', 'name', 'address', 'city', 'district', 'category', 'usage_count']);
+        $query = Landmark::active()->whereIn('id', $ids);
+        
+        if ($category && $category !== 'all') {
+            $query->category($category);
+        }
+
+        $landmarks = $query->get(['id', 'name', 'address', 'city', 'district', 'category', 'usage_count']);
 
         return response()->json([
             'success' => true,

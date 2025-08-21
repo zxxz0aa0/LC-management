@@ -2,35 +2,34 @@
 
 namespace App\Http\Controllers;
 
-use App\Exceptions\ConcurrencyException;
 use App\Http\Requests\UpdateOrderRequest;
 use App\Models\Customer;
 use App\Models\Landmark;
 use App\Models\Order;
 use App\Rules\UniqueOrderDateTime;
+use App\Services\BatchOrderService;
 use App\Services\CarpoolGroupService;
 use App\Services\OrderNumberService;
-use App\Services\BatchOrderService;
 use Carbon\Carbon;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
     protected $carpoolGroupService;
+
     protected $orderNumberService;
+
     protected $batchOrderService;
-    
+
     public function __construct(CarpoolGroupService $carpoolGroupService, OrderNumberService $orderNumberService, BatchOrderService $batchOrderService)
     {
         $this->carpoolGroupService = $carpoolGroupService;
         $this->orderNumberService = $orderNumberService;
         $this->batchOrderService = $batchOrderService;
     }
-    
+
     public function index(Request $request)
     {
         $query = Order::filter($request);
@@ -97,7 +96,7 @@ class OrderController extends Controller
                 'ride_time' => [
                     'required',
                     'date_format:H:i',
-                    new UniqueOrderDateTime($request->customer_id, $request->ride_date, $request->back_time)
+                    new UniqueOrderDateTime($request->customer_id, $request->ride_date, $request->back_time),
                 ],
                 'back_time' => 'nullable|date_format:H:i',
                 'pickup_address' => [
@@ -114,9 +113,9 @@ class OrderController extends Controller
                 'companions' => 'required|integer|min:0',
                 'order_type' => 'required|string',
                 'service_company' => 'required|string',
-                'wheelchair' => 'required|string',
-                'stair_machine' => 'required|string',
-                
+                'wheelchair' => 'required|in:是,否,未知',
+                'stair_machine' => 'required|in:是,否,未知',
+
                 // 共乘相關欄位
                 'carpool_customer_id' => 'nullable|exists:customers,id',
                 'remark' => 'nullable|string',
@@ -130,13 +129,13 @@ class OrderController extends Controller
                 'driver_name' => 'nullable|string',
                 'driver_plate_number' => 'nullable|string',
                 'driver_fleet_number' => 'nullable|string',
-                
+
                 // 回程駕駛相關欄位
                 'return_driver_id' => 'nullable|integer',
                 'return_driver_name' => 'nullable|string',
                 'return_driver_plate_number' => 'nullable|string',
                 'return_driver_fleet_number' => 'nullable|string',
-                
+
                 'carpoolSearchInput' => 'nullable|string',
                 'carpool_id_number' => 'nullable|string',
             ], [
@@ -163,18 +162,18 @@ class OrderController extends Controller
         // 拆解地址資訊
         $pickupAddress = $validated['pickup_address'];
         $dropoffAddress = $validated['dropoff_address'];
-        
+
         preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $pickupAddress, $pickupMatches);
         $validated['pickup_county'] = $pickupMatches[1] ?? null;
         $validated['pickup_district'] = $pickupMatches[2] ?? null;
-        
+
         preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $dropoffAddress, $dropoffMatches);
         $validated['dropoff_county'] = $dropoffMatches[1] ?? null;
         $validated['dropoff_district'] = $dropoffMatches[2] ?? null;
 
         // 檢查是否為共乘訂單
-        $isCarpool = !empty($validated['carpool_customer_id']);
-        
+        $isCarpool = ! empty($validated['carpool_customer_id']);
+
         if ($isCarpool) {
             // 建立共乘群組
             $result = $this->carpoolGroupService->createCarpoolGroup(
@@ -182,27 +181,27 @@ class OrderController extends Controller
                 $validated['carpool_customer_id'],
                 $validated
             );
-            
+
             $ordersCreated = $result['total_orders'];
             $order = $result['orders'][0]; // 主訂單
-            
-            $successMessage = $ordersCreated === 2 
-                ? '成功建立 2 筆共乘訂單（去程）' 
+
+            $successMessage = $ordersCreated === 2
+                ? '成功建立 2 筆共乘訂單（去程）'
                 : "成功建立 {$ordersCreated} 筆訂單（共乘含去程回程）";
-                
+
         } else {
             // 建立單人訂單（使用原有邏輯的簡化版）
             $order = $this->createSingleOrder($validated);
             $ordersCreated = 1;
-            
+
             // 處理回程訂單
-            if (!empty($validated['back_time'])) {
+            if (! empty($validated['back_time'])) {
                 $this->createReturnOrder($validated, $order);
                 $ordersCreated = 2;
             }
-            
-            $successMessage = $ordersCreated === 2 
-                ? '成功建立 2 筆訂單（去程和回程）' 
+
+            $successMessage = $ordersCreated === 2
+                ? '成功建立 2 筆訂單（去程和回程）'
                 : '訂單建立成功';
         }
 
@@ -213,6 +212,7 @@ class OrderController extends Controller
         if ($request->ajax()) {
             $query = Order::filter($request);
             $orders = $query->orderBy('ride_date', 'desc')->get();
+
             return view('orders.components.order-table', compact('orders'))->render();
         }
 
@@ -231,7 +231,7 @@ class OrderController extends Controller
             // 基本驗證規則
             $rules = [
                 'date_mode' => 'required|in:single,manual,recurring',
-                
+
                 // 基本訂單欄位驗證
                 'customer_name' => 'required|string|max:255',
                 'customer_id_number' => 'required|string|max:255',
@@ -252,17 +252,25 @@ class OrderController extends Controller
                     'regex:/^(.+市|.+縣)(.+區|.+鄉|.+鎮).+$/u',
                 ],
                 'companions' => 'required|integer|min:0',
-                'wheelchair' => 'nullable|boolean',
-                'stair_machine' => 'nullable|boolean',
+                'wheelchair' => 'required|in:是,否,未知',
+                'stair_machine' => 'required|in:是,否,未知',
                 'remark' => 'nullable|string',
                 'carpool_customer_id' => 'nullable|integer',
                 'carpool_name' => 'nullable|string',
                 'carpool_id' => 'nullable|string',
+                'special_status' => 'nullable|string',
+                'identity' => 'nullable|string',
+                'created_by' => 'required|string',
             ];
-            
+
             // 根據日期模式添加特定驗證規則
             if ($request->input('date_mode') === 'manual') {
-                $rules['selected_dates'] = 'required|array|min:1|max:50';
+                $rules['selected_dates'] = [
+                    'required',
+                    'array',
+                    'min:1',
+                    'max:50'
+                ];
                 $rules['selected_dates.*'] = 'date|after:today';
             } elseif ($request->input('date_mode') === 'recurring') {
                 $rules['start_date'] = 'required|date|after:today';
@@ -271,16 +279,24 @@ class OrderController extends Controller
                 $rules['weekdays.*'] = 'integer|between:0,6';
                 $rules['recurrence_type'] = 'required|in:weekly,biweekly,monthly';
             }
-            
+
+            // 添加調試資訊
+            \Log::info('Batch order request data:', [
+                'date_mode' => $request->input('date_mode'),
+                'selected_dates' => $request->input('selected_dates'),
+                'has_selected_dates' => $request->has('selected_dates'),
+                'selected_dates_count' => is_array($request->input('selected_dates')) ? count($request->input('selected_dates')) : 0
+            ]);
+
             $validated = $request->validate($rules);
-            
+
             if ($validated['date_mode'] === 'single') {
                 // 使用現有的單日建立邏輯
                 return $this->store($request);
             }
-            
+
             $dates = [];
-            
+
             if ($validated['date_mode'] === 'manual') {
                 // 手動多日模式
                 $dates = $validated['selected_dates'];
@@ -293,25 +309,25 @@ class OrderController extends Controller
                     $validated['recurrence_type']
                 );
             }
-            
+
             if (empty($dates)) {
                 throw new \Exception('未選擇任何日期，請檢查設定');
             }
-            
+
             // 解析地址中的縣市區域資訊
             $validated = $this->extractAddressInfo($validated);
-            
+
             $result = $this->batchOrderService->createMultipleDaysOrders($validated, $dates);
-            
+
             $message = "批量建立完成：成功 {$result['total_created']} 筆";
             if ($result['total_failed'] > 0) {
                 $message .= "，失敗 {$result['total_failed']} 筆";
-                
+
                 // 如果有失敗的訂單，添加詳細錯誤信息
                 $failedDates = array_column($result['failed_dates'], 'date');
-                $message .= "（失敗日期：" . implode(', ', $failedDates) . "）";
+                $message .= '（失敗日期：'.implode(', ', $failedDates).'）';
             }
-            
+
             // 記錄地標使用次數
             if (isset($validated['pickup_landmark_id'])) {
                 $this->recordLandmarkUsage($validated['pickup_address'], $validated['pickup_landmark_id']);
@@ -319,18 +335,18 @@ class OrderController extends Controller
             if (isset($validated['dropoff_landmark_id'])) {
                 $this->recordLandmarkUsage($validated['dropoff_address'], $validated['dropoff_landmark_id']);
             }
-            
+
             // 保持搜尋參數（使用所有建立的訂單來設定搜尋範圍）
             $redirectParams = $this->prepareBatchSearchParams($request, $result['successful_orders']);
-            
+
             return redirect()->route('orders.index', $redirectParams)->with('success', $message);
-            
+
         } catch (\Exception $e) {
             Log::error('批量建立訂單失敗', [
                 'error' => $e->getMessage(),
-                'request_data' => $request->all()
+                'request_data' => $request->all(),
             ]);
-            
+
             return back()->withErrors(['batch_error' => $e->getMessage()])->withInput();
         }
     }
@@ -438,15 +454,15 @@ class OrderController extends Controller
         try {
             // 刪除訂單
             $order->delete();
-            
+
             return response()->json([
                 'success' => true,
-                'message' => '訂單已成功刪除'
+                'message' => '訂單已成功刪除',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => '刪除失敗：' . $e->getMessage()
+                'message' => '刪除失敗：'.$e->getMessage(),
             ], 500);
         }
     }
@@ -496,40 +512,40 @@ class OrderController extends Controller
                 'id', 'ride_date', 'ride_time',
                 'pickup_address', 'dropoff_address',
                 'companions', 'wheelchair', 'stair_machine',
-                'status', 'customer_phone'
+                'status', 'customer_phone',
             ])
             ->get();
 
         return response()->json($orders);
     }
-    
+
     /**
      * 準備搜尋參數，確保新訂單能夠顯示
      */
     private function prepareSearchParams(Request $request, Order $newOrder)
     {
         $params = [];
-        
+
         // 保留原有搜尋參數
         if ($request->filled('keyword')) {
             $params['keyword'] = $request->input('keyword');
         }
-        
+
         if ($request->filled('customer_id')) {
             $params['customer_id'] = $request->input('customer_id');
         }
-        
+
         // 智能處理日期範圍
         $newOrderDate = $newOrder->ride_date;
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
-        
+
         if ($startDate && $endDate) {
             // 如果原本有日期範圍，檢查新訂單是否在範圍內
             $start = Carbon::parse($startDate);
             $end = Carbon::parse($endDate);
             $newDate = Carbon::parse($newOrderDate);
-            
+
             if ($newDate->lt($start)) {
                 // 新訂單日期早於範圍開始，擴展開始日期
                 $params['start_date'] = $newDate->format('Y-m-d');
@@ -547,20 +563,20 @@ class OrderController extends Controller
             // 只有開始日期
             $start = Carbon::parse($startDate);
             $newDate = Carbon::parse($newOrderDate);
-            
+
             $params['start_date'] = $newDate->lt($start) ? $newDate->format('Y-m-d') : $startDate;
         } elseif ($endDate) {
             // 只有結束日期
             $end = Carbon::parse($endDate);
             $newDate = Carbon::parse($newOrderDate);
-            
+
             $params['end_date'] = $newDate->gt($end) ? $newDate->format('Y-m-d') : $endDate;
         } else {
             // 沒有設定日期範圍，檢查新訂單是否是今天
             $today = Carbon::today();
             $newDate = Carbon::parse($newOrderDate);
-            
-            if (!$newDate->isSameDay($today)) {
+
+            if (! $newDate->isSameDay($today)) {
                 // 新訂單不是今天，設定適當的日期範圍
                 if ($newDate->lt($today)) {
                     $params['start_date'] = $newDate->format('Y-m-d');
@@ -571,7 +587,7 @@ class OrderController extends Controller
                 }
             }
         }
-        
+
         return $params;
     }
 
@@ -581,37 +597,37 @@ class OrderController extends Controller
     private function prepareBatchSearchParams(Request $request, array $orders)
     {
         $params = [];
-        
+
         // 保留原有搜尋參數
         if ($request->filled('keyword')) {
             $params['keyword'] = $request->input('keyword');
         }
-        
+
         if ($request->filled('customer_id')) {
             $params['customer_id'] = $request->input('customer_id');
         }
-        
+
         if (empty($orders)) {
             return $params;
         }
-        
+
         // 找出所有新建立訂單的日期範圍
-        $orderDates = array_map(function($order) {
+        $orderDates = array_map(function ($order) {
             return Carbon::parse($order->ride_date);
         }, $orders);
-        
+
         $minNewDate = min($orderDates);
         $maxNewDate = max($orderDates);
-        
+
         // 取得現有的搜尋範圍
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
-        
+
         if ($startDate && $endDate) {
             // 如果原本有日期範圍，擴展範圍以包含所有新訂單
             $start = Carbon::parse($startDate);
             $end = Carbon::parse($endDate);
-            
+
             $params['start_date'] = $minNewDate->lt($start) ? $minNewDate->format('Y-m-d') : $start->format('Y-m-d');
             $params['end_date'] = $maxNewDate->gt($end) ? $maxNewDate->format('Y-m-d') : $end->format('Y-m-d');
         } elseif ($startDate) {
@@ -628,17 +644,17 @@ class OrderController extends Controller
             // 沒有設定日期範圍，設定範圍包含今天和所有新訂單
             $today = Carbon::today();
             $allDates = array_merge([$today], $orderDates);
-            
+
             $absoluteMin = min($allDates);
             $absoluteMax = max($allDates);
-            
+
             // 如果所有新訂單都是今天，則不設定範圍
-            if (!$absoluteMin->isSameDay($absoluteMax)) {
+            if (! $absoluteMin->isSameDay($absoluteMax)) {
                 $params['start_date'] = $absoluteMin->format('Y-m-d');
                 $params['end_date'] = $absoluteMax->format('Y-m-d');
             }
         }
-        
+
         return $params;
     }
 
@@ -651,7 +667,7 @@ class OrderController extends Controller
             'customer_id' => 'required|integer',
             'ride_date' => 'required|date',
             'ride_time' => 'required|date_format:H:i',
-            'order_id' => 'nullable|integer'
+            'order_id' => 'nullable|integer',
         ]);
 
         $query = Order::where('customer_id', $request->customer_id)
@@ -667,16 +683,16 @@ class OrderController extends Controller
 
         return response()->json([
             'isDuplicate' => $existingOrder !== null,
-            'message' => $existingOrder 
-                ? '該客戶在此日期時間已有訂單（訂單編號：' . $existingOrder->order_number . '）'
+            'message' => $existingOrder
+                ? '該客戶在此日期時間已有訂單（訂單編號：'.$existingOrder->order_number.'）'
                 : '此時間可以使用',
             'existingOrder' => $existingOrder ? [
                 'id' => $existingOrder->id,
                 'order_number' => $existingOrder->order_number,
                 'pickup_address' => $existingOrder->pickup_address,
                 'dropoff_address' => $existingOrder->dropoff_address,
-                'created_at' => $existingOrder->created_at->format('Y-m-d H:i')
-            ] : null
+                'created_at' => $existingOrder->created_at->format('Y-m-d H:i'),
+            ] : null,
         ]);
     }
 
@@ -689,7 +705,7 @@ class OrderController extends Controller
             'customer_id' => 'required|integer',
             'ride_date' => 'required|date',
             'pickup_address' => 'required|string',
-            'order_id' => 'nullable|integer'
+            'order_id' => 'nullable|integer',
         ]);
 
         $query = Order::where('customer_id', $request->customer_id)
@@ -705,16 +721,16 @@ class OrderController extends Controller
 
         return response()->json([
             'isDuplicate' => $existingOrder !== null,
-            'message' => $existingOrder 
-                ? '該客戶在此日期地點已有訂單（訂單編號：' . $existingOrder->order_number . '）'
+            'message' => $existingOrder
+                ? '該客戶在此日期地點已有訂單（訂單編號：'.$existingOrder->order_number.'）'
                 : '此日期地點可以使用',
             'existingOrder' => $existingOrder ? [
                 'id' => $existingOrder->id,
                 'order_number' => $existingOrder->order_number,
                 'ride_time' => $existingOrder->ride_time,
                 'dropoff_address' => $existingOrder->dropoff_address,
-                'created_at' => $existingOrder->created_at->format('Y-m-d H:i')
-            ] : null
+                'created_at' => $existingOrder->created_at->format('Y-m-d H:i'),
+            ] : null,
         ]);
     }
 
@@ -728,7 +744,7 @@ class OrderController extends Controller
             'dates' => 'required|array|min:1|max:50',
             'dates.*' => 'date',
             'ride_time' => 'required|date_format:H:i',
-            'order_id' => 'nullable|integer'
+            'order_id' => 'nullable|integer',
         ]);
 
         $customerId = $request->customer_id;
@@ -741,7 +757,7 @@ class OrderController extends Controller
             ->where('ride_time', $rideTime);
 
         // 使用 whereIn 和 DATE() 函數進行日期比對
-        $query->where(function($q) use ($dates) {
+        $query->where(function ($q) use ($dates) {
             foreach ($dates as $date) {
                 $q->orWhereRaw('DATE(ride_date) = ?', [$date]);
             }
@@ -760,14 +776,14 @@ class OrderController extends Controller
             'ride_time' => $rideTime,
             'dates' => $dates,
             'existing_orders_count' => $existingOrders->count(),
-            'existing_orders' => $existingOrders->map(function($order) {
+            'existing_orders' => $existingOrders->map(function ($order) {
                 return [
                     'id' => $order->id,
                     'ride_date' => $order->ride_date,
                     'ride_time' => $order->ride_time,
-                    'order_number' => $order->order_number
+                    'order_number' => $order->order_number,
                 ];
-            })->toArray()
+            })->toArray(),
         ]);
 
         // 組織回應資料
@@ -776,10 +792,10 @@ class OrderController extends Controller
 
         foreach ($dates as $date) {
             // 使用 Carbon 進行日期比對，確保格式一致
-            $existing = $existingOrders->first(function($order) use ($date) {
+            $existing = $existingOrders->first(function ($order) use ($date) {
                 return Carbon::parse($order->ride_date)->format('Y-m-d') === $date;
             });
-            
+
             if ($existing) {
                 $duplicates[] = [
                     'date' => $date,
@@ -790,8 +806,8 @@ class OrderController extends Controller
                         'pickup_address' => $existing->pickup_address,
                         'dropoff_address' => $existing->dropoff_address,
                         'status' => $existing->status,
-                        'created_at' => $existing->created_at->format('Y-m-d H:i')
-                    ]
+                        'created_at' => $existing->created_at->format('Y-m-d H:i'),
+                    ],
                 ];
             } else {
                 $availableDates[] = $date;
@@ -808,13 +824,13 @@ class OrderController extends Controller
             'summary' => [
                 'total' => $totalDates,
                 'duplicates' => $duplicateCount,
-                'available' => $availableCount
+                'available' => $availableCount,
             ],
-            'message' => $hasDuplicates 
+            'message' => $hasDuplicates
                 ? "發現 {$duplicateCount} 個重複日期，{$availableCount} 個日期可用"
                 : "所有 {$totalDates} 個日期都可以使用",
             'duplicates' => $duplicates,
-            'available_dates' => $availableDates
+            'available_dates' => $availableDates,
         ]);
     }
 
@@ -835,10 +851,10 @@ class OrderController extends Controller
         $idSuffix = substr($validated['customer_id_number'], -3);
         $date = $today->format('Ymd');
         $time = $today->format('Hi');
-        
+
         $countToday = Order::whereDate('created_at', $today->toDateString())->count() + 1;
         $serial = str_pad($countToday, 4, '0', STR_PAD_LEFT);
-        $orderNumber = $typeCode . $idSuffix . $date . $time . $serial;
+        $orderNumber = $typeCode.$idSuffix.$date.$time.$serial;
 
         return Order::create([
             'order_number' => $orderNumber,
@@ -864,7 +880,7 @@ class OrderController extends Controller
             'identity' => $validated['identity'],
             'status' => $validated['status'],
             'special_status' => $validated['special_status'] ?? null,
-            
+
             // 駕駛資訊
             'driver_id' => $validated['driver_id'] ?? null,
             'driver_name' => $validated['driver_name'] ?? null,
@@ -885,19 +901,19 @@ class OrderController extends Controller
             '新北復康' => 'NTFK',
             '愛接送' => 'LT',
         ];
-        
+
         $typeCode = $typeCodeMap[$validated['order_type']] ?? 'UNK';
         $idSuffix = substr($validated['customer_id_number'], -3);
         $date = $today->format('Ymd');
         $time = $today->format('Hi');
-        
+
         $returnCountToday = Order::whereDate('created_at', $today->toDateString())->count() + 1;
         $returnSerial = str_pad($returnCountToday, 4, '0', STR_PAD_LEFT);
-        $returnOrderNumber = $typeCode . $idSuffix . $date . $time . $returnSerial;
+        $returnOrderNumber = $typeCode.$idSuffix.$date.$time.$returnSerial;
 
         // 處理回程駕駛資訊：如果有填入回程駕駛，使用回程駕駛；否則留空
         $returnDriverData = [];
-        if (!empty($validated['return_driver_fleet_number']) || !empty($validated['return_driver_name'])) {
+        if (! empty($validated['return_driver_fleet_number']) || ! empty($validated['return_driver_name'])) {
             $returnDriverData = [
                 'driver_id' => $validated['return_driver_id'] ?? null,
                 'driver_name' => $validated['return_driver_name'] ?? null,
@@ -913,7 +929,7 @@ class OrderController extends Controller
                 'driver_fleet_number' => null,
             ];
         }
-        
+
         return Order::create([
             'order_number' => $returnOrderNumber,
             'customer_id' => $validated['customer_id'],
@@ -952,31 +968,31 @@ class OrderController extends Controller
         }
 
         // 情況1: 從無到有 - 指派駕駛
-        if (empty($originalDriverId) && !empty($newDriverId)) {
+        if (empty($originalDriverId) && ! empty($newDriverId)) {
             $this->carpoolGroupService->assignDriverToGroup($groupId, $newDriverId);
             Log::info('共乘群組駕駛指派', [
                 'group_id' => $groupId,
                 'driver_id' => $newDriverId,
-                'action' => 'assign'
+                'action' => 'assign',
             ]);
         }
         // 情況2: 從有到無 - 移除駕駛
-        elseif (!empty($originalDriverId) && empty($newDriverId)) {
+        elseif (! empty($originalDriverId) && empty($newDriverId)) {
             $this->carpoolGroupService->unassignDriverFromGroup($groupId);
             Log::info('共乘群組駕駛移除', [
                 'group_id' => $groupId,
                 'original_driver_id' => $originalDriverId,
-                'action' => 'unassign'
+                'action' => 'unassign',
             ]);
         }
         // 情況3: 從有到有（不同駕駛）- 更換駕駛
-        elseif (!empty($originalDriverId) && !empty($newDriverId) && $originalDriverId != $newDriverId) {
+        elseif (! empty($originalDriverId) && ! empty($newDriverId) && $originalDriverId != $newDriverId) {
             $this->carpoolGroupService->assignDriverToGroup($groupId, $newDriverId);
             Log::info('共乘群組駕駛更換', [
                 'group_id' => $groupId,
                 'original_driver_id' => $originalDriverId,
                 'new_driver_id' => $newDriverId,
-                'action' => 'replace'
+                'action' => 'replace',
             ]);
         }
     }
@@ -991,13 +1007,13 @@ class OrderController extends Controller
         preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $pickupAddress, $pickupMatches);
         $validated['pickup_county'] = $pickupMatches[1] ?? null;
         $validated['pickup_district'] = $pickupMatches[2] ?? null;
-        
+
         // 拆解下車地址資訊
         $dropoffAddress = $validated['dropoff_address'];
         preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $dropoffAddress, $dropoffMatches);
         $validated['dropoff_county'] = $dropoffMatches[1] ?? null;
         $validated['dropoff_district'] = $dropoffMatches[2] ?? null;
-        
+
         return $validated;
     }
 }

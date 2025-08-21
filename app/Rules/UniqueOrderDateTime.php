@@ -9,8 +9,11 @@ use Illuminate\Contracts\Validation\ValidationRule;
 class UniqueOrderDateTime implements ValidationRule
 {
     private $customerId;
+
     private $rideDate;
+
     private $orderId;
+
     private $backTime;
 
     public function __construct($customerId, $rideDate, $backTime = null, $orderId = null)
@@ -39,12 +42,12 @@ class UniqueOrderDateTime implements ValidationRule
 
         // 檢查是否存在相同時間的訂單
         $existingOrder = $query->first();
-        
+
         if ($existingOrder) {
             // 如果有回程時間，並且當前驗證的時間與回程時間相同，則允許（這是往返訂單的第二筆）
-            $isReturnOrderTime = !empty($this->backTime) && $value === $this->backTime;
-            
-            if (!$isReturnOrderTime) {
+            $isReturnOrderTime = ! empty($this->backTime) && $value === $this->backTime;
+
+            if (! $isReturnOrderTime) {
                 $fail("該客戶在此日期時間已有訂單（{$existingOrder->order_number}），請選擇其他時間或檢查是否重複建立。");
             }
         }

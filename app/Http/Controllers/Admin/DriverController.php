@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
-use App\Models\Driver;
 use App\Exports\DriversExport;
 use App\Exports\DriverTemplateExport;
+use App\Http\Controllers\Controller;
 use App\Imports\DriversImport;
+use App\Models\Driver;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -96,7 +96,7 @@ class DriverController extends Controller
      */
     public function export()
     {
-        return Excel::download(new DriversExport, '駕駛資料_' . date('Y-m-d') . '.xlsx');
+        return Excel::download(new DriversExport, '駕駛資料_'.date('Y-m-d').'.xlsx');
     }
 
     /**

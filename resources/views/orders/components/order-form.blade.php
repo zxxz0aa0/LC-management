@@ -234,7 +234,7 @@
             {{-- 批量訂單預覽區域 --}}
             <div id="batch-preview-section" style="display: none;" class="mt-4">
                 <div class="card">
-                    <div class="card-header bg-success text-white">
+                    <div class="card-header bg-secondary text-white">
                         <h5 class="mb-0">
                             <i class="fas fa-eye me-2"></i>批量訂單預覽
                         </h5>
@@ -304,15 +304,17 @@
                 <div class="col-md-2">
                     <label class="form-label">輪椅</label>
                     <select name="wheelchair" class="form-select">
-                        <option value="0" {{ old('wheelchair', isset($order) ? $order->wheelchair : 0) == 0 ? 'selected' : '' }}>否</option>
-                        <option value="1" {{ old('wheelchair', isset($order) ? $order->wheelchair : 0) == 1 ? 'selected' : '' }}>是</option>
+                        <option value="否" {{ old('wheelchair', isset($order) ? $order->wheelchair : '否') == '否' ? 'selected' : '' }}>否</option>
+                        <option value="是" {{ old('wheelchair', isset($order) ? $order->wheelchair : '否') == '是' ? 'selected' : '' }}>是</option>
+                        <option value="未知" {{ old('wheelchair', isset($order) ? $order->wheelchair : '否') == '未知' ? 'selected' : '' }}>未知</option>
                     </select>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">爬梯機</label>
                     <select name="stair_machine" class="form-select">
-                        <option value="0" {{ old('stair_machine', isset($order) ? $order->stair_machine : 0) == 0 ? 'selected' : '' }}>否</option>
-                        <option value="1" {{ old('stair_machine', isset($order) ? $order->stair_machine : 0) == 1 ? 'selected' : '' }}>是</option>
+                        <option value="否" {{ old('stair_machine', isset($order) ? $order->stair_machine : '否') == '否' ? 'selected' : '' }}>否</option>
+                        <option value="是" {{ old('stair_machine', isset($order) ? $order->stair_machine : '否') == '是' ? 'selected' : '' }}>是</option>
+                        <option value="未知" {{ old('stair_machine', isset($order) ? $order->stair_machine : '否') == '未知' ? 'selected' : '' }}>未知</option>
                     </select>
                 </div>
             </div>

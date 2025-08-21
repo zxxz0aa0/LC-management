@@ -45,8 +45,15 @@
                         <td>{{ Str::limit($order->dropoff_address, 30) }}</td>
                         <td>{{ $order->carpool_name }}</td>
                         <td>
-                            @if($order->stair_machine == 1)
+                            @if($order->stair_machine == '是')
                                 <span class="badge bg-warning">爬梯機</span>
+                            @elseif($order->stair_machine == '未知')
+                                <span class="badge bg-secondary">爬梯機未知</span>
+                            @endif
+                            @if($order->wheelchair == '是')
+                                <span class="badge bg-info">輪椅</span>
+                            @elseif($order->wheelchair == '未知')
+                                <span class="badge bg-secondary">輪椅未知</span>
                             @endif
                             @switch($order->special_status)
                                 @case('一般')

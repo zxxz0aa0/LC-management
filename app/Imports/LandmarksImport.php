@@ -6,12 +6,13 @@ use App\Models\Landmark;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Concerns\ToCollection;
-use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
 class LandmarksImport implements ToCollection
 {
     public $successCount = 0;
+
     public $skipCount = 0;
+
     public $errorMessages = [];
 
     // 分類對照表（中文 => 英文）
@@ -29,7 +30,8 @@ class LandmarksImport implements ToCollection
     {
         // 檢查是否有資料
         if ($rows->count() === 0) {
-            $this->errorMessages[] = "檔案中沒有資料";
+            $this->errorMessages[] = '檔案中沒有資料';
+
             return;
         }
 
@@ -46,6 +48,7 @@ class LandmarksImport implements ToCollection
 
         if ($headerRowIndex === -1) {
             $this->errorMessages[] = "找不到包含 '地標名稱' 的標題行";
+
             return;
         }
 
@@ -58,7 +61,7 @@ class LandmarksImport implements ToCollection
 
         foreach ($dataRows as $row) {
             $rowData = $row->toArray();
-            
+
             // 根據位置對應欄位
             $name = isset($rowData[0]) ? trim($rowData[0]) : '';
             $address = isset($rowData[1]) ? trim($rowData[1]) : '';
@@ -71,37 +74,42 @@ class LandmarksImport implements ToCollection
             $isActiveText = isset($rowData[8]) ? trim($rowData[8]) : '1';
 
             // 跳過空白行
-            if (!$name && !$address && !$city) {
+            if (! $name && ! $address && ! $city) {
                 $rowIndex++;
+
                 continue;
             }
 
             // 必填欄位檢查
-            if (!$name) {
+            if (! $name) {
                 $this->errorMessages[] = "第 {$rowIndex} 列：缺少地標名稱";
                 $this->skipCount++;
                 $rowIndex++;
+
                 continue;
             }
 
-            if (!$address) {
+            if (! $address) {
                 $this->errorMessages[] = "第 {$rowIndex} 列：缺少地址";
                 $this->skipCount++;
                 $rowIndex++;
+
                 continue;
             }
 
-            if (!$city) {
+            if (! $city) {
                 $this->errorMessages[] = "第 {$rowIndex} 列：缺少城市";
                 $this->skipCount++;
                 $rowIndex++;
+
                 continue;
             }
 
-            if (!$district) {
+            if (! $district) {
                 $this->errorMessages[] = "第 {$rowIndex} 列：缺少區域";
                 $this->skipCount++;
                 $rowIndex++;
+
                 continue;
             }
 
@@ -114,11 +122,12 @@ class LandmarksImport implements ToCollection
             // 處理分類
             $category = $this->categoryMap[$categoryText] ?? null;
 
-            if (!$category) {
+            if (! $category) {
                 $validCategories = implode('、', array_keys($this->categoryMap));
                 $this->errorMessages[] = "第 {$rowIndex} 列：分類格式錯誤，請使用：{$validCategories}";
                 $this->skipCount++;
                 $rowIndex++;
+
                 continue;
             }
 
@@ -126,13 +135,14 @@ class LandmarksImport implements ToCollection
             $coordinates = null;
 
             if ($longitude && $latitude) {
-                if (!is_numeric($longitude) || !is_numeric($latitude)) {
+                if (! is_numeric($longitude) || ! is_numeric($latitude)) {
                     $this->errorMessages[] = "第 {$rowIndex} 列：座標格式錯誤（必須為數字）";
                     $this->skipCount++;
                     $rowIndex++;
+
                     continue;
                 }
-                
+
                 $coordinates = [
                     'lng' => (float) $longitude,
                     'lat' => (float) $latitude,
@@ -166,7 +176,7 @@ class LandmarksImport implements ToCollection
 
                 $this->successCount++;
             } catch (\Exception $e) {
-                $this->errorMessages[] = "第 {$rowIndex} 列：資料庫錯誤 - " . $e->getMessage();
+                $this->errorMessages[] = "第 {$rowIndex} 列：資料庫錯誤 - ".$e->getMessage();
                 $this->skipCount++;
             }
 

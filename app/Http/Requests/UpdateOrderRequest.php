@@ -32,11 +32,11 @@ class UpdateOrderRequest extends FormRequest
                 'required',
                 'date_format:H:i',
                 new UniqueOrderDateTime(
-                    $this->input('customer_id'), 
+                    $this->input('customer_id'),
                     $this->input('ride_date'),
                     $this->input('back_time'),
                     $this->route('order')->id ?? null
-                )
+                ),
             ],
             'back_time' => 'nullable|date_format:H:i',
             'pickup_address' => [
@@ -53,8 +53,8 @@ class UpdateOrderRequest extends FormRequest
             'companions' => 'required|integer|min:0',
             'order_type' => 'required|string',
             'service_company' => 'required|string',
-            'wheelchair' => 'required|boolean',
-            'stair_machine' => 'required|boolean',
+            'wheelchair' => 'required|in:是,否,未知',
+            'stair_machine' => 'required|in:是,否,未知',
             'remark' => 'nullable|string',
             'created_by' => 'required|string',
             'identity' => 'required|string',

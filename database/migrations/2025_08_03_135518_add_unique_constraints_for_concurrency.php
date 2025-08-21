@@ -14,16 +14,16 @@ return new class extends Migration
         Schema::table('orders', function (Blueprint $table) {
             // 檢查是否已存在訂單編號唯一約束，如果沒有則添加
             // 註：order_number 可能已經有唯一約束
-            
+
             // 為重複訂單檢查添加複合索引，提升查詢效能
             $table->index(['customer_id', 'ride_date', 'ride_time'], 'orders_customer_datetime_index');
-            
+
             // 為共乘群組查詢添加索引
             $table->index(['carpool_group_id', 'is_group_dissolved'], 'orders_carpool_group_index');
-            
+
             // 為日期查詢添加索引
             $table->index('ride_date', 'orders_ride_date_index');
-            
+
             // 為狀態查詢添加索引
             $table->index('status', 'orders_status_index');
         });

@@ -4,13 +4,14 @@ namespace App\Imports;
 
 use App\Models\Driver;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Concerns\ToCollection;
 
 class DriversImport implements ToCollection
 {
     public $successCount = 0;
+
     public $skipCount = 0;
+
     public $errorMessages = [];
 
     // 狀態對照表（中文 => 英文）
@@ -29,7 +30,8 @@ class DriversImport implements ToCollection
     {
         // 檢查是否有資料
         if ($rows->count() === 0) {
-            $this->errorMessages[] = "檔案中沒有資料";
+            $this->errorMessages[] = '檔案中沒有資料';
+
             return;
         }
 
@@ -46,6 +48,7 @@ class DriversImport implements ToCollection
 
         if ($headerRowIndex === -1) {
             $this->errorMessages[] = "找不到包含 '姓名' 的標題行";
+
             return;
         }
 
@@ -58,7 +61,7 @@ class DriversImport implements ToCollection
 
         foreach ($dataRows as $row) {
             $rowData = $row->toArray();
-            
+
             // 根據位置對應欄位
             $name = isset($rowData[0]) ? trim($rowData[0]) : '';
             $phone = isset($rowData[1]) ? trim($rowData[1]) : '';
@@ -74,30 +77,34 @@ class DriversImport implements ToCollection
             $statusText = isset($rowData[11]) ? trim($rowData[11]) : 'active';
 
             // 跳過空白行
-            if (!$name && !$phone && !$idNumber) {
+            if (! $name && ! $phone && ! $idNumber) {
                 $rowIndex++;
+
                 continue;
             }
 
             // 必填欄位檢查
-            if (!$name) {
+            if (! $name) {
                 $this->errorMessages[] = "第 {$rowIndex} 列：缺少姓名";
                 $this->skipCount++;
                 $rowIndex++;
+
                 continue;
             }
 
-            if (!$phone) {
+            if (! $phone) {
                 $this->errorMessages[] = "第 {$rowIndex} 列：缺少手機";
                 $this->skipCount++;
                 $rowIndex++;
+
                 continue;
             }
 
-            if (!$idNumber) {
+            if (! $idNumber) {
                 $this->errorMessages[] = "第 {$rowIndex} 列：缺少身分證字號";
                 $this->skipCount++;
                 $rowIndex++;
+
                 continue;
             }
 
@@ -135,7 +142,7 @@ class DriversImport implements ToCollection
                     $this->successCount++;
                 }
             } catch (\Exception $e) {
-                $this->errorMessages[] = "第 {$rowIndex} 列：資料庫錯誤 - " . $e->getMessage();
+                $this->errorMessages[] = "第 {$rowIndex} 列：資料庫錯誤 - ".$e->getMessage();
                 $this->skipCount++;
             }
 

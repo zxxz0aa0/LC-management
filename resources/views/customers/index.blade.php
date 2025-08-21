@@ -89,7 +89,7 @@
                             <td>{{ $customer->service_company }}</td>
                             <td>{{ $customer->ride_sharing }}</td>
                             <td>{{ $customer->stair_climbing_machine }}</td>
-                            <td>{{ $customer->special_status }}</td>
+                            <td>{{ $customer->special_status === '一般' ? '' : $customer->special_status }}</td>
                             <td>
                                 @if($customer->status === '開案中')
                                     <span class="badge bg-success text-dark">開案中</span>

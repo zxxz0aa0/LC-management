@@ -10,6 +10,7 @@ class OrderForm {
         this.recurringDates = [];
         this.datePicker = null;
         this.previewUpdateTimer = null;
+        this.currentCategory = 'all'; // 追蹤當前篩選分類
         this.init();
     }
 
@@ -599,7 +600,8 @@ class OrderForm {
 
             html += `
                 <div class="landmark-item border rounded-3 mb-2 p-3" style="cursor: pointer;"
-                     onclick="orderForm.selectLandmark('${fullAddress}', ${landmark.id})">
+                     data-category="${landmark.category}"
+                     onclick="orderForm.selectLandmark('${fullAddress}', ${landmark.id}, '${landmark.name.replace(/'/g, "\\'")}')">
                     <div class="d-flex align-items-start">
                         <div class="me-3">
                             <i class="${categoryIcon} text-primary"></i>
@@ -680,9 +682,10 @@ class OrderForm {
     /**
      * 選擇地標
      */
-    selectLandmark(address, landmarkId) {
+    selectLandmark(address, landmarkId, landmarkName) {
         const targetInput = $(`#${this.currentAddressType}_address`);
-        targetInput.val(address);
+        const fullAddress = `${address}(${landmarkName})`;
+        targetInput.val(fullAddress);
         targetInput.attr('data-landmark-id', landmarkId);
 
         // 關閉 Modal
@@ -692,9 +695,9 @@ class OrderForm {
         this.updateLandmarkUsage(landmarkId);
 
         // 保存到最近使用
-        this.saveToRecentLandmarks(landmarkId, address);
+        this.saveToRecentLandmarks(landmarkId, fullAddress);
 
-        this.showSuccessMessage('已選擇地標：' + address);
+        this.showSuccessMessage('已選擇地標：' + fullAddress);
     }
 
     /**
@@ -739,7 +742,9 @@ class OrderForm {
     loadPopularLandmarks() {
         $('#landmarkPopularResults').html('<div class="text-center py-3"><div class="spinner-border text-primary"></div></div>');
 
-        fetch('/landmarks-popular')
+        const categoryParam = this.currentCategory !== 'all' ? `?category=${this.currentCategory}` : '';
+
+        fetch(`/landmarks-popular${categoryParam}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -780,7 +785,10 @@ class OrderForm {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             },
-            body: JSON.stringify({ ids: landmarkIds })
+            body: JSON.stringify({ 
+                ids: landmarkIds,
+                category: this.currentCategory !== 'all' ? this.currentCategory : null
+            })
         })
             .then(response => {
                 if (!response.ok) {
@@ -792,7 +800,7 @@ class OrderForm {
                 if (data.success && data.data.length > 0) {
                     this.displayLandmarkResults(data.data, '#landmarkRecentResults');
                 } else {
-                    $('#landmarkRecentResults').html('<div class="text-center py-4"><p class="text-muted">無法載入最近使用記錄</p></div>');
+                    $('#landmarkRecentResults').html('<div class="text-center py-4"><p class="text-muted">無符合條件的最近使用記錄</p></div>');
                 }
             })
             .catch(error => {
@@ -807,6 +815,9 @@ class OrderForm {
     handleCategoryFilter(e) {
         const category = e.target.dataset.category;
         const button = e.target;
+
+        // 更新當前分類狀態
+        this.currentCategory = category;
 
         // 更新按鈕狀態
         $('.category-filter').removeClass('active');
@@ -827,6 +838,14 @@ class OrderForm {
                 }
             });
         }
+
+        // 自動更新熱門地標和最近使用（如果已經顯示）
+        if ($('#popular-tab').hasClass('active')) {
+            this.loadPopularLandmarks();
+        }
+        if ($('#recent-tab').hasClass('active')) {
+            this.loadRecentLandmarks();
+        }
     }
 
     /**
@@ -834,7 +853,8 @@ class OrderForm {
      */
     getCategoryBadge(category) {
         const categories = {
-            'medical': { text: '醫療', class: 'bg-danger' },
+            'hospital': { text: '醫院', class: 'bg-danger' },
+            'clinic': { text: '診所', class: 'bg-warning' },
             'transport': { text: '交通', class: 'bg-primary' },
             'education': { text: '教育', class: 'bg-success' },
             'government': { text: '政府', class: 'bg-warning' },
@@ -850,7 +870,8 @@ class OrderForm {
      */
     getCategoryIcon(category) {
         const icons = {
-            'medical': 'fas fa-hospital',
+            'hospital': 'fas fa-hospital',
+            'clinic': 'fas fa-clinic-medical',
             'transport': 'fas fa-bus',
             'education': 'fas fa-school',
             'government': 'fas fa-building',
@@ -1712,6 +1733,7 @@ class OrderForm {
      */
     handleDatePickerChange(selectedDates, dateStr, instance) {
         this.selectedDates = selectedDates.map(date => this.formatDateForBackend(date));
+        console.log('Date picker changed, selected dates:', this.selectedDates);
         this.updateSelectedDatesList();
 
         // 移除自動生成預覽，改為手動觸發
@@ -2084,11 +2106,26 @@ class OrderForm {
         const currentMode = $('input[name="date_mode"]:checked').val();
         const form = $('.order-form');
 
+        // 調試資訊
+        console.log('Current date mode:', currentMode);
+        console.log('Selected dates:', this.selectedDates);
+
         if (currentMode === 'manual') {
+            // 檢查是否選擇了日期
+            if (this.selectedDates.length === 0) {
+                alert('請先選擇至少一個日期');
+                return;
+            }
+
+            // 移除現有的隱藏欄位避免重複
+            form.find('input[name="selected_dates[]"]').remove();
+
             // 手動多日模式：添加選中的日期
             this.selectedDates.forEach(dateStr => {
                 form.append(`<input type="hidden" name="selected_dates[]" value="${dateStr}">`);
             });
+
+            console.log('Added selected_dates hidden inputs:', this.selectedDates.length);
         } else if (currentMode === 'recurring') {
             // 週期性模式不需要添加隱藏日期字段
             // 後端使用 start_date, end_date, weekdays 來生成日期
@@ -2420,6 +2457,10 @@ class OrderForm {
         const form = $('.order-form');
         const currentMode = $('input[name="date_mode"]:checked').val();
 
+        // 調試資訊
+        console.log('Skip duplicates - Current mode:', currentMode);
+        console.log('Available dates:', this.lastBatchCheckResponse?.available_dates);
+
         // 移除現有的 hidden inputs
         form.find('input[name="selected_dates[]"]').remove();
 
@@ -2429,6 +2470,7 @@ class OrderForm {
                 this.lastBatchCheckResponse.available_dates.forEach(dateStr => {
                     form.append(`<input type="hidden" name="selected_dates[]" value="${dateStr}">`);
                 });
+                console.log('Added available dates to form:', this.lastBatchCheckResponse.available_dates.length);
             } else if (currentMode === 'recurring') {
                 // 週期性模式：需要修改後端邏輯來處理可用日期過濾
                 // 暫時轉換為手動模式提交
@@ -2436,6 +2478,7 @@ class OrderForm {
                 this.lastBatchCheckResponse.available_dates.forEach(dateStr => {
                     form.append(`<input type="hidden" name="selected_dates[]" value="${dateStr}">`);
                 });
+                console.log('Converted recurring to manual mode with available dates:', this.lastBatchCheckResponse.available_dates.length);
             }
 
             // 提交表單

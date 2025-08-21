@@ -25,10 +25,10 @@ class Order extends Model
         'remark', 'created_by', 'identity', 'carpool_with',
         'status', 'special_status', 'special_order',
         'carpool_id_number',
-        
+
         // 共乘群組相關欄位
         'carpool_group_id',
-        'is_main_order', 
+        'is_main_order',
         'carpool_member_count',
         'main_order_number',
         'member_sequence',
@@ -41,14 +41,12 @@ class Order extends Model
     // 資料類型轉換
     protected $casts = [
         'ride_date' => 'date',
-        'wheelchair' => 'boolean',
-        'stair_machine' => 'boolean',
         'companions' => 'integer',
         'pickup_lat' => 'decimal:8',
         'pickup_lng' => 'decimal:8',
         'dropoff_lat' => 'decimal:8',
         'dropoff_lng' => 'decimal:8',
-        
+
         // 共乘群組相關欄位
         'is_main_order' => 'boolean',
         'is_group_dissolved' => 'boolean',
@@ -79,39 +77,39 @@ class Order extends Model
     public function scopeFilter($query, $request)
     {
         // 檢查是否為搜尋模式
-        $isSearching = $request->filled('keyword') || 
-                       $request->filled('customer_id') || 
+        $isSearching = $request->filled('keyword') ||
+                       $request->filled('customer_id') ||
                        $request->filled('order_number') ||
                        $request->filled('start_date') ||
                        $request->filled('end_date');
-        
+
         // 關鍵字篩選
         if ($request->filled('keyword')) {
             $keyword = $request->keyword;
-            
+
             $query->where(function ($q) use ($keyword) {
                 // 直接搜尋
                 $q->where('customer_name', 'like', "%{$keyword}%")
-                  ->orWhere('customer_id_number', 'like', "%{$keyword}%")
-                  ->orWhere('customer_phone', 'like', "%{$keyword}%")
-                  ->orWhere('order_number', 'like', "%{$keyword}%");
-                  
+                    ->orWhere('customer_id_number', 'like', "%{$keyword}%")
+                    ->orWhere('customer_phone', 'like', "%{$keyword}%")
+                    ->orWhere('order_number', 'like', "%{$keyword}%");
+
                 // 搜尋群組相關訂單
-                $q->orWhereHas('groupMembers', function($subQ) use ($keyword) {
+                $q->orWhereHas('groupMembers', function ($subQ) use ($keyword) {
                     $subQ->where('customer_name', 'like', "%{$keyword}%")
-                         ->orWhere('customer_id_number', 'like', "%{$keyword}%");
+                        ->orWhere('customer_id_number', 'like', "%{$keyword}%");
                 });
-                
+
                 // 反向搜尋：如果搜到成員，也顯示主訂單
-                $q->orWhereHas('mainOrder', function($subQ) use ($keyword) {
+                $q->orWhereHas('mainOrder', function ($subQ) use ($keyword) {
                     $subQ->where('customer_name', 'like', "%{$keyword}%")
-                         ->orWhere('customer_id_number', 'like', "%{$keyword}%");
+                        ->orWhere('customer_id_number', 'like', "%{$keyword}%");
                 });
             });
         }
-        
+
         // 如果不是搜尋模式，只顯示主訂單
-        if (!$isSearching) {
+        if (! $isSearching) {
             $query->where('is_main_order', true);
         }
 
@@ -126,39 +124,39 @@ class Order extends Model
 
         return $query;
     }
-    
+
     // ============ 共乘群組相關關聯 ============
-    
+
     /**
      * 群組成員訂單關聯
      */
     public function groupMembers()
     {
         return $this->hasMany(Order::class, 'carpool_group_id', 'carpool_group_id')
-                    ->where('id', '!=', $this->id)
-                    ->where('is_group_dissolved', false);
+            ->where('id', '!=', $this->id)
+            ->where('is_group_dissolved', false);
     }
-    
+
     /**
      * 群組主訂單關聯
      */
     public function mainOrder()
     {
         return $this->belongsTo(Order::class, 'carpool_group_id', 'carpool_group_id')
-                    ->where('is_main_order', true);
+            ->where('is_main_order', true);
     }
-    
+
     /**
      * 所有群組訂單（包含自己）
      */
     public function allGroupOrders()
     {
         return $this->hasMany(Order::class, 'carpool_group_id', 'carpool_group_id')
-                    ->where('is_group_dissolved', false);
+            ->where('is_group_dissolved', false);
     }
-    
+
     // ============ 共乘群組相關 Scope ============
-    
+
     /**
      * Scope: 僅主訂單
      */
@@ -166,16 +164,16 @@ class Order extends Model
     {
         return $query->where('is_main_order', true);
     }
-    
+
     /**
      * Scope: 群組訂單
      */
     public function scopeGroupOrders($query)
     {
         return $query->whereNotNull('carpool_group_id')
-                     ->where('is_group_dissolved', false);
+            ->where('is_group_dissolved', false);
     }
-    
+
     /**
      * Scope: 已解散的群組
      */
@@ -183,17 +181,17 @@ class Order extends Model
     {
         return $query->where('is_group_dissolved', true);
     }
-    
+
     // ============ 共乘群組相關方法 ============
-    
+
     /**
      * 檢查是否為群組訂單
      */
     public function isGroupOrder()
     {
-        return !empty($this->carpool_group_id) && !$this->is_group_dissolved;
+        return ! empty($this->carpool_group_id) && ! $this->is_group_dissolved;
     }
-    
+
     /**
      * 檢查是否為主訂單
      */
@@ -201,38 +199,38 @@ class Order extends Model
     {
         return $this->is_main_order && $this->isGroupOrder();
     }
-    
+
     /**
      * 取得群組資訊
      */
     public function getGroupInfo()
     {
-        if (!$this->isGroupOrder()) {
+        if (! $this->isGroupOrder()) {
             return null;
         }
-        
+
         $allOrders = $this->allGroupOrders;
         $mainOrder = $allOrders->where('is_main_order', true)->first();
         $members = $allOrders->where('is_main_order', false);
-        
+
         return [
             'group_id' => $this->carpool_group_id,
             'member_count' => $this->carpool_member_count,
             'main_order' => $mainOrder,
             'members' => $members,
-            'all_orders' => $allOrders
+            'all_orders' => $allOrders,
         ];
     }
-    
+
     /**
      * 取得群組成員名稱列表
      */
     public function getGroupMemberNames()
     {
-        if (!$this->isGroupOrder()) {
+        if (! $this->isGroupOrder()) {
             return [];
         }
-        
+
         return $this->groupMembers->pluck('customer_name')->toArray();
     }
 }

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->integer('carpool_member_count')->default(1)->comment('群組成員數量');
             $table->string('main_order_number', 50)->nullable()->comment('主訂單編號（用於追蹤）');
             $table->tinyInteger('member_sequence')->nullable()->comment('成員序號');
-            
+
             // 群組解除相關欄位
             $table->boolean('is_group_dissolved')->default(false)->index()->comment('群組是否已解除');
             $table->timestamp('dissolved_at')->nullable()->comment('群組解除時間');
@@ -35,9 +35,9 @@ return new class extends Migration
         Schema::table('orders', function (Blueprint $table) {
             // 移除索引
             $table->dropIndex(['carpool_group_id']);
-            $table->dropIndex(['is_main_order']); 
+            $table->dropIndex(['is_main_order']);
             $table->dropIndex(['is_group_dissolved']);
-            
+
             // 移除欄位
             $table->dropColumn([
                 'carpool_group_id',
@@ -48,7 +48,7 @@ return new class extends Migration
                 'is_group_dissolved',
                 'dissolved_at',
                 'dissolved_by',
-                'original_group_id'
+                'original_group_id',
             ]);
         });
     }

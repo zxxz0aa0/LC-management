@@ -29,6 +29,9 @@
                 <a href="{{ route('orders.index') }}" class="btn btn-dark">
                     <i class="fas fa-undo me-2"></i>清除
                 </a>
+                <a href="{{ route('customers.create', array_merge(['return_to' => 'orders'], request()->only(['keyword', 'start_date', 'end_date', 'customer_id']))) }}" class="btn btn-success">
+                    <i class="fas fa-user-plus me-2"></i>新增客戶
+                </a>
             </div>
         </form>
 
@@ -85,7 +88,12 @@
                                 <strong>電話：</strong><br>{{ is_array($customer->phone_number) ? implode(' / ', $customer->phone_number) : $customer->phone_number }}
                             </div>
                             <div class="col-md-2">
-                                <strong>身份別：</strong><br>{{ $customer->identity }}
+                                <strong>輪椅：</strong>
+                                <span class="{{ $customer->wheelchair === '未知' ? 'text-danger' : '' }}">
+                                    {{ $customer->wheelchair }}
+                                </span>
+                                <br>
+                                <strong>爬梯機：</strong>{{ $customer->stair_climbing_machine }}
                             </div>
                             <div class="col-md-2">
                                 <strong>特殊狀態：</strong>
@@ -103,7 +111,7 @@
                                 @endif
                             </div>
                             @if(( $customer->status ?? '') == '開案中')
-                                <div class="col-md-2">
+                                <div class="col-md-1">
                                     <a href="{{ route('orders.create', array_merge(['customer_id' => $customer->id], request()->only(['keyword', 'start_date', 'end_date']))) }}"
                                     class="btn btn-success btn-sm fs-6 d-flex align-items-center justify-content-center"
                                     style="width: 100%;"
@@ -111,8 +119,16 @@
                                         <i class="fas fa-plus me-1 "></i>建立訂單
                                     </a>
                                 </div>
-                            @else
                                 <div class="col-md-1">
+                                    <a href="{{ route('customers.edit', array_merge(['customer' => $customer->id, 'return_to' => 'orders'], request()->only(['keyword', 'start_date', 'end_date', 'customer_id']))) }}"
+                                    class="btn btn-warning btn-sm fs-6 d-flex align-items-center justify-content-center"
+                                    style="width: 100%;"
+                                    >
+                                        <i class="fas fa-user-edit me-1"></i>編輯客戶
+                                    </a>
+                                </div>
+                            @else
+                                <div class="col-md-2">
                                     <span class="badge bg-danger fs-6">結案或暫停中</span>
                                 </div>
                             @endif

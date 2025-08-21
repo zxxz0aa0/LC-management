@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use App\Services\OrderNumberService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class TestConcurrency extends Command
 {
@@ -47,7 +46,7 @@ class TestConcurrency extends Command
         $this->info("測試開始前序列號：{$startSequence}");
 
         $startTime = microtime(true);
-        
+
         // 模擬併發訂單編號生成
         $processes = [];
         for ($i = 0; $i < $threads; $i++) {
@@ -80,18 +79,18 @@ class TestConcurrency extends Command
             try {
                 $orderType = $orderTypes[array_rand($orderTypes)];
                 $idNumber = $testIdNumbers[array_rand($testIdNumbers)];
-                
+
                 $orderNumber = $this->orderNumberService->generateOrderNumber($orderType, $idNumber);
-                
+
                 $results[] = [
                     'thread_id' => $threadId,
                     'order_index' => $i,
                     'order_number' => $orderNumber,
                     'order_type' => $orderType,
                     'success' => true,
-                    'error' => null
+                    'error' => null,
                 ];
-                
+
             } catch (\Exception $e) {
                 $results[] = [
                     'thread_id' => $threadId,
@@ -99,7 +98,7 @@ class TestConcurrency extends Command
                     'order_number' => null,
                     'order_type' => $orderType ?? 'unknown',
                     'success' => false,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ];
             }
         }
@@ -112,12 +111,12 @@ class TestConcurrency extends Command
      */
     private function analyzeResults(array $results, int $startSequence, int $endSequence, int $expectedTotal, float $executionTime): void
     {
-        $successCount = count(array_filter($results, fn($r) => $r['success']));
+        $successCount = count(array_filter($results, fn ($r) => $r['success']));
         $errorCount = count($results) - $successCount;
         $actualSequenceIncrease = $endSequence - $startSequence;
 
         $this->info("\n=== 測試結果分析 ===");
-        $this->info("執行時間：" . round($executionTime, 3) . " 秒");
+        $this->info('執行時間：'.round($executionTime, 3).' 秒');
         $this->info("成功建立：{$successCount} 筆");
         $this->info("失敗數量：{$errorCount} 筆");
         $this->info("序列號增加：{$actualSequenceIncrease}");
@@ -125,30 +124,30 @@ class TestConcurrency extends Command
 
         // 檢查序列號一致性
         if ($actualSequenceIncrease === $successCount) {
-            $this->info("✅ 序列號一致性檢查：通過");
+            $this->info('✅ 序列號一致性檢查：通過');
         } else {
-            $this->error("❌ 序列號一致性檢查：失敗");
+            $this->error('❌ 序列號一致性檢查：失敗');
             $this->error("   實際序列號增加 ({$actualSequenceIncrease}) 與成功訂單數 ({$successCount}) 不符");
         }
 
         // 檢查訂單編號唯一性
         $orderNumbers = array_filter(array_column($results, 'order_number'));
         $uniqueOrderNumbers = array_unique($orderNumbers);
-        
+
         if (count($orderNumbers) === count($uniqueOrderNumbers)) {
-            $this->info("✅ 訂單編號唯一性檢查：通過");
+            $this->info('✅ 訂單編號唯一性檢查：通過');
         } else {
-            $this->error("❌ 訂單編號唯一性檢查：失敗");
+            $this->error('❌ 訂單編號唯一性檢查：失敗');
             $duplicates = array_diff_assoc($orderNumbers, $uniqueOrderNumbers);
-            $this->error("   發現重複編號：" . implode(', ', array_unique($duplicates)));
+            $this->error('   發現重複編號：'.implode(', ', array_unique($duplicates)));
         }
 
         // 顯示錯誤摘要
         if ($errorCount > 0) {
             $this->warn("\n=== 錯誤摘要 ===");
-            $errorMessages = array_unique(array_column(array_filter($results, fn($r) => !$r['success']), 'error'));
+            $errorMessages = array_unique(array_column(array_filter($results, fn ($r) => ! $r['success']), 'error'));
             foreach ($errorMessages as $error) {
-                $errorOccurrences = count(array_filter($results, fn($r) => !$r['success'] && $r['error'] === $error));
+                $errorOccurrences = count(array_filter($results, fn ($r) => ! $r['success'] && $r['error'] === $error));
                 $this->warn("• {$error} (發生 {$errorOccurrences} 次)");
             }
         }
@@ -157,7 +156,7 @@ class TestConcurrency extends Command
         $ordersPerSecond = $successCount > 0 ? round($successCount / $executionTime, 2) : 0;
         $this->info("\n=== 效能統計 ===");
         $this->info("平均建立速度：{$ordersPerSecond} 筆/秒");
-        
+
         if ($successCount === $expectedTotal && $actualSequenceIncrease === $expectedTotal) {
             $this->info("\n🎉 併發測試完全成功！");
         } else {

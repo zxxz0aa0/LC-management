@@ -89,14 +89,14 @@ class CustomersImport implements ToCollection, WithHeadingRow
                 }
 
                 // 記錄完整錯誤訊息以便診斷
-                $msg .= ' - 詳細錯誤：' . $e->getMessage();
-                
+                $msg .= ' - 詳細錯誤：'.$e->getMessage();
+
                 // 記錄嘗試儲存的資料
                 if (isset($data['phone_number'])) {
-                    $msg .= ' | phone_number 內容：' . json_encode($data['phone_number']);
+                    $msg .= ' | phone_number 內容：'.json_encode($data['phone_number']);
                 }
                 if (isset($data['addresses'])) {
-                    $msg .= ' | addresses 內容：' . json_encode($data['addresses']);
+                    $msg .= ' | addresses 內容：'.json_encode($data['addresses']);
                 }
 
                 $this->errorMessages[] = $msg;

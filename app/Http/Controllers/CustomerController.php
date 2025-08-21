@@ -28,9 +28,12 @@ class CustomerController extends Controller
         return view('customers.index', compact('customers'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        return view('customers.create_customer');
+        return view('customers.create_customer', [
+            'return_to' => $request->get('return_to'),
+            'search_params' => $request->only(['keyword', 'start_date', 'end_date', 'customer_id'])
+        ]);
     }
 
     public function store(Request $request)
@@ -82,12 +85,22 @@ class CustomerController extends Controller
             'created_by' => auth()->user()->name ?? 'system',
         ]);
 
+        // 根據 return_to 參數決定返回位置
+        if ($request->get('return_to') === 'orders') {
+            $searchParams = $request->only(['keyword', 'start_date', 'end_date', 'customer_id']);
+            return redirect()->route('orders.index', $searchParams)->with('success', '客戶已建立');
+        }
+
         return redirect()->route('customers.index')->with('success', '客戶已建立');
     }
 
-    public function edit(Customer $customer)
+    public function edit(Request $request, Customer $customer)
     {
-        return view('customers.edit', compact('customer'));
+        return view('customers.edit', [
+            'customer' => $customer,
+            'return_to' => $request->get('return_to'),
+            'search_params' => $request->only(['keyword', 'start_date', 'end_date', 'customer_id'])
+        ]);
     }
 
     public function update(Request $request, Customer $customer)
@@ -134,6 +147,12 @@ class CustomerController extends Controller
             'status' => $validated['status'],
             'updated_by' => auth()->user()->name ?? 'system',
         ]);
+
+        // 根據 return_to 參數決定返回位置
+        if ($request->get('return_to') === 'orders') {
+            $searchParams = $request->only(['keyword', 'start_date', 'end_date', 'customer_id']);
+            return redirect()->route('orders.index', $searchParams)->with('success', '客戶已更新');
+        }
 
         return redirect()->route('customers.index')->with('success', '客戶已更新');
     }

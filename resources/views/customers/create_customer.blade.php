@@ -21,6 +21,16 @@
 
         <form id="create-customer-form" method="POST" action="{{ route('customers.store') }}">
             @csrf
+            
+            {{-- 隱藏欄位保存返回參數 --}}
+            @if(isset($return_to))
+                <input type="hidden" name="return_to" value="{{ $return_to }}">
+            @endif
+            @if(isset($search_params))
+                @foreach($search_params as $key => $value)
+                    <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                @endforeach
+            @endif
 
             <div class="form-group">
                 <label>照會日期</label>
@@ -87,6 +97,7 @@
             <div class="form-group">
                 <label>輪椅</label>
                 <select name="wheelchair" class="form-control">
+                    <option value="未知" {{ old('wheelchair') == '未知' ? 'selected' : '' }}>未知</option>
                     <option value="否" {{ old('wheelchair') == '否' ? 'selected' : '' }}>否</option>
                     <option value="是" {{ old('wheelchair') == '是' ? 'selected' : '' }}>是</option>
                 </select>
@@ -183,7 +194,11 @@
 
     <div class="card-footer">
         <button type="submit" class="btn btn-primary" form="create-customer-form">儲存客戶</button>
-        <a href="{{ route('customers.index') }}" class="btn btn-secondary">返回</a>
+        @if(isset($return_to) && $return_to === 'orders')
+            <a href="{{ route('orders.index', $search_params ?? []) }}" class="btn btn-secondary">返回訂單管理</a>
+        @else
+            <a href="{{ route('customers.index') }}" class="btn btn-secondary">返回</a>
+        @endif
     </div>
 </div>
 
