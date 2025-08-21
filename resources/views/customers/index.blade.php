@@ -80,7 +80,7 @@
                     @foreach ($customers as $customer)
                         <tr>
                             <!--<td><input class="me-2" type="checkbox" name="ids[]" value="{{ $customer->id }}" form="batch-delete-form">{{ $loop->iteration }}</td>-->
-                            <td>{{ $customer->created_at ? $customer->created_at->format('Y-m-d') : 'N/A' }}</td>
+                            <td>{{ $customer->referral_date ? $customer->referral_date->format('Y-m-d') : 'N/A' }}</td>
                             <td>{{ $customer->name }}</td>
                             <td>{{ $customer->id_number }}</td>
                             <td>{{ is_array($customer->phone_number) ? implode(' / ', $customer->phone_number) : $customer->phone_number }}</td>
