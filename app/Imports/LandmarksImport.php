@@ -17,7 +17,9 @@ class LandmarksImport implements ToCollection
 
     // 分類對照表（中文 => 英文）
     private $categoryMap = [
-        '醫療' => 'medical',
+        '醫院' => 'hospital',
+        '診所' => 'clinic',
+        '醫療' => 'hospital', // 向下相容：預設將醫療歸類為醫院
         '交通' => 'transport',
         '教育' => 'education',
         '政府機關' => 'government',

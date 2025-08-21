@@ -32,7 +32,9 @@
                         <button type="button" class="btn btn-outline-secondary btn-sm category-filter active"
                                 data-category="all">全部</button>
                         <button type="button" class="btn btn-outline-danger btn-sm category-filter"
-                                data-category="medical">醫療</button>
+                                data-category="hospital">醫院</button>
+                        <button type="button" class="btn btn-outline-warning btn-sm category-filter"
+                                data-category="clinic">診所</button>
                         <button type="button" class="btn btn-outline-primary btn-sm category-filter"
                                 data-category="transport">交通</button>
                         <button type="button" class="btn btn-outline-success btn-sm category-filter"

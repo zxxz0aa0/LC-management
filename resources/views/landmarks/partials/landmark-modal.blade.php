@@ -288,7 +288,8 @@ function updateLandmarkUsage(landmarkId) {
 // 獲取分類標籤
 function getCategoryBadge(category) {
     const categories = {
-        'medical': { text: '醫療', class: 'bg-danger' },
+        'hospital': { text: '醫院', class: 'bg-danger' },
+        'clinic': { text: '診所', class: 'bg-warning' },
         'transport': { text: '交通', class: 'bg-primary' },
         'education': { text: '教育', class: 'bg-success' },
         'government': { text: '政府機關', class: 'bg-warning' },

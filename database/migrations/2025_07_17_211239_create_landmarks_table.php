@@ -17,7 +17,7 @@ return new class extends Migration
             $table->text('address')->comment('完整地址');
             $table->string('city', 50)->comment('城市');
             $table->string('district', 50)->comment('區域');
-            $table->string('category', 50)->default('general')->comment('分類（medical, transport, general等）');
+            $table->string('category', 50)->default('general')->comment('分類（hospital, clinic, transport, education, government, commercial, general等）');
             $table->text('description')->nullable()->comment('地標描述');
             $table->json('coordinates')->nullable()->comment('座標資訊（可選）');
             $table->boolean('is_active')->default(true)->comment('是否啟用');

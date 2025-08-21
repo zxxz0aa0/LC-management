@@ -10,7 +10,7 @@ class OrderForm {
         this.recurringDates = [];
         this.datePicker = null;
         this.previewUpdateTimer = null;
-        this.currentCategory = 'all'; // 追蹤當前篩選分類
+        this.currentCategory = 'all'; // 地標分類篩選狀態
         this.init();
     }
 
@@ -575,6 +575,11 @@ class OrderForm {
                 if (data.success && data.data.data && data.data.data.length > 0) {
                     this.displayLandmarkResults(data.data.data, '#landmarkSearchResults');
                     this.displayLandmarkPagination(data.data);
+                    
+                    // 重新套用分類篩選
+                    if (this.currentCategory !== 'all') {
+                        this.applyCategoryFilter(this.currentCategory);
+                    }
                 } else {
                     $('#landmarkSearchResults').html('<div class="text-center py-4"><p class="text-muted">查無符合條件的地標</p></div>');
                     $('#landmarkPagination').hide();
@@ -742,9 +747,7 @@ class OrderForm {
     loadPopularLandmarks() {
         $('#landmarkPopularResults').html('<div class="text-center py-3"><div class="spinner-border text-primary"></div></div>');
 
-        const categoryParam = this.currentCategory !== 'all' ? `?category=${this.currentCategory}` : '';
-
-        fetch(`/landmarks-popular${categoryParam}`)
+        fetch('/landmarks-popular')
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -785,10 +788,7 @@ class OrderForm {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             },
-            body: JSON.stringify({ 
-                ids: landmarkIds,
-                category: this.currentCategory !== 'all' ? this.currentCategory : null
-            })
+            body: JSON.stringify({ ids: landmarkIds })
         })
             .then(response => {
                 if (!response.ok) {
@@ -800,7 +800,7 @@ class OrderForm {
                 if (data.success && data.data.length > 0) {
                     this.displayLandmarkResults(data.data, '#landmarkRecentResults');
                 } else {
-                    $('#landmarkRecentResults').html('<div class="text-center py-4"><p class="text-muted">無符合條件的最近使用記錄</p></div>');
+                    $('#landmarkRecentResults').html('<div class="text-center py-4"><p class="text-muted">無法載入最近使用記錄</p></div>');
                 }
             })
             .catch(error => {
@@ -816,14 +816,21 @@ class OrderForm {
         const category = e.target.dataset.category;
         const button = e.target;
 
-        // 更新當前分類狀態
+        // 保存當前分類狀態
         this.currentCategory = category;
 
         // 更新按鈕狀態
         $('.category-filter').removeClass('active');
         $(button).addClass('active');
 
-        // 篩選結果
+        // 套用篩選
+        this.applyCategoryFilter(category);
+    }
+
+    /**
+     * 套用分類篩選
+     */
+    applyCategoryFilter(category) {
         const allItems = $('.landmark-item');
 
         if (category === 'all') {
@@ -837,14 +844,6 @@ class OrderForm {
                     $(this).hide();
                 }
             });
-        }
-
-        // 自動更新熱門地標和最近使用（如果已經顯示）
-        if ($('#popular-tab').hasClass('active')) {
-            this.loadPopularLandmarks();
-        }
-        if ($('#recent-tab').hasClass('active')) {
-            this.loadRecentLandmarks();
         }
     }
 

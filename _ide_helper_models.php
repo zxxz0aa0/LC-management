@@ -155,7 +155,7 @@ namespace App\Models{
  * @property string $address 完整地址
  * @property string $city 城市
  * @property string $district 區域
- * @property string $category 分類（medical, transport, general等）
+ * @property string $category 分類（hospital, clinic, transport, education, government, commercial, general等）
  * @property string|null $description 地標描述
  * @property array|null $coordinates 座標資訊（可選）
  * @property bool $is_active 是否啟用
