@@ -57,7 +57,7 @@ class UpdateOrderRequest extends FormRequest
             'stair_machine' => 'required|in:是,否,未知',
             'remark' => 'nullable|string',
             'created_by' => 'required|string',
-            'identity' => 'required|string',
+            'identity' => 'nullable|string',
             'carpoolSearchInput' => 'nullable|string',
             'special_status' => 'nullable|string',
             'carpool_customer_id' => 'nullable|integer',
