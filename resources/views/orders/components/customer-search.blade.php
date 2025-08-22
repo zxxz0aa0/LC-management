@@ -23,13 +23,13 @@
                        value="{{ request('end_date') ?? \Carbon\Carbon::now()->addMonth()->endOfMonth()->toDateString() }}">
             </div>
             <div class="col-12">
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-success">
                     <i class="fas fa-search me-2"></i>搜尋
                 </button>
                 <a href="{{ route('orders.index') }}" class="btn btn-dark">
                     <i class="fas fa-undo me-2"></i>清除
                 </a>
-                <a href="{{ route('customers.create', array_merge(['return_to' => 'orders'], request()->only(['keyword', 'start_date', 'end_date', 'customer_id']))) }}" class="btn btn-success">
+                <a href="{{ route('customers.create', array_merge(['return_to' => 'orders'], request()->only(['keyword', 'start_date', 'end_date', 'customer_id']))) }}" class="btn btn-primary">
                     <i class="fas fa-user-plus me-2"></i>新增客戶
                 </a>
             </div>
@@ -54,15 +54,25 @@
                         <a href="{{ route('orders.index', array_merge(['customer_id' => $customer->id], request()->only(['keyword', 'start_date', 'end_date']))) }}"
                            class="list-group-item list-group-item-action">
                             <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1">{{ $customer->name }}</h6>
-                                    <p class="mb-1">{{ $customer->id_number }}</p>
-                                    <small class="text-muted">
-                                        {{ is_array($customer->phone_number) ? $customer->phone_number[0] : $customer->phone_number }} /
-                                        {{ is_array($customer->addresses) ? $customer->addresses[0] : $customer->addresses }}
-                                    </small>
-                                </div>
-                                <small class="text-muted">點擊選擇</small>
+                                    <div class="col-md-1">
+                                        <h5 class="mb-0">{{ $customer->name }}</h5>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <h5 class="mb-0 ps-2">{{ $customer->id_number }}</h5>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <h5 class="mb-0">
+                                            {{ is_array($customer->phone_number) ? $customer->phone_number[0] : $customer->phone_number }}
+                                        </h5>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <h5 class="mb-0">
+                                            {{ is_array($customer->addresses) ? $customer->addresses[0] : $customer->addresses }}
+                                        </h5>
+                                    </div>
+                                    <div class="col-md-2" style="color: rgb(205, 100, 26)">
+                                        <h5 class="mb-0 ps-5">點擊選擇</h5>
+                                    </div>
                             </div>
                         </a>
                     @endforeach

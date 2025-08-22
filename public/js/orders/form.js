@@ -1689,6 +1689,9 @@ class OrderForm {
         $('#manual-dates-section').toggle(selectedMode === 'manual');
         $('#recurring-dates-section').toggle(selectedMode === 'recurring');
         $('#batch-preview-section').hide();
+        
+        // 控制單日訂單按鈕顯示/隱藏
+        $('#singleOrderActions').toggle(selectedMode === 'single');
 
         // 清空相關資料
         if (selectedMode !== 'manual') {

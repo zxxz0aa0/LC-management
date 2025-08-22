@@ -104,7 +104,6 @@
                             <input type="radio" class="btn-check" name="date_mode" id="recurring" value="recurring">
                             <label class="btn btn-outline-primary" for="recurring">週期性</label>
                         </div>
-                            <label class="text text-danger ml-2"> 注意！！手動多日與週期性模式使用前要先把用車資訊填入資料</label>
                     </div>
                 </div>
             </div>
@@ -553,14 +552,16 @@
 
     {{-- 提交按鈕 --}}
     <div class="text-center py-4">
-        <button type="submit" class="btn btn-primary btn-lg px-5 me-3">
-            <i class="fas fa-save me-2"></i>
-            {{ isset($order) ? '更新訂單' : '建立單日訂單' }}
-        </button>
-        <button type="button" class="btn btn-outline-info btn-lg px-4" id="copyOrderInfoBtn">
-            <i class="fas fa-copy me-2"></i>
-            複製訂單資訊
-        </button>
+        <div id="singleOrderActions">
+            <button type="submit" class="btn btn-primary btn-lg px-5 me-3" id="singleOrderSubmitBtn">
+                <i class="fas fa-save me-2"></i>
+                {{ isset($order) ? '更新訂單' : '建立單日訂單' }}
+            </button>
+            <button type="button" class="btn btn-outline-info btn-lg px-4" id="copyOrderInfoBtn">
+                <i class="fas fa-copy me-2"></i>
+                複製訂單資訊
+            </button>
+        </div>
     </div>
 </form>
 
