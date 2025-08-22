@@ -7,25 +7,41 @@ use App\Exports\CustomerTemplateExport;
 use App\Models\Customer;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Models\ImportProgress;
+use App\Imports\RowCountImport;
+use App\Jobs\ProcessCustomerImportJob;
+use Illuminate\Support\Str;
 
 class CustomerController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Customer::query();
+        $customers = collect(); // 預設為空集合
+        $hasSearched = false;
+        $searchError = null;
 
         if ($request->filled('keyword')) {
-            $keyword = $request->keyword;
-            $query->where(function ($q) use ($keyword) {
-                $q->where('name', 'like', "%{$keyword}%")
-                    ->orWhere('id_number', 'like', "%{$keyword}%")
-                    ->orWhereJsonContains('phone_number', $keyword);
-            });
+            $hasSearched = true;
+            $keyword = trim($request->keyword); // 去除前後空格
+            
+            if (strlen($keyword) >= 1) {
+                // 關鍵字有效，執行搜尋
+                $query = Customer::query();
+                $query->where(function ($q) use ($keyword) {
+                    $q->where('name', 'like', "%{$keyword}%")
+                        ->orWhere('id_number', 'like', "%{$keyword}%")
+                        ->orWhereJsonContains('phone_number', $keyword);
+                });
+
+                $customers = $query->latest()->get();
+            } else {
+                // 只有空格或空字串
+                $searchError = '請輸入至少一個有效字元進行搜尋';
+                $customers = collect(); // 確保為空結果
+            }
         }
 
-        $customers = $query->latest()->get();
-
-        return view('customers.index', compact('customers'));
+        return view('customers.index', compact('customers', 'hasSearched', 'searchError'));
     }
 
     public function create(Request $request)
@@ -190,6 +206,73 @@ class CustomerController extends Controller
         ]);
     }
 
+    // 處理佇列匯入 (適用於大量資料)
+    public function queuedImport(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls',
+        ]);
+
+        // 生成唯一批次ID
+        $batchId = Str::uuid()->toString();
+        $filename = $request->file('file')->getClientOriginalName();
+
+        // 儲存檔案
+        $filePath = $request->file('file')->store('imports', 'local');
+
+        // 預先讀取檔案計算總行數
+        $rowCounter = new RowCountImport();
+        \Maatwebsite\Excel\Facades\Excel::import($rowCounter, storage_path('app/' . $filePath));
+        $totalRows = $rowCounter->getRowCount();
+
+        // 建立進度記錄
+        $importProgress = ImportProgress::create([
+            'batch_id' => $batchId,
+            'type' => 'customers',
+            'filename' => $filename,
+            'total_rows' => $totalRows,
+            'status' => 'pending',
+        ]);
+
+        // 使用自定義 Job 加入佇列處理
+        ProcessCustomerImportJob::dispatch($batchId, $filePath);
+
+        return redirect()->route('customers.import.progress', ['batchId' => $batchId])
+            ->with('success', "匯入已開始處理，總共 {$totalRows} 筆資料。請稍候並監控進度。");
+    }
+
+    // 查詢匯入進度
+    public function importProgress($batchId)
+    {
+        $progress = ImportProgress::where('batch_id', $batchId)->firstOrFail();
+        
+        return view('customers.import-progress', compact('progress'));
+    }
+
+    // API: 取得匯入進度 JSON
+    public function getImportProgress($batchId)
+    {
+        $progress = ImportProgress::where('batch_id', $batchId)->first();
+        
+        if (!$progress) {
+            return response()->json(['error' => '找不到匯入記錄'], 404);
+        }
+
+        return response()->json([
+            'batch_id' => $progress->batch_id,
+            'filename' => $progress->filename,
+            'total_rows' => $progress->total_rows,
+            'processed_rows' => $progress->processed_rows,
+            'success_count' => $progress->success_count,
+            'error_count' => $progress->error_count,
+            'status' => $progress->status,
+            'progress_percentage' => $progress->progress_percentage,
+            'error_messages' => $progress->error_messages,
+            'started_at' => $progress->started_at?->format('Y-m-d H:i:s'),
+            'completed_at' => $progress->completed_at?->format('Y-m-d H:i:s'),
+        ]);
+    }
+
     public function batchDelete(Request $request)
     {
         $ids = $request->input('ids', []);
@@ -251,5 +334,58 @@ class CustomerController extends Controller
     public function downloadTemplate()
     {
         return Excel::download(new CustomerTemplateExport, '客戶匯入範例檔案.xlsx');
+    }
+
+    /**
+     * 啟動佇列處理
+     */
+    public function startQueueWorker(Request $request)
+    {
+        $batchId = $request->input('batch_id');
+        
+        // 檢查匯入記錄是否存在
+        $importProgress = ImportProgress::where('batch_id', $batchId)->first();
+        
+        if (!$importProgress) {
+            return response()->json([
+                'success' => false,
+                'message' => '找不到匯入記錄'
+            ], 404);
+        }
+        
+        // 檢查狀態是否為 pending
+        if ($importProgress->status !== 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => '任務已經在處理中或已完成'
+            ], 400);
+        }
+        
+        try {
+            // 使用 --once 參數只處理一個任務
+            $command = 'php artisan queue:work --once';
+            
+            // 在 Windows 上使用 start 在背景執行
+            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                $command = "start /B $command";
+            } else {
+                $command = "$command > /dev/null 2>&1 &";
+            }
+            
+            // 執行命令
+            exec($command, $output, $returnCode);
+            
+            return response()->json([
+                'success' => true,
+                'message' => '佇列處理已啟動，請稍候查看進度更新',
+                'command' => $command
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => '啟動佇列處理失敗：' . $e->getMessage()
+            ], 500);
+        }
     }
 }

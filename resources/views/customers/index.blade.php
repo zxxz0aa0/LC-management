@@ -29,9 +29,12 @@
             <div class="row">
                 <div class="col-md-4">
                     <div class="input-group">
-                        <input type="text" name="keyword" value="{{ request('keyword') }}" class="form-control" placeholder="輸入姓名、電話或身分證查詢">
+                        <input type="text" name="keyword" value="{{ request('keyword') }}" class="form-control" placeholder="輸入姓名、電話或身分證查詢" required minlength="1">
                         <button type="submit" class="btn btn-primary me-0">搜尋</button>
                     </div>
+                    @if(isset($searchError))
+                        <small class="text-danger mt-1 d-block">{{ $searchError }}</small>
+                    @endif
                 </div>
                 <div class="col-md-2">
                     <a href="{{ route('customers.index') }}" class="btn btn-outline-secondary">清除</a>
@@ -56,6 +59,7 @@
                 </div>
             </div>
         </form>
+
 
         <div class="table-responsive">
             <table id="customers-table" class="table table-bordered table-hover align-middle mb-0">
@@ -185,37 +189,121 @@
                         </button>
                     </form>-->
         </div>
+        
     </div>
 </div>
 
 <!-- 匯入 Modal -->
 <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="importModalLabel">匯入客戶資料</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('customers.import') }}" method="POST" enctype="multipart/form-data">
-                <div class="modal-body">
-                    @csrf
-                    <div class="mb-3">
-                        <label for="importFile" class="form-label">選擇 Excel 檔案</label>
-                        <input type="file" name="file" id="importFile" accept=".xlsx,.xls" class="form-control" required>
-                        <div class="form-text">支援 .xlsx 和 .xls 格式</div>
-                    </div>
-                    <div class="alert alert-info">
-                        <strong>提示：</strong>請先下載範例檔案，並按照範例格式填入資料。
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="importFile" class="form-label">選擇 Excel 檔案</label>
+                    <input type="file" name="file" id="importFile" accept=".xlsx,.xls" class="form-control" required>
+                    <div class="form-text">支援 .xlsx 和 .xls 格式</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">匯入方式</label>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card border-primary">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title text-primary">
+                                        <i class="fas fa-bolt me-2"></i>即時匯入
+                                    </h6>
+                                    <p class="card-text small">適用於少量資料（建議 < 1000 筆）</p>
+                                    <ul class="list-unstyled small text-muted">
+                                        <li>• 立即處理並顯示結果</li>
+                                        <li>• 處理時間：約 30-60 秒</li>
+                                        <li>• 瀏覽器等待期間</li>
+                                    </ul>
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="submitImport('normal')">
+                                        選擇即時匯入
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card border-success">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title text-success">
+                                        <i class="fas fa-clock me-2"></i>佇列匯入
+                                    </h6>
+                                    <p class="card-text small">適用於大量資料（建議 > 1000 筆）</p>
+                                    <ul class="list-unstyled small text-muted">
+                                        <li>• 背景處理，可監控進度</li>
+                                        <li>• 處理時間：約 3-5 分鐘</li>
+                                        <li>• 不會占用瀏覽器</li>
+                                    </ul>
+                                    <button type="button" class="btn btn-success btn-sm" onclick="submitImport('queued')">
+                                        選擇佇列匯入
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="submit" class="btn btn-dark">開始匯入</button>
+                
+                <div class="alert alert-info">
+                    <strong>💡 使用建議：</strong>
+                    <ul class="mb-0">
+                        <li>資料量 < 1000 筆：選擇「即時匯入」</li>
+                        <li>資料量 ≥ 1000 筆：選擇「佇列匯入」</li>
+                        <li>請先下載範例檔案，並按照範例格式填入資料</li>
+                    </ul>
                 </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+            </div>
+            
+            <!-- 隱藏的表單 -->
+            <form id="normalImportForm" action="{{ route('customers.import') }}" method="POST" enctype="multipart/form-data" style="display: none;">
+                @csrf
+                <input type="file" name="file" id="normalImportFile">
+            </form>
+            
+            <form id="queuedImportForm" action="{{ route('customers.queuedImport') }}" method="POST" enctype="multipart/form-data" style="display: none;">
+                @csrf
+                <input type="file" name="file" id="queuedImportFile">
             </form>
         </div>
     </div>
 </div>
+
+<script>
+function submitImport(type) {
+    const fileInput = document.getElementById('importFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('請選擇要匯入的檔案');
+        return;
+    }
+    
+    if (type === 'normal') {
+        // 即時匯入
+        document.getElementById('normalImportFile').files = fileInput.files;
+        document.getElementById('normalImportForm').submit();
+    } else if (type === 'queued') {
+        // 佇列匯入
+        document.getElementById('queuedImportFile').files = fileInput.files;
+        document.getElementById('queuedImportForm').submit();
+    }
+    
+    // 關閉 modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('importModal'));
+    modal.hide();
+}
+</script>
 
 @endsection
 

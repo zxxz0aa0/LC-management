@@ -36,6 +36,10 @@ Route::middleware('auth')->group(function () {
     Route::post('customers/batch-delete', [CustomerController::class, 'batchDelete'])->name('customers.batchDelete');
     Route::get('customers/export', [CustomerController::class, 'export'])->name('customers.export');
     Route::post('customers/import', [CustomerController::class, 'import'])->name('customers.import');
+    Route::post('customers/queued-import', [CustomerController::class, 'queuedImport'])->name('customers.queuedImport');
+    Route::get('customers/import-progress/{batchId}', [CustomerController::class, 'importProgress'])->name('customers.import.progress');
+    Route::get('api/customers/import-progress/{batchId}', [CustomerController::class, 'getImportProgress'])->name('api.customers.import.progress');
+    Route::post('customers/start-queue-worker', [CustomerController::class, 'startQueueWorker'])->name('customers.startQueueWorker');
     Route::get('customers/template', [CustomerController::class, 'downloadTemplate'])->name('customers.template');
     Route::patch('customers/{customer}/note', [CustomerController::class, 'updateNote'])->name('customers.updateNote');
     Route::resource('customers', CustomerController::class)->except(['show']);
