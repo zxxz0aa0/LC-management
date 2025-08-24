@@ -54,7 +54,16 @@ Route::middleware('auth')->group(function () {
     Route::resource('admin/drivers', App\Http\Controllers\Admin\DriverController::class);
     Route::get('/drivers/fleet-search', [App\Http\Controllers\Admin\DriverController::class, 'searchByFleetNumber']);
 
-    // 訂單管理
+    // 訂單管理路由 - 匯入匯出路由必須在 resource 路由之前，避免路由衝突
+    Route::get('/orders/export', [OrderController::class, 'export'])->name('orders.export');
+    Route::get('/orders/export-simple', [OrderController::class, 'exportSimple'])->name('orders.export.simple');
+    Route::post('/orders/import', [OrderController::class, 'import'])->name('orders.import');
+    Route::post('/orders/queued-import', [OrderController::class, 'queuedImport'])->name('orders.queuedImport');
+    Route::get('/orders/import-progress/{batchId}', [OrderController::class, 'importProgress'])->name('orders.import.progress');
+    Route::get('/api/orders/import-progress/{batchId}', [OrderController::class, 'getImportProgress'])->name('api.orders.import.progress');
+    Route::post('/orders/start-queue-worker', [OrderController::class, 'startQueueWorker'])->name('orders.startQueueWorker');
+    Route::get('/orders/template', [OrderController::class, 'downloadTemplate'])->name('orders.template');
+    Route::get('/orders/template-simple', [OrderController::class, 'downloadSimpleTemplate'])->name('orders.template.simple');
     Route::resource('orders', OrderController::class);
     Route::post('/orders/batch', [OrderController::class, 'storeBatch'])->name('orders.storeBatch');
     Route::get('/carpool-search', [CustomerController::class, 'carpoolSearch']);

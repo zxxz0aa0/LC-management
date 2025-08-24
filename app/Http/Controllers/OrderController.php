@@ -14,6 +14,15 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use App\Exports\OrdersExport;
+use App\Exports\SimpleOrdersExport;
+use App\Exports\OrderTemplateExport;
+use App\Exports\SimpleOrderTemplateExport;
+use App\Imports\OrdersImport;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Models\ImportProgress;
+use App\Imports\RowCountImport;
+use Illuminate\Support\Str;
 
 class OrderController extends Controller
 {
@@ -1015,5 +1024,156 @@ class OrderController extends Controller
         $validated['dropoff_district'] = $dropoffMatches[2] ?? null;
 
         return $validated;
+    }
+
+    // 匯出 Excel (完整格式)
+    public function export()
+    {
+        return Excel::download(new OrdersExport, 'orders.xlsx');
+    }
+
+    // 匯出 Excel (簡化格式)
+    public function exportSimple()
+    {
+        return Excel::download(new SimpleOrdersExport, 'orders_simple.xlsx');
+    }
+
+    // 處理匯入
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls',
+        ]);
+
+        // 檢查檔案大小，決定處理方式
+        $fileSize = $request->file('file')->getSize();
+        $estimatedRows = $fileSize / 1024; // 粗估行數
+
+        if ($estimatedRows > 1000) {
+            return $this->queuedImport($request);
+        }
+
+        $importer = new OrdersImport;
+        Excel::import($importer, $request->file('file'));
+
+        $success = $importer->successCount;
+        $fail = $importer->skipCount;
+        $errors = $importer->errorMessages;
+
+        return redirect()->route('orders.index')->with([
+            'success' => "匯入完成：成功 {$success} 筆，失敗 {$fail} 筆。",
+            'import_errors' => $errors,
+        ]);
+    }
+
+    // 處理佇列匯入 (適用於大量資料)
+    public function queuedImport(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls',
+        ]);
+
+        $batchId = (string) Str::uuid();
+        $filename = $request->file('file')->getClientOriginalName();
+
+        // 儲存檔案
+        $filePath = $request->file('file')->store('imports', 'local');
+
+        // 預先讀取檔案計算總行數
+        $rowCounter = new RowCountImport();
+        Excel::import($rowCounter, storage_path('app/' . $filePath));
+        $totalRows = $rowCounter->getRowCount();
+
+        // 建立進度記錄
+        $importProgress = ImportProgress::create([
+            'batch_id' => $batchId,
+            'type' => 'orders',
+            'filename' => $filename,
+            'total_rows' => $totalRows,
+            'status' => 'pending',
+        ]);
+
+        // 注意：這裡需要建立相對應的 ProcessOrderImportJob
+        // ProcessOrderImportJob::dispatch($batchId, $filePath);
+
+        return redirect()->route('orders.import.progress', ['batchId' => $batchId])
+            ->with('success', "匯入已開始處理，總共 {$totalRows} 筆資料。請稍候並監控進度。");
+    }
+
+    // 查詢匯入進度
+    public function importProgress($batchId)
+    {
+        $progress = ImportProgress::where('batch_id', $batchId)->firstOrFail();
+        
+        return view('orders.import-progress', compact('progress'));
+    }
+
+    // API: 取得匯入進度 JSON
+    public function getImportProgress($batchId)
+    {
+        $progress = ImportProgress::where('batch_id', $batchId)->first();
+        
+        if (!$progress) {
+            return response()->json(['error' => '找不到匯入記錄'], 404);
+        }
+        
+        return response()->json($progress);
+    }
+
+    // 啟動佇列處理
+    public function startQueueWorker(Request $request)
+    {
+        $batchId = $request->input('batch_id');
+        
+        // 檢查匯入記錄是否存在
+        $importProgress = ImportProgress::where('batch_id', $batchId)->first();
+        
+        if (!$importProgress) {
+            return response()->json([
+                'success' => false,
+                'message' => '找不到匯入記錄'
+            ], 404);
+        }
+        
+        // 檢查狀態是否為 pending
+        if ($importProgress->status !== 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => '任務已經在處理中或已完成'
+            ], 400);
+        }
+        
+        try {
+            // 使用 --once 參數只處理一個任務
+            $command = 'php artisan queue:work --once';
+            $output = shell_exec($command . ' 2>&1');
+            
+            return response()->json([
+                'success' => true,
+                'message' => '佇列處理已啟動',
+                'output' => $output
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => '啟動佇列處理失敗：' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * 下載訂單匯入範例檔案 (完整格式)
+     */
+    public function downloadTemplate()
+    {
+        return Excel::download(new OrderTemplateExport, '訂單匯入範例檔案.xlsx');
+    }
+
+    /**
+     * 下載訂單匯入範例檔案 (簡化格式)
+     */
+    public function downloadSimpleTemplate()
+    {
+        return Excel::download(new SimpleOrderTemplateExport, '訂單匯入範例檔案_簡化版.xlsx');
     }
 }
