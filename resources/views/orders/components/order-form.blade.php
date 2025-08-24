@@ -522,10 +522,11 @@
                     <label class="form-label">特殊狀態</label>
                     <select name="special_status" class="form-select">
                         <option value="一般" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '一般' ? 'selected' : '' }}>一般</option>
-                        <option value="網頁" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '網頁' ? 'selected' : '' }}>網頁</option>
+                        <option value="網頁單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '網頁單' ? 'selected' : '' }}>網頁單</option>
+                        <option value="Line" {{ old('special_status', isset($order) ? $order->special_status : '一般') == 'Line' ? 'selected' : '' }}>Line</option>
                         <option value="個管單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '個管單' ? 'selected' : '' }}>個管單</option>
                         <option value="黑名單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '黑名單' ? 'selected' : '' }}>黑名單</option>
-                        <option value="共乘" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '共乘' ? 'selected' : '' }}>共乘</option>
+                        <option value="共乘單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '共乘單' ? 'selected' : '' }}>共乘單</option>
                     </select>
                 </div>
                 <div class="col-md-4">

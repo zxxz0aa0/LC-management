@@ -21,12 +21,13 @@
             <table class="table table-hover" id="ordersTable">
                 <thead class="table-success">
                     <tr>
+                        <th>訂單來源</th>
                         <th>客戶姓名</th>
                         <th>電話</th>
                         <th>用車日期</th>
                         <th>用車時間</th>
-                        <th>上車地址</th>
-                        <th>下車地址</th>
+                        <th>上車地址/下車地址</th>
+                        <!--<th>下車地址</th>-->
                         <th>共乘姓名</th>
                         <th>特殊狀態</th>
                         <th>駕駛</th>
@@ -37,12 +38,13 @@
                 <tbody>
                     @forelse($orders as $order)
                     <tr>
+                        <td>{{ $order->order_type }}</td>
                         <td>{{ $order->customer_name }}</td>
                         <td>{{ $order->customer_phone }}</td>
                         <td>{{ $order->ride_date ? (is_string($order->ride_date) ? $order->ride_date : $order->ride_date->format('Y-m-d')) : 'N/A' }}</td>
                         <td>{{ $order->ride_time ? \Illuminate\Support\Carbon::parse($order->ride_time)->format('H:i') : 'N/A' }}</td>
-                        <td>{{ Str::limit($order->pickup_address, 30) }}</td>
-                        <td>{{ Str::limit($order->dropoff_address, 30) }}</td>
+                        <td>{{ Str::limit($order->pickup_address, 30) }}<br>{{ Str::limit($order->dropoff_address, 30) }}</td>
+                        <!--<td>{{ Str::limit($order->dropoff_address, 30) }}</td>-->
                         <td>{{ $order->carpool_name }}</td>
                         <td>
                             @if($order->stair_machine == '是')
@@ -62,20 +64,23 @@
                                 @case('網頁單')
                                     <span class="badge bg-danger">網頁單</span>
                                     @break
+                                @case('Line')
+                                    <span class="badge bg-success">Line</span>
+                                    @break
                                 @case('個管單')
                                     <span class="badge bg-info">個管單</span>
                                     @break
                                 @case('黑名單')
                                     <span class="badge bg-dark">黑名單</span>
                                     @break
-                                @case('共乘')
-                                    <span class="badge bg-primary">共乘</span>
+                                @case('共乘單')
+                                    <span class="badge bg-primary">共乘單</span>
                                     @break
                                 @default
                                     <span class="badge bg-secondary">未知</span>
                             @endswitch
                         </td>
-                        <td>{{ $order->driver_fleet_number ?: '未指派' }}</td>
+                        <td>{{ $order->driver_fleet_number ?: '-' }}</td>
                         <td>
                             @switch($order->status)
                                 @case('open')

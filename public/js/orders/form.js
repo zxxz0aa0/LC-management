@@ -126,6 +126,9 @@ class OrderForm {
                 this.handleCarpoolSearch();
             }
         });
+
+        // 監聽共乘姓名欄位變化
+        $('#carpool_with').on('input change', this.handleCarpoolNameChange.bind(this));
     }
 
     /**
@@ -269,6 +272,26 @@ class OrderForm {
             $('#dropoff_address').addClass('is-invalid');
         }
 
+        // 長照地址限制驗證
+        const orderType = $('input[name="order_type"]').val();
+        if (orderType === '新北長照') {
+            const hasNewTaipei = pickupAddress.startsWith('新北市') || dropoffAddress.startsWith('新北市');
+            if (!hasNewTaipei) {
+                isValid = false;
+                errors.push('新北長照訂單的上車或下車地址至少一個必須位於新北市');
+                $('#pickup_address').addClass('is-invalid');
+                $('#dropoff_address').addClass('is-invalid');
+            }
+        } else if (orderType === '台北長照') {
+            const hasTaipei = pickupAddress.startsWith('台北市') || dropoffAddress.startsWith('台北市');
+            if (!hasTaipei) {
+                isValid = false;
+                errors.push('台北長照訂單的上車或下車地址至少一個必須位於台北市');
+                $('#pickup_address').addClass('is-invalid');
+                $('#dropoff_address').addClass('is-invalid');
+            }
+        }
+
         // 顯示錯誤訊息
         if (!isValid) {
             this.showErrorMessages(errors);
@@ -352,8 +375,11 @@ class OrderForm {
         $('#carpool_customer_id').val(customer.id);
         $('#carpoolResults').empty();
 
+        // 自動設定特殊狀態為共乘單
+        $('select[name="special_status"]').val('共乘單');
+
         // 顯示成功訊息
-        this.showSuccessMessage('已選擇共乘客戶：' + customer.name);
+        this.showSuccessMessage('已選擇共乘客戶：' + customer.name + '，特殊狀態已自動設為共乘單');
     }
 
     /**
@@ -367,6 +393,24 @@ class OrderForm {
         $('#carpool_addresses').val('');
         $('#carpool_customer_id').val('');
         $('#carpoolResults').empty();
+
+        // 自動重設特殊狀態為一般
+        $('select[name="special_status"]').val('一般');
+    }
+
+    /**
+     * 處理共乘姓名欄位變化
+     */
+    handleCarpoolNameChange() {
+        const carpoolName = $('#carpool_with').val().trim();
+
+        if (carpoolName) {
+            // 有共乘姓名，設定為共乘單
+            $('select[name="special_status"]').val('共乘單');
+        } else {
+            // 無共乘姓名，設定為一般
+            $('select[name="special_status"]').val('一般');
+        }
     }
 
     /**
@@ -1149,12 +1193,8 @@ class OrderForm {
                         </small>
                     </td>
                     <td class="text-center">${order.companions || 0}</td>
-                    <td class="text-center">
-                        <i class="fas fa-${order.wheelchair ? 'check text-success' : 'times text-muted'}"></i>
-                    </td>
-                    <td class="text-center">
-                        <i class="fas fa-${order.stair_machine ? 'check text-success' : 'times text-muted'}"></i>
-                    </td>
+                    <td class="text-center">${order.wheelchair }</td>
+                    <td class="text-center">${order.stair_machine}</td>
                     <td>
                         <span class="badge status-badge ${statusClass}">${statusText}</span>
                     </td>
@@ -1214,8 +1254,8 @@ class OrderForm {
 
         // 填入其他欄位
         $('input[name="companions"]').val(order.companions || 0);
-        $('select[name="wheelchair"]').val(order.wheelchair ? '1' : '0');
-        $('select[name="stair_machine"]').val(order.stair_machine ? '1' : '0');
+        $('select[name="wheelchair"]').val(order.wheelchair);
+        $('select[name="stair_machine"]').val(order.stair_machine);
 
         // 填入地址欄位
         if (order.pickup_address) {
@@ -1689,7 +1729,7 @@ class OrderForm {
         $('#manual-dates-section').toggle(selectedMode === 'manual');
         $('#recurring-dates-section').toggle(selectedMode === 'recurring');
         $('#batch-preview-section').hide();
-        
+
         // 控制單日訂單按鈕顯示/隱藏
         $('#singleOrderActions').toggle(selectedMode === 'single');
 
