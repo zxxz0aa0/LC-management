@@ -138,6 +138,11 @@
                                 <a href="{{ route('orders.edit', array_merge(['order' => $order], request()->only(['keyword', 'start_date', 'end_date', 'customer_id']))) }}" class="btn btn-warning btn-sm" title="編輯">
                                     <i class="fas fa-edit"></i>
                                 </a>
+                                @if(in_array($order->status, ['open', 'assigned']))
+                                    <button type="button" class="btn btn-danger btn-sm" onclick="cancelOrder({{ $order->id }})" title="取消">
+                                        <i class="fas fa-ban"></i>
+                                    </button>
+                                @endif
                                 <!--<button type="button" class="btn btn-danger btn-sm" onclick="deleteOrder({{ $order->id }})" title="刪除">
                                     <i class="fas fa-trash"></i>
                                 </button>-->
@@ -212,6 +217,42 @@
         </div>
     </div>
 </div>
+
+{{-- 取消訂單 JavaScript 功能 --}}
+<script>
+function cancelOrder(orderId) {
+    // 顯示確認對話框
+    if (!confirm('確定要取消這筆訂單嗎？取消後無法復原。')) {
+        return;
+    }
+    
+    // 發送 AJAX 請求
+    fetch(`/orders/${orderId}/cancel`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 成功提示
+            alert('✅ ' + data.message);
+            
+            // 重新載入頁面以更新狀態顯示
+            location.reload();
+        } else {
+            // 錯誤提示
+            alert('❌ ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('取消訂單失敗:', error);
+        alert('❌ 取消失敗，請稍後再試');
+    });
+}
+</script>
 
 @if(session('import_errors'))
     <div class="modal fade" id="errorsModal" tabindex="-1" aria-labelledby="errorsModalLabel" aria-hidden="true">

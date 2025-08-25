@@ -457,6 +457,38 @@ class OrderController extends Controller
 
     }
 
+    // 取消訂單
+    public function cancel(Order $order)
+    {
+        try {
+            // 檢查訂單狀態是否可以取消
+            $cancellableStatuses = ['open', 'assigned'];
+            
+            if (!in_array($order->status, $cancellableStatuses)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '此訂單狀態無法取消',
+                ], 400);
+            }
+
+            // 更新訂單狀態為已取消
+            $order->update([
+                'status' => 'cancelled'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => '訂單已成功取消',
+                'new_status' => 'cancelled'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => '取消失敗：' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     // 刪除訂單（預留）
     public function destroy(Order $order)
     {
