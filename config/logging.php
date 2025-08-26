@@ -73,6 +73,14 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'import' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/import.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 7, // 匯入日誌保留較短時間
+            'replace_placeholders' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),
