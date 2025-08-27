@@ -115,17 +115,55 @@ class CustomerImport implements ToCollection, WithChunkReading, WithEvents
 
         $session = ImportSession::where('session_id', $sessionId)->first();
         if ($session) {
-            $errorCount = $session->error_count;
-            $successCount = $session->success_count;
-
-            $status = ($errorCount > 0 && $successCount === 0) ? 'failed' : 'completed';
+            $processedRows = max(0, (int)$session->processed_rows);
+            $successCount = max(0, (int)$session->success_count);
+            $errorCount = max(0, (int)$session->error_count);
+            
+            // 改善最終狀態判斷邏輯
+            $status = 'completed';
+            if ($processedRows === 0) {
+                $status = 'failed'; // 沒有處理任何資料
+            } elseif ($successCount === 0 && $errorCount > 0) {
+                $status = 'failed'; // 全部失敗
+            } else {
+                $status = 'completed'; // 有成功匯入的資料（即使有部分錯誤）
+            }
+            
+            // 最終數據一致性檢查
+            if ($successCount + $errorCount > $processedRows) {
+                Log::warning('最終數據不一致修正', [
+                    'session_id' => $sessionId,
+                    'processed_rows' => $processedRows,
+                    'success_count' => $successCount,
+                    'error_count' => $errorCount,
+                ]);
+                
+                // 修正數據一致性
+                $total = $successCount + $errorCount;
+                if ($total > $processedRows && $processedRows > 0) {
+                    $ratio = $processedRows / $total;
+                    $successCount = (int)round($successCount * $ratio);
+                    $errorCount = $processedRows - $successCount;
+                }
+            }
 
             $session->update([
                 'status' => $status,
+                'processed_rows' => $processedRows,
+                'success_count' => $successCount,
+                'error_count' => $errorCount,
                 'completed_at' => now(),
             ]);
 
-            Log::info('最終狀態已更新', ['session_id' => $sessionId, 'status' => $status]);
+            Log::info('最終狀態已更新', [
+                'session_id' => $sessionId, 
+                'status' => $status,
+                'processed_rows' => $processedRows,
+                'success_count' => $successCount,
+                'error_count' => $errorCount,
+            ]);
+        } else {
+            Log::error('找不到匯入會話進行最終更新', ['session_id' => $sessionId]);
         }
     }
 }

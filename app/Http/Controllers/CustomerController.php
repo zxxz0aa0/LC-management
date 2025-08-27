@@ -58,7 +58,7 @@ class CustomerController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'id_number' => 'required|string|max:20',
+            'id_number' => 'required|string|max:20|unique:customers,id_number',
             'birthday' => 'nullable|date',
             'email' => 'nullable|email|unique:customers,email',
             'phone_number' => 'required|string',
@@ -126,7 +126,7 @@ class CustomerController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'id_number' => 'required|string|max:20',
+            'id_number' => 'required|string|max:20|unique:customers,id_number,'.$customer->id,
             'email' => 'nullable|email|unique:customers,email,'.$customer->id,
             'phone_number' => 'required|string',
             'addresses' => 'required|string',
@@ -318,8 +318,8 @@ class CustomerController extends Controller
             $importService = new CustomerImportService();
             $importService->setImportSession($session);
 
-            // 讀取並處理檔案
-            $data = Excel::toCollection(new CustomerImport($session->id), storage_path('app/' . $filePath))->first();
+            // 讀取並處理檔案 (修復：使用 session_id 而不是 id)
+            $data = Excel::toCollection(new CustomerImport($session->session_id), storage_path('app/' . $filePath))->first();
             $result = $importService->processImport($data);
 
             // 清理檔案
@@ -470,7 +470,13 @@ class CustomerController extends Controller
                 'filename' => $session->filename,
             ]);
             
-            // 開始匯入處理
+            // 開始匯入處理（使用正確的 session_id UUID）
+            Log::info('準備執行 Excel 匯入', [
+                'session_id' => $session->session_id,
+                'session_db_id' => $session->id,
+                'file_path' => $session->file_path,
+            ]);
+            
             $import = new \App\Imports\CustomerImport($session->session_id);
             Excel::import($import, storage_path('app/' . $session->file_path));
             
@@ -500,28 +506,83 @@ class CustomerController extends Controller
      */
     public function getImportProgress(string $sessionId)
     {
-        $session = ImportSession::where('session_id', $sessionId)->first();
+        try {
+            Log::debug('獲取匯入進度', [
+                'session_id' => $sessionId,
+                'request_time' => now()->toDateTimeString(),
+            ]);
+            
+            $session = ImportSession::where('session_id', $sessionId)->first();
 
-        if (!$session) {
-            return response()->json(['error' => '找不到匯入會話'], 404);
+            if (!$session) {
+                Log::warning('找不到匯入會話', ['session_id' => $sessionId]);
+                return response()->json([
+                    'error' => '找不到匯入會話',
+                    'session_id' => $sessionId,
+                    'timestamp' => now()->toISOString()
+                ], 404);
+            }
+
+            // 確保數據的完整性和合理性
+            $responseData = [
+                'session_id' => $session->session_id,
+                'filename' => $session->filename ?? '',
+                'total_rows' => max(0, (int)$session->total_rows),
+                'processed_rows' => max(0, min((int)$session->processed_rows, (int)$session->total_rows)),
+                'success_count' => max(0, (int)$session->success_count),
+                'error_count' => max(0, (int)$session->error_count),
+                'status' => $session->status ?? 'pending',
+                'status_text' => $session->status_text ?? '未知狀態',
+                'progress_percentage' => round(max(0, min(100, (float)$session->progress_percentage)), 2),
+                'remaining_rows' => max(0, (int)$session->remaining_rows),
+                'error_messages' => is_array($session->error_messages) ? $session->error_messages : [],
+                'started_at' => $session->started_at?->format('Y-m-d H:i:s'),
+                'completed_at' => $session->completed_at?->format('Y-m-d H:i:s'),
+                'processing_time' => $session->processing_time ? (int)$session->processing_time : null,
+                'last_updated' => now()->toISOString(),
+            ];
+            
+            // 數據一致性檢查
+            if ($responseData['processed_rows'] > $responseData['total_rows']) {
+                $responseData['processed_rows'] = $responseData['total_rows'];
+            }
+            
+            if ($responseData['success_count'] + $responseData['error_count'] > $responseData['processed_rows']) {
+                Log::warning('數據不一致檢測', [
+                    'session_id' => $sessionId,
+                    'processed_rows' => $responseData['processed_rows'],
+                    'success_count' => $responseData['success_count'],
+                    'error_count' => $responseData['error_count'],
+                ]);
+            }
+
+            Log::debug('匯入進度回傳', [
+                'session_id' => $sessionId,
+                'status' => $responseData['status'],
+                'progress' => $responseData['progress_percentage'],
+                'processed' => $responseData['processed_rows'],
+                'total' => $responseData['total_rows'],
+            ]);
+
+            return response()->json($responseData)
+                ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                ->header('Pragma', 'no-cache')
+                ->header('Expires', '0');
+                
+        } catch (\Exception $e) {
+            Log::error('獲取匯入進度失敗', [
+                'session_id' => $sessionId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return response()->json([
+                'error' => '系統錯誤，無法獲取進度',
+                'message' => config('app.debug') ? $e->getMessage() : '請稍後再試',
+                'session_id' => $sessionId,
+                'timestamp' => now()->toISOString()
+            ], 500);
         }
-
-        return response()->json([
-            'session_id' => $session->session_id,
-            'filename' => $session->filename,
-            'total_rows' => $session->total_rows,
-            'processed_rows' => $session->processed_rows,
-            'success_count' => $session->success_count,
-            'error_count' => $session->error_count,
-            'status' => $session->status,
-            'status_text' => $session->status_text,
-            'progress_percentage' => $session->progress_percentage,
-            'remaining_rows' => $session->remaining_rows,
-            'error_messages' => $session->error_messages,
-            'started_at' => $session->started_at?->format('Y-m-d H:i:s'),
-            'completed_at' => $session->completed_at?->format('Y-m-d H:i:s'),
-            'processing_time' => $session->processing_time,
-        ]);
     }
 
 

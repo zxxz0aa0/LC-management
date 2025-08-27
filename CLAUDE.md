@@ -42,6 +42,7 @@ php artisan ide-helper:generate
 2. 設計新功能前先規劃，並討論完後，有確定再執行
 3. 做任何分析、查詢、檢查時使用Claude Opus 4模型，編寫代碼時使用Claude Sonnet 4模型，來降低使用次數成本。
 4. 注重安全性問題
+5. 開始寫程式或修改程式前先做一個to do
 
 ## 常用開發指令
 

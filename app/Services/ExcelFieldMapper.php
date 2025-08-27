@@ -42,6 +42,30 @@ class ExcelFieldMapper
     ];
 
     /**
+     * 訂單狀態中英文對照表
+     */
+    private $statusMappings = [
+        '待派遣' => 'open',
+        '已指派' => 'assigned', 
+        '已候補' => 'bkorder',
+        '黑名單' => 'blocked',
+        '已取消' => 'cancelled',
+        '一般取消' => 'cancelled',
+        '別家有車' => 'cancelledOOC',
+        '!取消' => 'cancelledNOC',
+        'X取消' => 'cancelledCOTD',
+        // 英文值也保持支援
+        'open' => 'open',
+        'assigned' => 'assigned',
+        'bkorder' => 'bkorder', 
+        'blocked' => 'blocked',
+        'cancelled' => 'cancelled',
+        'cancelledOOC' => 'cancelledOOC',
+        'cancelledNOC' => 'cancelledNOC',
+        'cancelledCOTD' => 'cancelledCOTD'
+    ];
+
+    /**
      * 從資料列中取得指定欄位的值
      */
     public function getRowValue($row, array $possibleKeys, $headingRow)
@@ -199,6 +223,41 @@ class ExcelFieldMapper
     public function addFieldMapping($chineseLabel, array $englishKeys)
     {
         $this->fieldMappings[$chineseLabel] = $englishKeys;
+    }
+
+    /**
+     * 轉換訂單狀態（中文 → 英文）
+     */
+    public function convertOrderStatus($status)
+    {
+        if (empty($status)) {
+            return 'open'; // 預設為待派遣
+        }
+
+        $status = trim($status);
+        
+        // 直接對照
+        if (isset($this->statusMappings[$status])) {
+            return $this->statusMappings[$status];
+        }
+
+        // 模糊匹配（包含關係檢查）
+        foreach ($this->statusMappings as $chinese => $english) {
+            if (strpos($status, $chinese) !== false || strpos($chinese, $status) !== false) {
+                return $english;
+            }
+        }
+
+        // 如果都不匹配，返回原值（用於錯誤檢測）
+        return $status;
+    }
+
+    /**
+     * 取得狀態對照表
+     */
+    public function getStatusMappings()
+    {
+        return $this->statusMappings;
     }
 
     /**

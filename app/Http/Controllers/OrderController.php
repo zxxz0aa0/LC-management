@@ -459,7 +459,7 @@ class OrderController extends Controller
     }
 
     // 取消訂單
-    public function cancel(Order $order)
+    public function cancel(Order $order, Request $request)
     {
         try {
             // 檢查訂單狀態是否可以取消
@@ -472,15 +472,41 @@ class OrderController extends Controller
                 ], 400);
             }
 
-            // 更新訂單狀態為已取消
+            // 取得取消原因，預設為一般取消
+            $cancelReason = $request->input('cancel_reason', 'cancelled');
+            
+            // 驗證取消原因是否有效
+            $validCancelReasons = [
+                'cancelled',      // 一般取消
+                'cancelledOOC',   // 別家有車
+                'cancelledNOC',   // !取消
+                'cancelledCOTD'   // X取消
+            ];
+            
+            if (!in_array($cancelReason, $validCancelReasons)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '無效的取消原因',
+                ], 400);
+            }
+
+            // 取消原因對應的中文說明
+            $cancelMessages = [
+                'cancelled' => '訂單已取消',
+                'cancelledOOC' => '訂單已取消（別家有車）',
+                'cancelledNOC' => '訂單已取消（!取消）',
+                'cancelledCOTD' => '訂單已取消（X取消）'
+            ];
+
+            // 更新訂單狀態
             $order->update([
-                'status' => 'cancelled',
+                'status' => $cancelReason,
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => '訂單已成功取消',
-                'new_status' => 'cancelled',
+                'message' => $cancelMessages[$cancelReason],
+                'new_status' => $cancelReason,
             ]);
         } catch (\Exception $e) {
             return response()->json([

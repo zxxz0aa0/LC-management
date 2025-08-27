@@ -141,18 +141,17 @@
                     </div>
 
                     <!-- 錯誤訊息 -->
-                    @if($session->error_messages && count($session->error_messages) > 0)
-                    <div class="mb-4">
+                    <div class="mb-4" id="error-container" style="{{ ($session->error_messages && count($session->error_messages) > 0) ? '' : 'display: none;' }}">
                         <h5>錯誤訊息</h5>
                         <div class="alert alert-warning">
                             <div id="error-messages" style="max-height: 300px; overflow-y: auto;">
-                                @foreach($session->error_messages as $error)
+                                @foreach($session->error_messages ?? [] as $error)
                                     <div class="mb-1">{{ $error }}</div>
                                 @endforeach
                             </div>
                         </div>
                     </div>
-                    @endif
+
 
                     <!-- 操作按鈕 -->
                     <div class="text-center">
@@ -199,132 +198,329 @@ document.addEventListener('DOMContentLoaded', function() {
     const sessionId = '{{ $session->session_id }}';
     let polling = false;
     let retryCount = 0;
-    const maxRetries = 5;
-    const baseDelay = 3000;
+    let consecutiveFailures = 0;
+    const maxRetries = 20; // 增加最大重試次數
+    const maxConsecutiveFailures = 5;
+    const baseDelay = 2000; // 基礎延遲時間
+    const maxDelay = 30000; // 最大延遲 30 秒
     
-    // 自動更新進度函數
-    function updateProgress() {
-        if (!polling && ['processing', 'pending'].includes('{{ $session->status }}')) {
-            polling = true;
-            fetchProgress();
+    // 顯示用戶友善的錯誤訊息
+    function showUserMessage(message, type = 'info') {
+        const messageContainer = document.getElementById('user-messages');
+        if (!messageContainer) {
+            // 創建訊息容器
+            const container = document.createElement('div');
+            container.id = 'user-messages';
+            container.className = 'mb-3';
+            document.querySelector('.card-body').insertBefore(container, document.querySelector('.row.mb-4'));
+        }
+        
+        const messageEl = document.createElement('div');
+        messageEl.className = `alert alert-${type} alert-dismissible fade show`;
+        messageEl.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.getElementById('user-messages').appendChild(messageEl);
+        
+        // 自動移除訊息（除非是錯誤訊息）
+        if (type !== 'danger') {
+            setTimeout(() => {
+                if (messageEl.parentNode) {
+                    messageEl.remove();
+                }
+            }, 5000);
         }
     }
     
-    function fetchProgress() {
-        fetch(`/api/customers/import-progress/${sessionId}`)
-            .then(response => response.json())
-            .then(data => {
-                retryCount = 0;
-                
-                // 更新進度條
-                const progressBar = document.getElementById('progress-bar');
-                const progressText = document.getElementById('progress-text');
-                if (progressBar && progressText) {
-                    let percentage = parseFloat(data.progress_percentage || 0);
-                    percentage = Math.min(100, Math.max(0, percentage));
-                    
-                    progressBar.style.width = percentage + '%';
-                    progressText.textContent = percentage.toFixed(1) + '%';
-                    
-                    // 狀態樣式
-                    progressBar.className = 'progress-bar';
-                    if (data.status === 'completed') {
-                        progressBar.classList.add('bg-success');
-                    } else if (data.status === 'failed') {
-                        progressBar.classList.add('bg-danger');
-                    }
-                }
-                
-                // 更新統計數字
-                const elements = {
-                    'processed-count': data.processed_rows || 0,
-                    'success-count': data.success_count || 0,
-                    'error-count': data.error_count || 0,
-                    'remaining-count': data.remaining_rows || 0
-                };
-                
-                Object.entries(elements).forEach(([id, value]) => {
-                    const element = document.getElementById(id);
-                    if (element) {
-                        element.textContent = parseInt(value).toLocaleString();
-                    }
-                });
-                
-                // 更新處理時間
-                const processingTimeEl = document.getElementById('processing-time');
-                if (processingTimeEl && data.processing_time) {
-                    processingTimeEl.textContent = data.processing_time + ' 秒';
-                }
-                
-                // 更新狀態指示器
-                const statusIndicator = document.getElementById('status-indicator');
-                const processingMessage = document.getElementById('processing-message');
-                
-                if (data.status === 'processing' && statusIndicator) {
-                    statusIndicator.style.display = 'block';
-                    if (processingMessage) {
-                        const processed = parseInt(data.processed_rows || 0);
-                        const total = parseInt(data.total_rows || 1);
-                        const percent = total > 0 ? Math.round((processed / total) * 100) : 0;
-                        processingMessage.textContent = `已處理 ${percent}% (${processed.toLocaleString()}/${total.toLocaleString()} 筆)`;
-                    }
-                } else if (statusIndicator) {
-                    statusIndicator.style.display = 'none';
-                }
-                
-                // 更新錯誤訊息
-                if (data.error_messages && data.error_messages.length > 0) {
-                    const errorContainer = document.getElementById('error-messages');
-                    if (errorContainer) {
-                        errorContainer.innerHTML = data.error_messages.map(error => 
-                            `<div class="mb-1">${error}</div>`
-                        ).join('');
-                    }
-                }
-                
-                // 檢查是否完成
-                if (data.status === 'completed' || data.status === 'failed') {
-                    polling = false;
-                    
-                    if (data.status === 'completed') {
-                        setTimeout(() => {
-                            if (confirm(`匯入完成！成功 ${data.success_count} 筆，錯誤 ${data.error_count} 筆。是否要返回客戶列表？`)) {
-                                window.location.href = '{{ route("customers.index") }}';
-                            }
-                        }, 2000);
-                    }
-                } else {
-                    // 繼續輪詢
-                    setTimeout(fetchProgress, 3000);
-                }
-                
-            })
-            .catch(error => {
-                console.error('獲取進度失敗:', error);
-                retryCount++;
-                
-                if (retryCount < maxRetries) {
-                    const delay = baseDelay * Math.pow(2, retryCount);
-                    setTimeout(fetchProgress, delay);
-                } else {
-                    polling = false;
-                    console.error('網路連線多次失敗，停止輪詢');
-                }
-            });
+    // 改善的輪詢機制
+    function updateProgress() {
+        if (polling) {
+            console.log('輪詢已在進行中，跳過此次請求');
+            return;
+        }
+        
+        polling = true;
+        console.log(`開始進度更新 - 重試次數: ${retryCount}, 連續失敗: ${consecutiveFailures}`);
+        fetchProgress();
     }
     
+    // 計算指數退避延遲時間
+    function calculateDelay() {
+        const exponentialDelay = baseDelay * Math.pow(1.5, consecutiveFailures);
+        return Math.min(maxDelay, exponentialDelay);
+    }
+    
+    function fetchProgress() {
+        const startTime = Date.now();
+        
+        fetch(`/api/customers/import-progress/${sessionId}`, { 
+            cache: 'no-store',
+            headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            }
+        })
+        .then(response => {
+            const responseTime = Date.now() - startTime;
+            console.log(`API 響應時間: ${responseTime}ms, 狀態: ${response.status}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('✅ 進度更新成功:', {
+                sessionId: data.session_id,
+                status: data.status,
+                progress: data.progress_percentage + '%',
+                processed: data.processed_rows,
+                total: data.total_rows,
+                success: data.success_count,
+                errors: data.error_count,
+                lastUpdated: data.last_updated,
+                requestSessionId: sessionId,
+                sessionIdMatch: data.session_id === sessionId
+            });
+            
+            // 檢查 session_id 是否匹配
+            if (data.session_id && data.session_id !== sessionId) {
+                console.warn('⚠️ Session ID 不匹配:', {
+                    frontend: sessionId,
+                    backend: data.session_id
+                });
+                showUserMessage('⚠️ 會話ID不匹配，可能無法正確顯示進度', 'warning');
+            }
+            
+            // 重置錯誤計數
+            retryCount = 0;
+            consecutiveFailures = 0;
+            
+            // 更新進度條
+            updateProgressBar(data);
+            
+            // 更新統計數字
+            updateStatistics(data);
+            
+            // 更新處理時間
+            updateProcessingTime(data);
+            
+            // 更新狀態指示器
+            updateStatusIndicator(data);
+            
+            // 更新錯誤訊息
+            updateErrorMessages(data);
+            
+            // 檢查是否完成或需要繼續輪詢
+            handleProgressStatus(data);
+            
+        })
+        .catch(error => {
+            console.error('❌ 獲取進度失敗:', {
+                error: error.message,
+                sessionId: sessionId,
+                apiUrl: `/api/customers/import-progress/${sessionId}`,
+                retryCount: retryCount + 1,
+                consecutiveFailures: consecutiveFailures + 1,
+                timestamp: new Date().toISOString()
+            });
+            retryCount++;
+            consecutiveFailures++;
+            
+            // 根據錯誤類型給予不同的處理
+            let errorMessage = '連線失敗';
+            if (error.message.includes('HTTP 404')) {
+                errorMessage = '找不到匯入會話';
+            } else if (error.message.includes('HTTP 500')) {
+                errorMessage = '伺服器內部錯誤';
+            } else if (error.name === 'TypeError') {
+                errorMessage = '網路連線問題';
+            }
+            
+            if (consecutiveFailures === 3) {
+                showUserMessage(`⚠️ 進度更新遇到問題: ${errorMessage}，正在重試...`, 'warning');
+            }
+            
+            if (retryCount < maxRetries && consecutiveFailures < maxConsecutiveFailures) {
+                const delay = calculateDelay();
+                console.log(`${delay}ms 後重試 (${retryCount}/${maxRetries})`);
+                setTimeout(() => {
+                    polling = false;
+                    fetchProgress();
+                }, delay);
+            } else {
+                polling = false;
+                console.error(`達到最大重試次數或連續失敗次數，停止輪詢`);
+                showUserMessage(`❌ 無法獲取匯入進度，請手動刷新頁面或檢查網路連線`, 'danger');
+            }
+        });
+    }
+    
+    // 更新進度條
+    function updateProgressBar(data) {
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        if (progressBar && progressText) {
+            let percentage = parseFloat(data.progress_percentage || 0);
+            percentage = Math.min(100, Math.max(0, percentage));
+            
+            progressBar.style.width = percentage + '%';
+            progressText.textContent = percentage.toFixed(1) + '%';
+            
+            // 狀態樣式
+            progressBar.className = 'progress-bar progress-bar-striped';
+            if (data.status === 'completed') {
+                progressBar.classList.add('bg-success');
+                progressBar.classList.remove('progress-bar-striped');
+            } else if (data.status === 'failed') {
+                progressBar.classList.add('bg-danger');
+                progressBar.classList.remove('progress-bar-striped');
+            } else if (data.status === 'processing') {
+                progressBar.classList.add('progress-bar-animated');
+            }
+        }
+    }
+    
+    // 更新統計數字
+    function updateStatistics(data) {
+        const elements = {
+            'processed-count': data.processed_rows || 0,
+            'success-count': data.success_count || 0,
+            'error-count': data.error_count || 0,
+            'remaining-count': data.remaining_rows || 0
+        };
+        
+        Object.entries(elements).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                const newValue = parseInt(value).toLocaleString();
+                if (element.textContent !== newValue) {
+                    element.textContent = newValue;
+                    // 添加更新動畫效果
+                    element.style.color = '#28a745';
+                    setTimeout(() => {
+                        element.style.color = '';
+                    }, 1000);
+                }
+            }
+        });
+    }
+    
+    // 更新處理時間
+    function updateProcessingTime(data) {
+        const processingTimeEl = document.getElementById('processing-time');
+        if (processingTimeEl && data.processing_time) {
+            processingTimeEl.textContent = data.processing_time + ' 秒';
+        }
+    }
+    
+    // 更新狀態指示器
+    function updateStatusIndicator(data) {
+        const statusIndicator = document.getElementById('status-indicator');
+        const processingMessage = document.getElementById('processing-message');
+        
+        if (data.status === 'processing' && statusIndicator) {
+            statusIndicator.style.display = 'block';
+            if (processingMessage) {
+                const processed = parseInt(data.processed_rows || 0);
+                const total = parseInt(data.total_rows || 1);
+                const percent = total > 0 ? Math.round((processed / total) * 100) : 0;
+                processingMessage.textContent = `已處理 ${percent}% (${processed.toLocaleString()}/${total.toLocaleString()} 筆)`;
+            }
+        } else if (statusIndicator) {
+            statusIndicator.style.display = 'none';
+        }
+    }
+    
+    // 更新錯誤訊息
+    function updateErrorMessages(data) {
+        const errorWrapper = document.getElementById('error-container');
+        const errorContainer = document.getElementById('error-messages');
+        if (errorContainer && errorWrapper) {
+            if (data.error_messages && data.error_messages.length > 0) {
+                errorContainer.innerHTML = data.error_messages.map(error =>
+                    `<div class="mb-1">${error}</div>`
+                ).join('');
+                errorWrapper.style.display = 'block';
+            } else {
+                errorContainer.innerHTML = '';
+                errorWrapper.style.display = 'none';
+            }
+        }
+    }
+    
+    // 處理進度狀態
+    function handleProgressStatus(data) {
+        if (data.status === 'completed' || data.status === 'failed') {
+            polling = false;
+            console.log(`匯入已${data.status === 'completed' ? '完成' : '失敗'}`);
+            
+            if (data.status === 'completed') {
+                showUserMessage(`✅ 匯入完成！成功 ${data.success_count} 筆，錯誤 ${data.error_count} 筆`, 'success');
+                setTimeout(() => {
+                    if (confirm(`匯入完成！成功 ${data.success_count} 筆，錯誤 ${data.error_count} 筆。是否要返回客戶列表？`)) {
+                        window.location.href = '{{ route("customers.index") }}';
+                    }
+                }, 2000);
+            } else {
+                showUserMessage(`❌ 匯入失敗，請檢查錯誤訊息`, 'danger');
+            }
+        } else {
+            // 繼續輪詢，使用固定間隔
+            setTimeout(() => {
+                polling = false;
+                updateProgress();
+            }, 3000);
+        }
+    }
+    
+    // 手動刷新功能
+    window.updateProgress = function() {
+        console.log('手動刷新進度');
+        showUserMessage('🔄 正在刷新進度...', 'info');
+        polling = false;
+        retryCount = 0;
+        consecutiveFailures = 0;
+        updateProgress();
+    };
+    
     // 初始化
+    console.log('匯入進度頁面初始化', {
+        sessionId: sessionId,
+        sessionIdType: typeof sessionId,
+        sessionIdLength: sessionId?.length,
+        initialStatus: '{{ $session->status }}',
+        apiUrl: `/api/customers/import-progress/${sessionId}`,
+        currentUrl: window.location.href,
+        timestamp: new Date().toISOString()
+    });
+    
+    // 驗證 session_id 格式
+    if (!sessionId || sessionId.length !== 36) {
+        console.error('❌ 無效的 session_id 格式:', {
+            sessionId: sessionId,
+            expectedFormat: 'UUID (36 字元)',
+            actualLength: sessionId?.length || 0
+        });
+        showUserMessage('❌ 系統錯誤：無效的會話ID格式', 'danger');
+    }
+    
+    // 檢查是否需要啟動匯入處理
     if ('{{ $session->status }}' === 'pending') {
         console.log('啟動匯入處理');
-        // 先啟動匯入處理
         startImportProcess();
-    } else if (['processing', 'pending'].includes('{{ $session->status }}')) {
-        console.log('開始輪詢進度更新');
-        updateProgress();
+    } else {
+        // 直接開始輪詢
+        setTimeout(updateProgress, 1000);
     }
     
     // 啟動匯入處理
     function startImportProcess() {
+        console.log('開始啟動匯入處理');
+        
         fetch(`/api/customers/start-import/{{ $session->session_id }}`, {
             method: 'POST',
             headers: {
@@ -332,26 +528,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
             console.log('匯入已啟動:', data);
-            // 啟動後立即開始輪詢進度
-            setTimeout(() => {
-                updateProgress();
-            }, 2000); // 等待 2 秒後開始輪詢，讓匯入有時間開始
+            showUserMessage('🚀 匯入處理已開始', 'success');
+            
+            // 啟動後開始輪詢進度
+            setTimeout(updateProgress, 2000);
         })
         .catch(error => {
             console.error('啟動匯入失敗:', error);
-            // 即使啟動失敗，也嘗試輪詢進度（可能匯入已經在其他地方啟動）
-            setTimeout(() => {
-                updateProgress();
-            }, 3000);
+            showUserMessage('⚠️ 啟動匯入失敗，但將嘗試檢查進度', 'warning');
+            
+            // 即使啟動失敗，也嘗試輪詢進度
+            setTimeout(updateProgress, 3000);
         });
     }
     
     // 頁面離開時停止輪詢
     window.addEventListener('beforeunload', () => {
+        console.log('頁面即將離開，停止輪詢');
         polling = false;
+    });
+    
+    // 頁面可見性變化時的處理
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            console.log('頁面隱藏，暫停輪詢');
+        } else {
+            console.log('頁面重新可見，恢復輪詢');
+            if (!polling && '{{ $session->status }}' !== 'completed' && '{{ $session->status }}' !== 'failed') {
+                setTimeout(updateProgress, 1000);
+            }
+        }
     });
 });
 </script>

@@ -99,7 +99,7 @@
                                     <span class="badge bg-success">Line</span>
                                     @break
                                 @case('個管單')
-                                    <span class="badge bg-info">個管單</span>
+                                    <span class="badge bg-danger">個管單</span>
                                     @break
                                 @case('黑名單')
                                     <span class="badge bg-dark">黑名單</span>
@@ -126,6 +126,15 @@
                                 @case('cancelled')
                                     <span class="badge bg-danger">已取消</span>
                                     @break
+                                @case('cancelledOOC')
+                                    <span class="badge bg-danger">已取消-9999</span>
+                                    @break
+                                @case('cancelledNOC')
+                                    <span class="badge bg-danger">取消！</span>
+                                    @break
+                                @case('cancelledCOTD')
+                                    <span class="badge bg-danger">取消 X</span>
+                                    @break
                                 @default
                                     <span class="badge bg-secondary">未知</span>
                             @endswitch
@@ -138,8 +147,8 @@
                                 <a href="{{ route('orders.edit', array_merge(['order' => $order], request()->only(['keyword', 'start_date', 'end_date', 'customer_id']))) }}" class="btn btn-warning btn-sm" title="編輯">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                @if(in_array($order->status, ['open', 'assigned']))
-                                    <button type="button" class="btn btn-danger btn-sm" onclick="cancelOrder({{ $order->id }})" title="取消">
+                                @if(in_array($order->status, ['open', 'assigned', 'bkorder']) && !in_array($order->status, ['cancelled', 'cancelledOOC', 'cancelledNOC', 'cancelledCOTD']))
+                                    <button type="button" class="btn btn-danger btn-sm" onclick="showCancelModal({{ $order->id }})" title="取消">
                                         <i class="fas fa-ban"></i>
                                     </button>
                                 @endif
@@ -169,6 +178,42 @@
                 {{ $orders->appends(request()->only(['keyword', 'start_date', 'end_date', 'customer_id']))->links() }}
             </div>
         @endif
+    </div>
+</div>
+
+{{-- 取消訂單原因選擇 Modal --}}
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="cancelModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>取消訂單
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-4">請選擇取消原因：</p>
+                <div class="d-grid gap-2">
+                    <button type="button"  class="btn btn-outline-dark" onclick="cancelOrderWithReason('cancelled')">
+                        <i class="me-2"></i>一般取消
+                    </button>
+                    <button type="button"  class="btn btn-outline-dark" onclick="cancelOrderWithReason('cancelledOOC')">
+                        <i class="me-2"></i>別家有車
+                    </button>
+                    <button type="button"  class="btn btn-outline-dark" onclick="cancelOrderWithReason('cancelledNOC')">
+                        <i class="me-2"></i>！取消
+                    </button>
+                    <button type="button" class="btn btn-outline-dark" onclick="cancelOrderWithReason('cancelledCOTD')">
+                        <i class="me-2"></i>X 取消
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>取消
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -220,19 +265,36 @@
 
 {{-- 取消訂單 JavaScript 功能 --}}
 <script>
-function cancelOrder(orderId) {
-    // 顯示確認對話框
-    if (!confirm('確定要取消這筆訂單嗎？取消後無法復原。')) {
+let currentOrderId = null;
+
+// 顯示取消原因選擇 Modal
+function showCancelModal(orderId) {
+    currentOrderId = orderId;
+    const cancelModal = new bootstrap.Modal(document.getElementById('cancelModal'));
+    cancelModal.show();
+}
+
+// 使用指定原因取消訂單
+function cancelOrderWithReason(reason) {
+    if (!currentOrderId) {
+        alert('錯誤：無法取得訂單 ID');
         return;
     }
     
+    // 關閉 Modal
+    const cancelModal = bootstrap.Modal.getInstance(document.getElementById('cancelModal'));
+    cancelModal.hide();
+    
     // 發送 AJAX 請求
-    fetch(`/orders/${orderId}/cancel`, {
+    fetch(`/orders/${currentOrderId}/cancel`, {
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        }
+        },
+        body: JSON.stringify({
+            cancel_reason: reason
+        })
     })
     .then(response => response.json())
     .then(data => {
@@ -250,6 +312,9 @@ function cancelOrder(orderId) {
     .catch(error => {
         console.error('取消訂單失敗:', error);
         alert('❌ 取消失敗，請稍後再試');
+    })
+    .finally(() => {
+        currentOrderId = null; // 清除當前訂單 ID
     });
 }
 </script>

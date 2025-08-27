@@ -326,9 +326,9 @@ class OrdersImport implements ToCollection, WithChunkReading
             'order_type' => $this->fieldMapper->getRowValue($row, ['order_type', '訂單類型', 'type', '類型'], $this->headingRow),
             'service_company' => $this->fieldMapper->getRowValue($row, ['service_company', '服務公司', 'company', '公司'], $this->headingRow),
 
-            // 日期時間
-            'ride_date' => $this->dateTimeParser->parseDate($this->fieldMapper->getRowValue($row, ['ride_date', '用車日期', 'date', '日期'], $this->headingRow)),
-            'ride_time' => $this->dateTimeParser->parseTime($this->fieldMapper->getRowValue($row, ['ride_time', '用車時間', 'time', '時間'], $this->headingRow)),
+            // 日期時間 (增加調試日誌)
+            'ride_date' => $this->parseAndLogDate($row),
+            'ride_time' => $this->parseAndLogTime($row),
 
             // 客戶快照資訊
             'customer_id' => $customer ? $customer->id : null,
@@ -350,7 +350,7 @@ class OrdersImport implements ToCollection, WithChunkReading
             'driver_name' => $this->fieldMapper->getRowValue($row, ['driver_name', '駕駛姓名', '司機姓名'], $this->headingRow),
             'driver_fleet_number' => $this->fieldMapper->getRowValue($row, ['driver_fleet_number', '隊員編號', 'assigned_user_id', '駕駛隊編'], $this->headingRow),
             'driver_plate_number' => $this->fieldMapper->getRowValue($row, ['driver_plate_number', '車牌號碼', '車牌'], $this->headingRow),
-            'status' => $this->determineStatusFromDriver($this->fieldMapper->getRowValue($row, ['driver_fleet_number', '隊員編號', 'assigned_user_id'], $this->headingRow)),
+            'status' => $this->determineOrderStatus($row),
 
             // 其他資訊
             'special_status' => $this->fieldMapper->getRowValue($row, ['special_status', '特殊狀態', '特殊標記'], $this->headingRow),
@@ -398,12 +398,18 @@ class OrdersImport implements ToCollection, WithChunkReading
 
         } catch (\Illuminate\Database\QueryException $e) {
             // 處理資料庫相關錯誤
-            $this->errorMessages[] = "訂單 {$orderData['order_number']} 資料庫錯誤：".$this->simplifyDbError($e->getMessage());
+            $detailedError = $this->simplifyDbError($e->getMessage());
+            $this->errorMessages[] = "訂單 {$orderData['order_number']} 資料庫錯誤：{$detailedError}";
 
+            // 記錄詳細的資料庫錯誤訊息
             Log::channel('import')->error('訂單創建資料庫錯誤', [
                 'order_number' => $orderData['order_number'] ?? 'unknown',
-                'error' => $e->getMessage(),
+                'detailed_error' => $detailedError,
+                'raw_error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
                 'sql' => $e->getSql() ?? 'unknown',
+                'bindings' => config('app.debug') ? $e->getBindings() : null,
+                'order_data' => config('app.import_debug_log', false) ? $orderData : null,
             ]);
 
             return false;
@@ -432,29 +438,15 @@ class OrdersImport implements ToCollection, WithChunkReading
                 return $value !== null && $value !== '' && ! in_array($key, ['carpoolSearchInput']);
             }, ARRAY_FILTER_USE_BOTH);
 
-            // 驗證日期格式
-            if (isset($cleanData['ride_date'])) {
-                if (! $this->isValidDate($cleanData['ride_date'])) {
-                    $this->errorMessages[] = "訂單 {$orderData['order_number']} 日期格式錯誤：{$cleanData['ride_date']}";
-
-                    return false;
-                }
+            // 執行詳細的欄位驗證
+            $validationErrors = $this->validateOrderFields($cleanData, $orderData['order_number']);
+            if (!empty($validationErrors)) {
+                $this->errorMessages = array_merge($this->errorMessages, $validationErrors);
+                return false;
             }
 
-            // 驗證時間格式
-            if (isset($cleanData['ride_time'])) {
-                if (! $this->isValidTime($cleanData['ride_time'])) {
-                    $this->errorMessages[] = "訂單 {$orderData['order_number']} 時間格式錯誤：{$cleanData['ride_time']}";
-
-                    return false;
-                }
-            }
-
-            // 設置預設值
-            $cleanData['status'] = $cleanData['status'] ?? 'open';
-            $cleanData['companions'] = is_numeric($cleanData['companions'] ?? 0) ? (int) $cleanData['companions'] : 0;
-            $cleanData['wheelchair'] = in_array($cleanData['wheelchair'] ?? '', ['是', '否']) ? $cleanData['wheelchair'] : '未知';
-            $cleanData['stair_machine'] = in_array($cleanData['stair_machine'] ?? '', ['是', '否']) ? $cleanData['stair_machine'] : '未知';
+            // 設置預設值和資料清理
+            $cleanData = $this->applyDefaultValues($cleanData);
 
             return $cleanData;
 
@@ -463,6 +455,141 @@ class OrdersImport implements ToCollection, WithChunkReading
 
             return false;
         }
+    }
+
+    /**
+     * 驗證所有訂單欄位
+     */
+    private function validateOrderFields($data, $orderNumber)
+    {
+        $errors = [];
+
+        // 1. 驗證日期格式
+        if (isset($data['ride_date'])) {
+            if (!$this->isValidDate($data['ride_date'])) {
+                $errors[] = "訂單 {$orderNumber} → 用車日期: 格式錯誤 (目前值: {$data['ride_date']}) - 請使用 YYYY-MM-DD 格式，如: 2025-08-27";
+            }
+        }
+
+        // 2. 驗證時間格式
+        if (isset($data['ride_time'])) {
+            if (config('app.import_debug_log', false)) {
+                Log::channel('import')->debug('開始驗證訂單時間格式', [
+                    'order_number' => $orderNumber,
+                    'ride_time' => $data['ride_time'],
+                    'ride_time_type' => gettype($data['ride_time'])
+                ]);
+            }
+            
+            if (!$this->isValidTime($data['ride_time'])) {
+                $errors[] = "訂單 {$orderNumber} → 用車時間: 格式錯誤 (目前值: {$data['ride_time']}) - 請使用 HH:MM 或 HH:MM:SS 格式，如: 08:30, 08:30:00";
+            }
+        }
+
+        // 3. 驗證訂單狀態
+        if (isset($data['status'])) {
+            $validStatuses = ['open', 'assigned', 'bkorder', 'blocked', 'cancelled', 'cancelledOOC', 'cancelledNOC', 'cancelledCOTD'];
+            $validChineseStatuses = ['待派遣', '已指派', '已候補', '黑名單', '已取消', '一般取消', '別家有車', '!取消', 'X取消'];
+            
+            // 先嘗試轉換狀態
+            $convertedStatus = $this->fieldMapper->convertOrderStatus($data['status']);
+            
+            if (!in_array($convertedStatus, $validStatuses)) {
+                $allowedValues = implode(', ', $validChineseStatuses) . ' 或 ' . implode(', ', $validStatuses);
+                $errors[] = "訂單 {$orderNumber} → 訂單狀態: 無效值 (目前值: {$data['status']}) - 允許的值: {$allowedValues}";
+            } else {
+                // 更新為轉換後的英文值
+                $data['status'] = $convertedStatus;
+            }
+        }
+
+        // 4. 驗證輪椅需求
+        if (isset($data['wheelchair'])) {
+            $validValues = ['是', '否', '未知'];
+            if (!in_array($data['wheelchair'], $validValues)) {
+                $errors[] = "訂單 {$orderNumber} → 輪椅需求: 無效值 (目前值: {$data['wheelchair']}) - 允許的值: " . implode(', ', $validValues);
+            }
+        }
+
+        // 5. 驗證爬梯機需求
+        if (isset($data['stair_machine'])) {
+            $validValues = ['是', '否', '未知'];
+            if (!in_array($data['stair_machine'], $validValues)) {
+                $errors[] = "訂單 {$orderNumber} → 爬梯機需求: 無效值 (目前值: {$data['stair_machine']}) - 允許的值: " . implode(', ', $validValues);
+            }
+        }
+
+        // 6. 驗證陪同人數
+        if (isset($data['companions'])) {
+            if (!is_numeric($data['companions']) || $data['companions'] < 0 || $data['companions'] > 9) {
+                $errors[] = "訂單 {$orderNumber} → 陪同人數: 數值錯誤 (目前值: {$data['companions']}) - 必須是 0-9 之間的數字";
+            }
+        }
+
+        // 7. 驗證字串長度限制
+        $stringFields = [
+            'order_number' => ['label' => '訂單編號', 'max' => 255],
+            'customer_name' => ['label' => '客戶姓名', 'max' => 255],
+            'customer_phone' => ['label' => '客戶電話', 'max' => 255],
+            'customer_id_number' => ['label' => '客戶身分證', 'max' => 255],
+            'pickup_address' => ['label' => '上車地址', 'max' => 255],
+            'dropoff_address' => ['label' => '下車地址', 'max' => 255],
+            'driver_name' => ['label' => '駕駛姓名', 'max' => 255],
+            'driver_plate_number' => ['label' => '車牌號碼', 'max' => 255],
+            'driver_fleet_number' => ['label' => '隊員編號', 'max' => 255],
+            'service_company' => ['label' => '服務公司', 'max' => 255],
+            'order_type' => ['label' => '訂單類型', 'max' => 255]
+        ];
+
+        foreach ($stringFields as $field => $config) {
+            if (isset($data[$field]) && strlen($data[$field]) > $config['max']) {
+                $errors[] = "訂單 {$orderNumber} → {$config['label']}: 長度超限 (目前: " . strlen($data[$field]) . " 字符) - 最大允許 {$config['max']} 字符";
+            }
+        }
+
+        // 8. 驗證必填欄位
+        $requiredFields = [
+            'order_number' => '訂單編號',
+            'customer_name' => '客戶姓名',
+            'customer_phone' => '客戶電話',
+            'ride_date' => '用車日期',
+            'ride_time' => '用車時間',
+            'pickup_address' => '上車地址',
+            'dropoff_address' => '下車地址'
+        ];
+
+        foreach ($requiredFields as $field => $label) {
+            if (empty($data[$field])) {
+                $errors[] = "訂單 {$orderNumber} → {$label}: 必填欄位不能為空";
+            }
+        }
+
+        // 9. 驗證客戶ID是否存在(資料庫必填欄位)
+        if (empty($data['customer_id'])) {
+            $errors[] = "訂單 {$orderNumber} → 客戶記錄: 無法找到匹配的客戶資料 (姓名: {$data['customer_name']}, 電話: {$data['customer_phone']}) - 請確認客戶資料已存在於系統中";
+        }
+
+        return $errors;
+    }
+
+    /**
+     * 套用預設值
+     */
+    private function applyDefaultValues($data)
+    {
+        // 轉換狀態（支援中文輸入）
+        if (isset($data['status'])) {
+            $data['status'] = $this->fieldMapper->convertOrderStatus($data['status']);
+        } else {
+            $data['status'] = 'open'; // 預設為待派遣
+        }
+        
+        $data['companions'] = is_numeric($data['companions'] ?? 0) ? (int) $data['companions'] : 0;
+        $data['wheelchair'] = in_array($data['wheelchair'] ?? '', ['是', '否']) ? $data['wheelchair'] : '未知';
+        $data['stair_machine'] = in_array($data['stair_machine'] ?? '', ['是', '否']) ? $data['stair_machine'] : '未知';
+        $data['special_order'] = false; // 預設非特殊訂單
+
+        return $data;
     }
 
     /**
@@ -480,7 +607,7 @@ class OrdersImport implements ToCollection, WithChunkReading
     }
 
     /**
-     * 驗證時間格式
+     * 驗證時間格式 (支援 HH:MM 和 HH:MM:SS)
      */
     private function isValidTime($time)
     {
@@ -488,25 +615,166 @@ class OrdersImport implements ToCollection, WithChunkReading
             return false;
         }
 
-        return preg_match('/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/', $time);
+        // 記錄調試資訊
+        if (config('app.import_debug_log', false)) {
+            Log::channel('import')->debug('時間驗證開始', [
+                'time' => $time,
+                'type' => gettype($time)
+            ]);
+        }
+
+        $timeString = trim(strval($time));
+        
+        // 支援 HH:MM:SS 格式 (如: 05:30:00, 23:45:30)
+        if (preg_match('/^([0-1]?[0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])$/', $timeString, $matches)) {
+            $hour = intval($matches[1]);
+            $minute = intval($matches[2]);
+            $second = intval($matches[3]);
+            
+            $isValid = ($hour >= 0 && $hour <= 23) && 
+                      ($minute >= 0 && $minute <= 59) && 
+                      ($second >= 0 && $second <= 59);
+            
+            if (config('app.import_debug_log', false)) {
+                Log::channel('import')->debug('HH:MM:SS 格式驗證', [
+                    'time' => $time,
+                    'hour' => $hour,
+                    'minute' => $minute,
+                    'second' => $second,
+                    'is_valid' => $isValid
+                ]);
+            }
+            
+            return $isValid;
+        }
+        
+        // 支援 HH:MM 格式 (如: 05:30, 23:45)
+        if (preg_match('/^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/', $timeString, $matches)) {
+            $hour = intval($matches[1]);
+            $minute = intval($matches[2]);
+            
+            $isValid = ($hour >= 0 && $hour <= 23) && 
+                      ($minute >= 0 && $minute <= 59);
+            
+            if (config('app.import_debug_log', false)) {
+                Log::channel('import')->debug('HH:MM 格式驗證', [
+                    'time' => $time,
+                    'hour' => $hour,
+                    'minute' => $minute,
+                    'is_valid' => $isValid
+                ]);
+            }
+            
+            return $isValid;
+        }
+        
+        // 如果格式不匹配，記錄錯誤
+        if (config('app.import_debug_log', false)) {
+            Log::channel('import')->warning('時間格式不支援', [
+                'time' => $time,
+                'expected_formats' => ['HH:MM:SS', 'HH:MM'],
+                'example' => ['05:30:00', '23:45', '12:00:30']
+            ]);
+        }
+        
+        return false;
     }
 
     /**
-     * 簡化資料庫錯誤訊息
+     * 詳細解析資料庫錯誤訊息
      */
     private function simplifyDbError($error)
     {
+        // 解析重複資料錯誤
         if (strpos($error, 'Duplicate entry') !== false) {
+            if (preg_match("/Duplicate entry '(.+?)' for key '(.+?)'/", $error, $matches)) {
+                $value = $matches[1];
+                $key = $matches[2];
+                if (strpos($key, 'order_number') !== false) {
+                    return "訂單編號重複 (值: {$value}) - 此編號已存在於系統中";
+                }
+                return "重複的資料 (欄位: {$key}, 值: {$value})";
+            }
             return '重複的資料';
-        } elseif (strpos($error, 'cannot be null') !== false) {
-            return '必要欄位缺失';
-        } elseif (strpos($error, 'Data too long') !== false) {
-            return '資料長度超出限制';
-        } elseif (strpos($error, 'foreign key constraint') !== false) {
-            return '關聯資料不存在';
-        } else {
-            return '資料格式錯誤';
         }
+        
+        // 解析空值錯誤
+        if (strpos($error, 'cannot be null') !== false) {
+            if (preg_match("/Column '(.+?)' cannot be null/", $error, $matches)) {
+                $column = $matches[1];
+                $fieldMap = [
+                    'order_number' => '訂單編號',
+                    'customer_name' => '客戶姓名', 
+                    'customer_phone' => '客戶電話',
+                    'ride_date' => '用車日期',
+                    'ride_time' => '用車時間',
+                    'pickup_address' => '上車地址',
+                    'dropoff_address' => '下車地址',
+                    'created_by' => '建立者'
+                ];
+                $fieldName = $fieldMap[$column] ?? $column;
+                return "必要欄位缺失: {$fieldName} 不能為空";
+            }
+            return '必要欄位缺失';
+        }
+        
+        // 解析資料長度錯誤
+        if (strpos($error, 'Data too long') !== false) {
+            if (preg_match("/Data too long for column '(.+?)'/", $error, $matches)) {
+                $column = $matches[1];
+                $fieldMap = [
+                    'order_number' => ['name' => '訂單編號', 'max' => 255],
+                    'customer_name' => ['name' => '客戶姓名', 'max' => 255],
+                    'customer_phone' => ['name' => '客戶電話', 'max' => 255],
+                    'pickup_address' => ['name' => '上車地址', 'max' => 255],
+                    'dropoff_address' => ['name' => '下車地址', 'max' => 255],
+                ];
+                if (isset($fieldMap[$column])) {
+                    return "資料長度超限: {$fieldMap[$column]['name']} 超過 {$fieldMap[$column]['max']} 字符限制";
+                }
+                return "資料長度超限: {$column} 欄位資料過長";
+            }
+            return '資料長度超出限制';
+        }
+        
+        // 解析外鍵約束錯誤
+        if (strpos($error, 'foreign key constraint') !== false) {
+            if (strpos($error, 'customer_id') !== false) {
+                return '客戶ID不存在 - 請確認客戶資料是否已建立';
+            }
+            if (strpos($error, 'driver_id') !== false) {
+                return '駕駛ID不存在 - 請確認駕駛資料是否已建立';
+            }
+            return '關聯資料不存在';
+        }
+        
+        // 解析enum值錯誤
+        if (strpos($error, 'Data truncated') !== false || strpos($error, 'Incorrect') !== false) {
+            if (strpos($error, 'status') !== false) {
+                // 提取實際的错誤值
+                if (preg_match("/values \([^,]*,[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,\s*([^,]*)/", $error, $matches)) {
+                    $actualValue = trim($matches[1]);
+                    return "訂單狀態錯誤: 無效值 '{$actualValue}' - 允許的中文值: 待派遣, 已指派, 已候補, 黑名單, 已取消, 一般取消, 別家有車, !取消, X取消 或英文值: open, assigned, bkorder, blocked, cancelled, cancelledOOC, cancelledNOC, cancelledCOTD";
+                }
+                return '訂單狀態錯誤 - 允許的中文值: 待派遣, 已指派, 已候補, 黑名單, 已取消, 一般取消, 別家有車, !取消, X取消 或英文值: open, assigned, bkorder, blocked, cancelled, cancelledOOC, cancelledNOC, cancelledCOTD';
+            }
+            return '欄位值不符合規範';
+        }
+        
+        // 解析整數範圍錯誤
+        if (strpos($error, 'Out of range') !== false) {
+            if (strpos($error, 'companions') !== false) {
+                return '陪同人數超出範圍 - 必須是0-127之間的整數';
+            }
+            return '數值超出允許範圍';
+        }
+        
+        // 記錄未能解析的錯誤以便改進
+        Log::channel('import')->warning('未能解析的資料庫錯誤', [
+            'raw_error' => $error
+        ]);
+        
+        return '資料格式錯誤 - 請檢查資料是否符合系統要求';
     }
 
     /**
@@ -526,17 +794,36 @@ class OrdersImport implements ToCollection, WithChunkReading
     }
 
     /**
+     * 決定訂單狀態（結合Excel輸入和駕駛資訊）
+     */
+    private function determineOrderStatus($row)
+    {
+        // 1. 先檢查Excel中是否有明確的狀態輸入
+        $excelStatus = $this->fieldMapper->getRowValue($row, ['status', '訂單狀態', '狀態'], $this->headingRow);
+        
+        if (!empty($excelStatus)) {
+            // 使用Excel中輸入的狀態（支援中文轉換）
+            return $this->fieldMapper->convertOrderStatus($excelStatus);
+        }
+        
+        // 2. 如果Excel沒有狀態，根據駕駛資訊判斷
+        $driverFleetNumber = $this->fieldMapper->getRowValue($row, ['driver_fleet_number', '隊員編號', 'assigned_user_id', '駕駛隊編'], $this->headingRow);
+        
+        return $this->determineStatusFromDriver($driverFleetNumber);
+    }
+
+    /**
      * 從駕駛隊編判斷訂單狀態
      */
     private function determineStatusFromDriver($driverFleetNumber)
     {
         if (empty($driverFleetNumber)) {
-            return 'pending'; // 未指派駕駛
+            return 'open'; // 未指派駕駛，狀態為開放
         }
 
         $driver = Driver::where('fleet_number', $driverFleetNumber)->first();
         if (! $driver) {
-            return 'pending'; // 找不到駕駛
+            return 'open'; // 找不到駕駛，狀態為開放
         }
 
         // 根據駕駛狀態決定訂單狀態
@@ -546,7 +833,7 @@ class OrdersImport implements ToCollection, WithChunkReading
             case 'blacklisted':
                 return 'cancelled'; // 駕駛被拉黑，訂單取消
             default:
-                return 'pending'; // 其他情況待處理
+                return 'open'; // 其他情況狀態為開放
         }
     }
 
@@ -720,6 +1007,44 @@ class OrdersImport implements ToCollection, WithChunkReading
         }
 
         return $value;
+    }
+
+    /**
+     * 解析並記錄日期
+     */
+    private function parseAndLogDate($row)
+    {
+        $rawDate = $this->fieldMapper->getRowValue($row, ['ride_date', '用車日期', 'date', '日期'], $this->headingRow);
+        $parsedDate = $this->dateTimeParser->parseDate($rawDate);
+        
+        if (config('app.import_debug_log', false)) {
+            Log::channel('import')->debug('日期解析', [
+                'raw_date' => $rawDate,
+                'parsed_date' => $parsedDate
+            ]);
+        }
+        
+        return $parsedDate;
+    }
+    
+    /**
+     * 解析並記錄時間
+     */
+    private function parseAndLogTime($row)
+    {
+        $rawTime = $this->fieldMapper->getRowValue($row, ['ride_time', '用車時間', 'time', '時間'], $this->headingRow);
+        $parsedTime = $this->dateTimeParser->parseTime($rawTime);
+        
+        if (config('app.import_debug_log', false)) {
+            Log::channel('import')->debug('時間解析', [
+                'raw_time' => $rawTime,
+                'raw_time_type' => gettype($rawTime),
+                'parsed_time' => $parsedTime,
+                'parsed_time_type' => gettype($parsedTime)
+            ]);
+        }
+        
+        return $parsedTime;
     }
 
     /**

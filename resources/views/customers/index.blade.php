@@ -217,103 +217,93 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
-                    <label for="importFile" class="form-label">選擇 Excel 檔案</label>
-                    <input type="file" name="file" id="importFile" accept=".xlsx,.xls" class="form-control" required>
-                    <div class="form-text">支援 .xlsx 和 .xls 格式</div>
-                </div>
-                
-                <div class="mb-3">
-                    <label class="form-label">匯入方式</label>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="card border-primary">
-                                <div class="card-body text-center">
-                                    <h6 class="card-title text-primary">
-                                        <i class="fas fa-bolt me-2"></i>即時匯入
-                                    </h6>
-                                    <p class="card-text small">適用於少量資料（建議 < 1000 筆）</p>
-                                    <ul class="list-unstyled small text-muted">
-                                        <li>• 立即處理並顯示結果</li>
-                                        <li>• 處理時間：約 30-60 秒</li>
-                                        <li>• 瀏覽器等待期間</li>
-                                    </ul>
-                                    <button type="button" class="btn btn-primary btn-sm" onclick="submitImport('normal')">
-                                        選擇即時匯入
-                                    </button>
+                <form id="importForm" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="mb-3">
+                        <label for="importFile" class="form-label">選擇 Excel 檔案</label>
+                        <input type="file" name="file" id="importFile" accept=".xlsx,.xls" class="form-control" required>
+                        <div class="form-text">支援 .xlsx 和 .xls 格式</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">匯入方式</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card border-primary">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-primary">
+                                            <i class="fas fa-bolt me-2"></i>即時匯入
+                                        </h6>
+                                        <p class="card-text small">適用於少量資料（建議 < 1000 筆）</p>
+                                        <ul class="list-unstyled small text-muted">
+                                            <li>• 立即處理並顯示結果</li>
+                                            <li>• 處理時間：約 30-60 秒</li>
+                                            <li>• 瀏覽器等待期間</li>
+                                        </ul>
+                                        <button type="button" class="btn btn-primary btn-sm" onclick="submitImport('normal')">
+                                            選擇即時匯入
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <div class="card border-success">
-                                <div class="card-body text-center">
-                                    <h6 class="card-title text-success">
-                                        <i class="fas fa-clock me-2"></i>佇列匯入
-                                    </h6>
-                                    <p class="card-text small">適用於大量資料（建議 > 1000 筆）</p>
-                                    <ul class="list-unstyled small text-muted">
-                                        <li>• 背景處理，可監控進度</li>
-                                        <li>• 處理時間：約 3-5 分鐘</li>
-                                        <li>• 不會占用瀏覽器</li>
-                                    </ul>
-                                    <button type="button" class="btn btn-success btn-sm" onclick="submitImport('queued')">
-                                        選擇佇列匯入
-                                    </button>
-                                </div>
+
+                           <div class="col-md-6">
+                                <div class="card border-success">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-success">
+                                            <i class="fas fa-clock me-2"></i>佇列匯入
+                                        </h6>
+                                        <p class="card-text small">適用於大量資料（建議 > 1000 筆）</p>
+                                        <ul class="list-unstyled small text-muted">
+                                            <li>• 背景處理，可監控進度</li>
+                                            <li>• 處理時間：約 3-5 分鐘</li>
+                                            <li>• 不會占用瀏覽器</li>
+                                        </ul>
+                                        <button type="button" class="btn btn-success btn-sm" onclick="submitImport('queued')">
+                                            選擇佇列匯入
+                                        </button>
+                                    </div>
+                               </div>
                             </div>
                         </div>
                     </div>
+
+                    <div class="alert alert-info">
+                        <strong>💡 使用建議：</strong>
+                        <ul class="mb-0">
+                            <li>資料量 < 1000 筆：選擇「即時匯入」</li>
+                            <li>資料量 ≥ 1000 筆：選擇「佇列匯入」</li>
+                            <li>請先下載範例檔案，並按照範例格式填入資料</li>
+                        </ul>
+                    </div>
+                   </form>
                 </div>
-                
-                <div class="alert alert-info">
-                    <strong>💡 使用建議：</strong>
-                    <ul class="mb-0">
-                        <li>資料量 < 1000 筆：選擇「即時匯入」</li>
-                        <li>資料量 ≥ 1000 筆：選擇「佇列匯入」</li>
-                        <li>請先下載範例檔案，並按照範例格式填入資料</li>
-                    </ul>
-                </div>
-            </div>
             
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
             </div>
-            
-            <!-- 隱藏的表單 -->
-            <form id="normalImportForm" action="{{ route('customers.import') }}" method="POST" enctype="multipart/form-data" style="display: none;">
-                @csrf
-                <input type="file" name="file" id="normalImportFile">
-            </form>
-            
-            <form id="queuedImportForm" action="{{ route('customers.queuedImport') }}" method="POST" enctype="multipart/form-data" style="display: none;">
-                @csrf
-                <input type="file" name="file" id="queuedImportFile">
-            </form>
         </div>
     </div>
 </div>
 
 <script>
 function submitImport(type) {
-    const fileInput = document.getElementById('importFile');
-    const file = fileInput.files[0];
-    
-    if (!file) {
+        const form = document.getElementById('importForm');
+        const fileInput = document.getElementById('importFile');
+
+    if (!fileInput.files.length) {
         alert('請選擇要匯入的檔案');
         return;
     }
-    
+
     if (type === 'normal') {
-        // 即時匯入
-        document.getElementById('normalImportFile').files = fileInput.files;
-        document.getElementById('normalImportForm').submit();
+        form.action = "{{ route('customers.import') }}";
     } else if (type === 'queued') {
-        // 佇列匯入
-        document.getElementById('queuedImportFile').files = fileInput.files;
-        document.getElementById('queuedImportForm').submit();
+        form.action = "{{ route('customers.queuedImport') }}";    
     }
     
+    form.submit();
+
     // 關閉 modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('importModal'));
     modal.hide();
