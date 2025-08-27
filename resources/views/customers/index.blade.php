@@ -11,7 +11,22 @@
     <div class="card-body">
 
         @if (session('success'))
-            <div class="alert alert-success">{{ session('success') }}</div>
+            <div class="alert alert-success">
+                {{ session('success') }}
+                @if (session('import_stats'))
+                    @php $stats = session('import_stats'); @endphp
+                    <div class="mt-2 small">
+                        <strong>檔案：</strong>{{ $stats['filename'] }} |
+                        <strong>總處理：</strong>{{ number_format($stats['total_processed']) }} 筆 |
+                        <strong>成功：</strong>{{ number_format($stats['success_count']) }} 筆 |
+                        <strong>失敗：</strong>{{ number_format($stats['fail_count']) }} 筆
+                    </div>
+                @endif
+            </div>
+        @endif
+
+        @if (session('import_error'))
+            <div class="alert alert-danger">{{ session('import_error') }}</div>
         @endif
 
         @if (session('import_errors') && count(session('import_errors')) > 0)

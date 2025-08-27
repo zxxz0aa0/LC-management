@@ -88,7 +88,7 @@ class OrdersExport implements FromCollection, WithHeadings
             'open' => '可派遣',
             'assigned' => '已指派',
             'replacement' => '候補',
-            'cancelled' => '已取消'
+            'cancelled' => '已取消',
         ];
 
         return $statusMap[$status] ?? $status;

@@ -33,11 +33,18 @@ class ImportProgress extends Model
 
     public function getProgressPercentageAttribute()
     {
-        if ($this->total_rows === 0) {
+        // 處理總行數為0或負數的情況
+        if ($this->total_rows <= 0) {
             return 0;
         }
 
-        return round(($this->processed_rows / $this->total_rows) * 100, 2);
+        // 處理已處理行數為負數的情況
+        $processedRows = max(0, $this->processed_rows);
+        
+        // 確保進度不超過100%
+        $percentage = min(100, ($processedRows / $this->total_rows) * 100);
+        
+        return round($percentage, 2);
     }
 
     public function isCompleted()

@@ -2,8 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\OrdersExport;
+use App\Exports\OrderTemplateExport;
+use App\Exports\SimpleOrdersExport;
+use App\Exports\SimpleOrderTemplateExport;
 use App\Http\Requests\UpdateOrderRequest;
+use App\Imports\OrdersImport;
+use App\Imports\RowCountImport;
+use App\Jobs\ProcessOrderImportJob;
 use App\Models\Customer;
+use App\Models\ImportProgress;
 use App\Models\Landmark;
 use App\Models\Order;
 use App\Rules\UniqueOrderDateTime;
@@ -13,16 +21,9 @@ use App\Services\OrderNumberService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\ValidationException;
-use App\Exports\OrdersExport;
-use App\Exports\SimpleOrdersExport;
-use App\Exports\OrderTemplateExport;
-use App\Exports\SimpleOrderTemplateExport;
-use App\Imports\OrdersImport;
-use Maatwebsite\Excel\Facades\Excel;
-use App\Models\ImportProgress;
-use App\Imports\RowCountImport;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Maatwebsite\Excel\Facades\Excel;
 
 class OrderController extends Controller
 {
@@ -118,7 +119,7 @@ class OrderController extends Controller
                     'string',
                     'regex:/^(.+市|.+縣)(.+區|.+鄉|.+鎮).+$/u',
                 ],
-                'status' => 'required|in:open,assigned,replacement,blocked,cancelled',
+                'status' => 'required|in:open,assigned,bkorder,blocked,cancelled',
                 'companions' => 'required|integer|min:0',
                 'order_type' => 'required|string',
                 'service_company' => 'required|string',
@@ -278,7 +279,7 @@ class OrderController extends Controller
                     'required',
                     'array',
                     'min:1',
-                    'max:50'
+                    'max:50',
                 ];
                 $rules['selected_dates.*'] = 'date|after:today';
             } elseif ($request->input('date_mode') === 'recurring') {
@@ -294,7 +295,7 @@ class OrderController extends Controller
                 'date_mode' => $request->input('date_mode'),
                 'selected_dates' => $request->input('selected_dates'),
                 'has_selected_dates' => $request->has('selected_dates'),
-                'selected_dates_count' => is_array($request->input('selected_dates')) ? count($request->input('selected_dates')) : 0
+                'selected_dates_count' => is_array($request->input('selected_dates')) ? count($request->input('selected_dates')) : 0,
             ]);
 
             $validated = $request->validate($rules);
@@ -462,9 +463,9 @@ class OrderController extends Controller
     {
         try {
             // 檢查訂單狀態是否可以取消
-            $cancellableStatuses = ['open', 'assigned'];
-            
-            if (!in_array($order->status, $cancellableStatuses)) {
+            $cancellableStatuses = ['open', 'assigned', 'bkorder']; // 🔹允許取消的狀態
+
+            if (! in_array($order->status, $cancellableStatuses)) {
                 return response()->json([
                     'success' => false,
                     'message' => '此訂單狀態無法取消',
@@ -473,18 +474,18 @@ class OrderController extends Controller
 
             // 更新訂單狀態為已取消
             $order->update([
-                'status' => 'cancelled'
+                'status' => 'cancelled',
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => '訂單已成功取消',
-                'new_status' => 'cancelled'
+                'new_status' => 'cancelled',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => '取消失敗：' . $e->getMessage(),
+                'message' => '取消失敗：'.$e->getMessage(),
             ], 500);
         }
     }
@@ -1112,8 +1113,8 @@ class OrderController extends Controller
         $filePath = $request->file('file')->store('imports', 'local');
 
         // 預先讀取檔案計算總行數
-        $rowCounter = new RowCountImport();
-        Excel::import($rowCounter, storage_path('app/' . $filePath));
+        $rowCounter = new RowCountImport;
+        Excel::import($rowCounter, storage_path('app/'.$filePath));
         $totalRows = $rowCounter->getRowCount();
 
         // 建立進度記錄
@@ -1125,8 +1126,8 @@ class OrderController extends Controller
             'status' => 'pending',
         ]);
 
-        // 注意：這裡需要建立相對應的 ProcessOrderImportJob
-        // ProcessOrderImportJob::dispatch($batchId, $filePath);
+        // 派發佇列任務處理匯入
+        ProcessOrderImportJob::dispatch($batchId, $filePath);
 
         return redirect()->route('orders.import.progress', ['batchId' => $batchId])
             ->with('success', "匯入已開始處理，總共 {$totalRows} 筆資料。請稍候並監控進度。");
@@ -1136,7 +1137,7 @@ class OrderController extends Controller
     public function importProgress($batchId)
     {
         $progress = ImportProgress::where('batch_id', $batchId)->firstOrFail();
-        
+
         return view('orders.import-progress', compact('progress'));
     }
 
@@ -1144,11 +1145,11 @@ class OrderController extends Controller
     public function getImportProgress($batchId)
     {
         $progress = ImportProgress::where('batch_id', $batchId)->first();
-        
-        if (!$progress) {
+
+        if (! $progress) {
             return response()->json(['error' => '找不到匯入記錄'], 404);
         }
-        
+
         return response()->json($progress);
     }
 
@@ -1156,39 +1157,66 @@ class OrderController extends Controller
     public function startQueueWorker(Request $request)
     {
         $batchId = $request->input('batch_id');
-        
+
         // 檢查匯入記錄是否存在
         $importProgress = ImportProgress::where('batch_id', $batchId)->first();
-        
-        if (!$importProgress) {
+
+        if (! $importProgress) {
             return response()->json([
                 'success' => false,
-                'message' => '找不到匯入記錄'
+                'message' => '找不到匯入記錄',
             ], 404);
         }
-        
+
         // 檢查狀態是否為 pending
         if ($importProgress->status !== 'pending') {
             return response()->json([
                 'success' => false,
-                'message' => '任務已經在處理中或已完成'
+                'message' => '任務已經在處理中或已完成',
             ], 400);
         }
-        
+
         try {
-            // 使用 --once 參數只處理一個任務
-            $command = 'php artisan queue:work --once';
-            $output = shell_exec($command . ' 2>&1');
+            // 檢查匯入類型並啟動相應的處理
+            if ($importProgress->type === 'orders') {
+                // 訂單匯入：檢查是否有檔案路徑
+                $filePath = 'imports/' . $importProgress->batch_id . '.xlsx';
+                
+                if (!\Storage::exists($filePath)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => '匯入檔案不存在，請重新上傳',
+                    ], 404);
+                }
+                
+                // 如果Job還沒有被dispatch，這裡重新dispatch
+                ProcessOrderImportJob::dispatch($batchId, $filePath);
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => '訂單匯入處理已啟動，請稍候監控進度',
+                ]);
+            } else {
+                // 使用原有的queue:work方式處理客戶匯入
+                $command = 'php artisan queue:work --once';
+                $output = shell_exec($command.' 2>&1');
+
+                return response()->json([
+                    'success' => true,
+                    'message' => '佇列處理已啟動',
+                    'output' => $output,
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('啟動佇列處理失敗', [
+                'batch_id' => $batchId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             
             return response()->json([
-                'success' => true,
-                'message' => '佇列處理已啟動',
-                'output' => $output
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
                 'success' => false,
-                'message' => '啟動佇列處理失敗：' . $e->getMessage()
+                'message' => '啟動佇列處理失敗：'.$e->getMessage(),
             ], 500);
         }
     }

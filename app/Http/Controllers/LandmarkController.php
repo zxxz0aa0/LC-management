@@ -159,7 +159,7 @@ class LandmarkController extends Controller
             ->search($keyword);
 
         // 如果有指定分類且不是 'all'，則加入分類篩選
-        if (!empty($category) && $category !== 'all') {
+        if (! empty($category) && $category !== 'all') {
             $query->category($category);
         }
 
@@ -251,13 +251,13 @@ class LandmarkController extends Controller
     public function popular(Request $request)
     {
         $category = $request->get('category');
-        
+
         $query = Landmark::active()->popular()->limit(20);
-        
+
         if ($category && $category !== 'all') {
             $query->category($category);
         }
-        
+
         $landmarks = $query->get(['id', 'name', 'address', 'city', 'district', 'category', 'usage_count']);
 
         return response()->json([
@@ -283,7 +283,7 @@ class LandmarkController extends Controller
         }
 
         $query = Landmark::active()->whereIn('id', $ids);
-        
+
         if ($category && $category !== 'all') {
             $query->category($category);
         }

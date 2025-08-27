@@ -56,15 +56,17 @@ class SimpleOrdersExport implements FromCollection, WithHeadings
 
     private function formatAddress($fullAddress, $district)
     {
-        if (empty($fullAddress)) return '';
-        
+        if (empty($fullAddress)) {
+            return '';
+        }
+
         // 如果地址已經包含區域，移除重複的區域部分
         $address = $fullAddress;
-        if (!empty($district) && str_contains($address, $district)) {
+        if (! empty($district) && str_contains($address, $district)) {
             $address = str_replace($district, '', $address);
             $address = preg_replace('/^[縣市]+/', '', $address);
         }
-        
+
         return trim($address);
     }
 
@@ -79,7 +81,7 @@ class SimpleOrdersExport implements FromCollection, WithHeadings
             '黑名單' => '黑名單',
             '共乘單' => '共乘',
         ];
-        
+
         return $statusMap[$status] ?? '';
     }
 }

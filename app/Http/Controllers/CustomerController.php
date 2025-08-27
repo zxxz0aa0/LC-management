@@ -4,13 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Exports\CustomersExport;
 use App\Exports\CustomerTemplateExport;
+use App\Imports\CustomerImport;
 use App\Models\Customer;
+use App\Models\ImportSession;
+use App\Services\CustomerImportService;
 use Illuminate\Http\Request;
-use Maatwebsite\Excel\Facades\Excel;
-use App\Models\ImportProgress;
-use App\Imports\RowCountImport;
-use App\Jobs\ProcessCustomerImportJob;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Maatwebsite\Excel\Facades\Excel;
 
 class CustomerController extends Controller
 {
@@ -23,7 +25,7 @@ class CustomerController extends Controller
         if ($request->filled('keyword')) {
             $hasSearched = true;
             $keyword = trim($request->keyword); // 去除前後空格
-            
+
             if (strlen($keyword) >= 1) {
                 // 關鍵字有效，執行搜尋
                 $query = Customer::query();
@@ -48,7 +50,7 @@ class CustomerController extends Controller
     {
         return view('customers.create_customer', [
             'return_to' => $request->get('return_to'),
-            'search_params' => $request->only(['keyword', 'start_date', 'end_date', 'customer_id'])
+            'search_params' => $request->only(['keyword', 'start_date', 'end_date', 'customer_id']),
         ]);
     }
 
@@ -104,6 +106,7 @@ class CustomerController extends Controller
         // 根據 return_to 參數決定返回位置
         if ($request->get('return_to') === 'orders') {
             $searchParams = $request->only(['keyword', 'start_date', 'end_date', 'customer_id']);
+
             return redirect()->route('orders.index', $searchParams)->with('success', '客戶已建立');
         }
 
@@ -115,7 +118,7 @@ class CustomerController extends Controller
         return view('customers.edit', [
             'customer' => $customer,
             'return_to' => $request->get('return_to'),
-            'search_params' => $request->only(['keyword', 'start_date', 'end_date', 'customer_id'])
+            'search_params' => $request->only(['keyword', 'start_date', 'end_date', 'customer_id']),
         ]);
     }
 
@@ -167,6 +170,7 @@ class CustomerController extends Controller
         // 根據 return_to 參數決定返回位置
         if ($request->get('return_to') === 'orders') {
             $searchParams = $request->only(['keyword', 'start_date', 'end_date', 'customer_id']);
+
             return redirect()->route('orders.index', $searchParams)->with('success', '客戶已更新');
         }
 
@@ -186,92 +190,343 @@ class CustomerController extends Controller
         return Excel::download(new CustomersExport, 'customers.xlsx');
     }
 
-    // 處理匯入
+    /**
+     * 處理客戶匯入
+     */
     public function import(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls',
+            'file' => 'required|file|mimes:xlsx,xls|max:51200', // 最大50MB
         ]);
 
-        $importer = new \App\Imports\CustomersImport;
-        \Maatwebsite\Excel\Facades\Excel::import($importer, $request->file('file'));
+        try {
+            $file = $request->file('file');
+            $filename = $file->getClientOriginalName();
+            $fileSize = $file->getSize();
 
-        $success = $importer->successCount;
-        $fail = $importer->skipCount;
-        $errors = $importer->errorMessages;
+            Log::info('開始新客戶匯入', [
+                'filename' => $filename,
+                'file_size' => $fileSize,
+                'user_id' => auth()->id(),
+            ]);
 
-        return redirect()->route('customers.index')->with([
-            'success' => "匯入完成：成功 {$success} 筆，失敗 {$fail} 筆。",
-            'import_errors' => $errors,
-        ]);
+            // 儲存檔案
+            $filePath = $file->store('imports', 'local');
+
+            // 估算行數
+            $totalRows = $this->estimateRowCount($file);
+
+            // 建立匯入會話
+            $sessionId = Str::uuid()->toString();
+            $session = ImportSession::create([
+                'session_id' => $sessionId,
+                'type' => 'customers',
+                'filename' => $filename,
+                'file_path' => $filePath,
+                'total_rows' => $totalRows,
+                'status' => 'pending',
+                'created_by' => auth()->id(),
+            ]);
+
+            // 判斷匯入方式：小於1000筆直接處理，否則佇列處理
+            if ($totalRows < 1000) {
+                return $this->processImportDirectly($session, $filePath);
+            } else {
+                return $this->processImportWithQueue($session, $filePath);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('客戶匯入失敗', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return redirect()->back()->withErrors([
+                'file' => '匯入失敗：' . $e->getMessage()
+            ])->withInput();
+        }
     }
 
-    // 處理佇列匯入 (適用於大量資料)
+    /**
+     * 佇列匯入處理
+     */
     public function queuedImport(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls',
+            'file' => 'required|file|mimes:xlsx,xls|max:51200', // 最大50MB
         ]);
 
-        // 生成唯一批次ID
-        $batchId = Str::uuid()->toString();
-        $filename = $request->file('file')->getClientOriginalName();
+        try {
+            $file = $request->file('file');
+            $filename = $file->getClientOriginalName();
+            
+            Log::info('開始客戶佇列匯入', [
+                'filename' => $filename,
+                'file_size' => $file->getSize(),
+                'user_id' => auth()->id(),
+            ]);
 
-        // 儲存檔案
-        $filePath = $request->file('file')->store('imports', 'local');
+            // 儲存檔案
+            $filePath = $file->store('imports', 'local');
+            
+            // 預先讀取檔案計算總行數
+            $rowCounter = new \App\Imports\RowCountImport;
+            Excel::import($rowCounter, storage_path('app/'.$filePath));
+            $totalRows = $rowCounter->getRowCount();
 
-        // 預先讀取檔案計算總行數
-        $rowCounter = new RowCountImport();
-        \Maatwebsite\Excel\Facades\Excel::import($rowCounter, storage_path('app/' . $filePath));
-        $totalRows = $rowCounter->getRowCount();
+            // 生成會話ID
+            $sessionId = (string) Str::uuid();
 
-        // 建立進度記錄
-        $importProgress = ImportProgress::create([
-            'batch_id' => $batchId,
-            'type' => 'customers',
-            'filename' => $filename,
-            'total_rows' => $totalRows,
-            'status' => 'pending',
+            // 建立匯入會話記錄
+            $session = ImportSession::create([
+                'session_id' => $sessionId,
+                'type' => 'customers',
+                'filename' => $filename,
+                'file_path' => $filePath,
+                'total_rows' => $totalRows,
+                'processed_rows' => 0,
+                'success_count' => 0,
+                'error_count' => 0,
+                'error_messages' => [],
+                'status' => 'pending',
+                'created_by' => auth()->id(),
+            ]);
+
+            // 立即重定向到進度頁面，讓用戶看到進度監控介面
+            // 使用同步處理，但先重導向再執行匯入
+            return redirect()->route('customers.import.progress', ['sessionId' => $sessionId])
+                ->with('success', "匯入已開始處理，總共 {$totalRows} 筆資料。頁面將自動更新進度。");
+
+        } catch (\Exception $e) {
+            Log::error('客戶佇列匯入失敗', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return redirect()->back()->withErrors([
+                'file' => '佇列匯入失敗：' . $e->getMessage()
+            ])->withInput();
+        }
+    }
+
+    /**
+     * 直接處理匯入（小量資料）
+     */
+    private function processImportDirectly(ImportSession $session, string $filePath): \Illuminate\Http\RedirectResponse
+    {
+        try {
+            $importService = new CustomerImportService();
+            $importService->setImportSession($session);
+
+            // 讀取並處理檔案
+            $data = Excel::toCollection(new CustomerImport($session->id), storage_path('app/' . $filePath))->first();
+            $result = $importService->processImport($data);
+
+            // 清理檔案
+            Storage::delete($filePath);
+
+            $message = "匯入完成！成功：{$result['success']} 筆，錯誤：{$result['errors']} 筆";
+
+            return redirect()->route('customers.index')->with([
+                'success' => $message,
+                'import_errors' => $result['error_messages'],
+            ]);
+
+        } catch (\Exception $e) {
+            $session->update([
+                'status' => 'failed',
+                'error_messages' => ['直接匯入失敗：' . $e->getMessage()],
+                'completed_at' => now(),
+            ]);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * 佇列處理匯入（大量資料）
+     */
+    private function processImportWithQueue(ImportSession $session, string $filePath): \Illuminate\Http\RedirectResponse
+    {
+        // 加入佇列
+        Excel::queueImport(new CustomerImport($session->id), storage_path('app/' . $filePath));
+
+        Log::info('客戶匯入已加入佇列', [
+            'session_id' => $session->session_id,
+            'total_rows' => $session->total_rows,
         ]);
 
-        // 使用自定義 Job 加入佇列處理
-        ProcessCustomerImportJob::dispatch($batchId, $filePath);
-
-        return redirect()->route('customers.import.progress', ['batchId' => $batchId])
-            ->with('success', "匯入已開始處理，總共 {$totalRows} 筆資料。請稍候並監控進度。");
+        return redirect()->route('customers.import.progress', ['sessionId' => $session->session_id])
+            ->with('success', "大量匯入已開始處理，預計 {$session->total_rows} 筆資料。請監控進度。");
     }
 
-    // 查詢匯入進度
-    public function importProgress($batchId)
+    /**
+     * 估算 Excel 檔案行數
+     */
+    private function estimateRowCount($file): int
     {
-        $progress = ImportProgress::where('batch_id', $batchId)->firstOrFail();
-        
-        return view('customers.import-progress', compact('progress'));
+        try {
+            $tempPath = $file->store('temp', 'local');
+            $fullPath = storage_path('app/' . $tempPath);
+
+            $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx;
+            $reader->setReadDataOnly(true);
+            $reader->setReadEmptyCells(false);
+
+            $spreadsheet = $reader->load($fullPath);
+            $worksheet = $spreadsheet->getActiveSheet();
+
+            $highestRow = $worksheet->getHighestRow();
+            $highestColumn = $worksheet->getHighestColumn();
+
+            $actualDataRows = 0;
+            for ($row = 2; $row <= $highestRow; $row++) {
+                $hasData = false;
+                for ($col = 'A'; $col <= $highestColumn; $col++) {
+                    $cellValue = $worksheet->getCell($col . $row)->getValue();
+                    if (!empty(trim((string)$cellValue))) {
+                        $hasData = true;
+                        break;
+                    }
+                }
+                if ($hasData) {
+                    $actualDataRows++;
+                }
+            }
+
+            unset($spreadsheet, $worksheet);
+            Storage::delete(str_replace(storage_path('app/'), '', $tempPath));
+
+            return $actualDataRows;
+
+        } catch (\Exception $e) {
+            Log::warning('行數估算失敗，使用檔案大小估算', [
+                'error' => $e->getMessage(),
+                'file_size' => $file->getSize(),
+            ]);
+
+            return max(100, intval($file->getSize() / 800));
+        }
     }
 
-    // API: 取得匯入進度 JSON
-    public function getImportProgress($batchId)
+    /**
+     * 匯入進度頁面
+     */
+    public function importProgress(string $sessionId)
     {
-        $progress = ImportProgress::where('batch_id', $batchId)->first();
+        $session = ImportSession::where('session_id', $sessionId)->firstOrFail();
+        return view('customers.import-progress', compact('session'));
+    }
+    
+    /**
+     * 啟動匯入處理的 API 端點
+     */
+    public function startImportProcess(string $sessionId)
+    {
+        $session = ImportSession::where('session_id', $sessionId)->first();
         
-        if (!$progress) {
-            return response()->json(['error' => '找不到匯入記錄'], 404);
+        if (!$session) {
+            return response()->json(['error' => '找不到匯入會話'], 404);
+        }
+        
+        if ($session->status !== 'pending') {
+            return response()->json(['error' => '匯入會話狀態不正確'], 400);
+        }
+        
+        // 立即返回響應，然後在背景執行匯入
+        if (function_exists('fastcgi_finish_request')) {
+            // FastCGI 環境，先發送響應再執行匯入
+            $response = response()->json(['message' => '匯入已開始']);
+            
+            // 發送響應後執行匯入
+            fastcgi_finish_request();
+            
+            $this->executeImportProcess($session);
+            
+            return $response;
+        } else {
+            // 非 FastCGI 環境，延遲執行
+            register_shutdown_function(function () use ($session) {
+                $this->executeImportProcess($session);
+            });
+            
+            return response()->json(['message' => '匯入已開始']);
+        }
+    }
+    
+    /**
+     * 執行匯入處理
+     */
+    private function executeImportProcess(ImportSession $session)
+    {
+        try {
+            // 設定執行環境
+            ini_set('max_execution_time', 3600); // 1小時
+            ini_set('memory_limit', '2G'); // 2GB記憶體
+            set_time_limit(3600); // 1小時執行時間
+            
+            Log::info('開始執行客戶匯入處理', [
+                'session_id' => $session->session_id,
+                'filename' => $session->filename,
+            ]);
+            
+            // 開始匯入處理
+            $import = new \App\Imports\CustomerImport($session->session_id);
+            Excel::import($import, storage_path('app/' . $session->file_path));
+            
+            Log::info('客戶匯入處理完成', [
+                'session_id' => $session->session_id,
+                'total_rows' => $session->total_rows,
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('背景匯入處理失敗', [
+                'session_id' => $session->session_id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            // 標記會話為失敗
+            $session->update([
+                'status' => 'failed',
+                'error_messages' => ['匯入處理失敗：' . $e->getMessage()],
+                'completed_at' => now(),
+            ]);
+        }
+    }
+
+    /**
+     * 匯入進度 API
+     */
+    public function getImportProgress(string $sessionId)
+    {
+        $session = ImportSession::where('session_id', $sessionId)->first();
+
+        if (!$session) {
+            return response()->json(['error' => '找不到匯入會話'], 404);
         }
 
         return response()->json([
-            'batch_id' => $progress->batch_id,
-            'filename' => $progress->filename,
-            'total_rows' => $progress->total_rows,
-            'processed_rows' => $progress->processed_rows,
-            'success_count' => $progress->success_count,
-            'error_count' => $progress->error_count,
-            'status' => $progress->status,
-            'progress_percentage' => $progress->progress_percentage,
-            'error_messages' => $progress->error_messages,
-            'started_at' => $progress->started_at?->format('Y-m-d H:i:s'),
-            'completed_at' => $progress->completed_at?->format('Y-m-d H:i:s'),
+            'session_id' => $session->session_id,
+            'filename' => $session->filename,
+            'total_rows' => $session->total_rows,
+            'processed_rows' => $session->processed_rows,
+            'success_count' => $session->success_count,
+            'error_count' => $session->error_count,
+            'status' => $session->status,
+            'status_text' => $session->status_text,
+            'progress_percentage' => $session->progress_percentage,
+            'remaining_rows' => $session->remaining_rows,
+            'error_messages' => $session->error_messages,
+            'started_at' => $session->started_at?->format('Y-m-d H:i:s'),
+            'completed_at' => $session->completed_at?->format('Y-m-d H:i:s'),
+            'processing_time' => $session->processing_time,
         ]);
     }
+
+
+
+
 
     public function batchDelete(Request $request)
     {
@@ -336,55 +591,122 @@ class CustomerController extends Controller
         return Excel::download(new CustomerTemplateExport, '客戶匯入範例檔案.xlsx');
     }
 
+
+
     /**
-     * 啟動佇列處理
+     * 診斷佇列系統狀態
      */
-    public function startQueueWorker(Request $request)
+    public function diagnosticQueue()
     {
-        $batchId = $request->input('batch_id');
-        
-        // 檢查匯入記錄是否存在
-        $importProgress = ImportProgress::where('batch_id', $batchId)->first();
-        
-        if (!$importProgress) {
-            return response()->json([
-                'success' => false,
-                'message' => '找不到匯入記錄'
-            ], 404);
-        }
-        
-        // 檢查狀態是否為 pending
-        if ($importProgress->status !== 'pending') {
-            return response()->json([
-                'success' => false,
-                'message' => '任務已經在處理中或已完成'
-            ], 400);
-        }
-        
         try {
-            // 使用 --once 參數只處理一個任務
-            $command = 'php artisan queue:work --once';
-            
-            // 在 Windows 上使用 start 在背景執行
-            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                $command = "start /B $command";
-            } else {
-                $command = "$command > /dev/null 2>&1 &";
-            }
-            
-            // 執行命令
-            exec($command, $output, $returnCode);
-            
+            $diagnostics = [
+                'timestamp' => now()->toDateTimeString(),
+                'php_version' => PHP_VERSION,
+                'memory_limit' => ini_get('memory_limit'),
+                'max_execution_time' => ini_get('max_execution_time'),
+                'queue_driver' => config('queue.default'),
+            ];
+
+            // 檢查佇列資料表
+            $diagnostics['queue_stats'] = [
+                'pending_jobs' => \DB::table('jobs')->count(),
+                'failed_jobs' => \DB::table('failed_jobs')->count(),
+                'jobs_details' => \DB::table('jobs')->get(['id', 'queue', 'attempts', 'created_at', 'available_at']),
+            ];
+
+            // 檢查匯入進度
+            $recentImports = ImportSession::latest()->take(5)->get([
+                'session_id', 'type', 'status', 'total_rows', 'processed_rows',
+                'success_count', 'error_count', 'started_at', 'completed_at', 'created_at',
+            ]);
+            $diagnostics['recent_imports'] = $recentImports;
+
+            // 檢查系統狀態
+            $diagnostics['system_info'] = [
+                'os' => PHP_OS,
+                'working_directory' => getcwd(),
+                'php_binary' => PHP_BINARY,
+                'artisan_path' => base_path('artisan'),
+                'storage_path' => storage_path(),
+                'current_memory_usage' => memory_get_usage(true) / 1024 / 1024 .' MB',
+            ];
+
+            // 檢查必要的目錄和檔案
+            $diagnostics['file_checks'] = [
+                'artisan_exists' => file_exists(base_path('artisan')),
+                'storage_writable' => is_writable(storage_path()),
+                'imports_dir_exists' => is_dir(storage_path('app/imports')),
+                'imports_dir_writable' => is_writable(storage_path('app/imports')),
+            ];
+
+            \Log::info('佇列診斷執行', $diagnostics);
+
             return response()->json([
                 'success' => true,
-                'message' => '佇列處理已啟動，請稍候查看進度更新',
-                'command' => $command
+                'diagnostics' => $diagnostics,
             ]);
-            
+
         } catch (\Exception $e) {
+            \Log::error('佇列診斷失敗', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => '啟動佇列處理失敗：' . $e->getMessage()
+                'message' => '診斷失敗：'.$e->getMessage(),
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * 手動執行單一佇列任務（用於測試）
+     */
+    public function runSingleJob()
+    {
+        try {
+            $job = \DB::table('jobs')->first();
+            if (! $job) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '沒有找到待執行的佇列任務',
+                ]);
+            }
+
+            \Log::info('手動執行佇列任務', [
+                'job_id' => $job->id,
+                'queue' => $job->queue,
+                'attempts' => $job->attempts,
+            ]);
+
+            // 使用 Artisan 命令直接處理一個任務
+            \Artisan::call('queue:work', [
+                '--once' => true,
+                '--timeout' => 7200,
+                '--memory' => 2048,
+                '--verbose' => true,
+            ]);
+
+            $output = \Artisan::output();
+
+            return response()->json([
+                'success' => true,
+                'message' => '佇列任務執行完成',
+                'artisan_output' => $output,
+                'remaining_jobs' => \DB::table('jobs')->count(),
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('手動執行佇列任務失敗', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => '執行失敗：'.$e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

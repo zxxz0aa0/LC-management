@@ -49,7 +49,7 @@ class UpdateOrderRequest extends FormRequest
                 'string',
                 'regex:/^(.+市|.+縣)(.+區|.+鄉|.+鎮).+$/u',
             ],
-            'status' => 'required|in:open,assigned,replacement,blocked,cancelled',
+            'status' => 'required|in:open,assigned,bkorder,blocked,cancelled',
             'companions' => 'required|integer|min:0',
             'order_type' => 'required|string',
             'service_company' => 'required|string',

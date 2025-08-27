@@ -534,8 +534,7 @@
                     <select name="status" class="form-select">
                         <option value="open" {{ old('status', isset($order) ? $order->status : 'open') == 'open' ? 'selected' : '' }}>可派遣</option>
                         <option value="assigned" {{ old('status', isset($order) ? $order->status : 'open') == 'assigned' ? 'selected' : '' }}>已指派</option>
-                        <option value="replacement" {{ old('status', isset($order) ? $order->status : 'open') == 'replacement' ? 'selected' : '' }}>候補</option>
-                        <option value="cancelled" {{ old('status', isset($order) ? $order->status : 'open') == 'cancelled' ? 'selected' : '' }}>已取消</option>
+                        <option value="bkorder" {{ old('status', isset($order) ? $order->status : 'open') == 'bkorder' ? 'selected' : '' }}>已候補</option>                      
                     </select>
                 </div>
                 <div class="col-md-4">

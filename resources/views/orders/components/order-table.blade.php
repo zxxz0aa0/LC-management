@@ -120,8 +120,8 @@
                                 @case('assigned')
                                     <span class="badge bg-primary">已指派</span>
                                     @break
-                                @case('replacement')
-                                    <span class="badge bg-warning">候補</span>
+                                @case('bkorder')
+                                    <span class="badge bg-warning">已候補</span>
                                     @break
                                 @case('cancelled')
                                     <span class="badge bg-danger">已取消</span>

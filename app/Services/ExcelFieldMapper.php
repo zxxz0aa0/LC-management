@@ -47,13 +47,13 @@ class ExcelFieldMapper
     public function getRowValue($row, array $possibleKeys, $headingRow)
     {
         $rowArray = $row->toArray();
-        
+
         // 遍歷所有標題，尋找匹配的欄位
         foreach ($headingRow as $index => $header) {
             foreach ($possibleKeys as $key) {
                 if ($this->isHeaderMatch($header, $key)) {
                     $value = isset($rowArray[$index]) ? trim($rowArray[$index]) : '';
-                    
+
                     // 只在除錯模式或有設定時記錄詳細映射日誌
                     if (config('app.import_debug_log', false)) {
                         Log::debug('欄位映射匹配', [
@@ -63,19 +63,19 @@ class ExcelFieldMapper
                             'possible_keys' => $possibleKeys,
                             'raw_value' => isset($rowArray[$index]) ? $rowArray[$index] : null,
                             'trimmed_value' => $value,
-                            'is_empty' => empty($value)
+                            'is_empty' => empty($value),
                         ]);
                     }
-                    
+
                     return $value;
                 }
             }
         }
-        
+
         // 記錄未找到映射的情況（保留為警告等級，因為這可能是問題）
         Log::warning('欄位映射未找到', [
             'searching_for' => $possibleKeys,
-            'available_headers' => $headingRow
+            'available_headers' => $headingRow,
         ]);
 
         return '';
@@ -88,17 +88,17 @@ class ExcelFieldMapper
     {
         $header = trim($header);
         $targetKey = trim($targetKey);
-        
+
         // 完全匹配
         if ($header === $targetKey) {
             return true;
         }
-        
+
         // 包含關係檢查
         if (strpos($header, $targetKey) !== false || strpos($targetKey, $header) !== false) {
             return true;
         }
-        
+
         // 中文關鍵字映射檢查
         foreach ($this->fieldMappings as $chinese => $keywords) {
             if ($targetKey === $chinese || in_array($targetKey, $keywords)) {
@@ -114,7 +114,7 @@ class ExcelFieldMapper
                 }
             }
         }
-        
+
         return false;
     }
 
@@ -126,10 +126,10 @@ class ExcelFieldMapper
         // 檢查標題列是否包含簡化格式的特有欄位組合
         $simpleFields = ['姓名', 'name', '上車區', 'origin_area', '下車區', 'dest_area', '隊員編號', 'assigned_user_id'];
         $fullFields = ['customer_name', '客戶姓名', 'pickup_county', 'dropoff_county'];
-        
+
         $simpleFieldCount = 0;
         $fullFieldCount = 0;
-        
+
         foreach ($simpleFields as $field) {
             foreach ($headingRow as $header) {
                 if ($this->isHeaderMatch($header, $field)) {
@@ -138,7 +138,7 @@ class ExcelFieldMapper
                 }
             }
         }
-        
+
         foreach ($fullFields as $field) {
             foreach ($headingRow as $header) {
                 if ($this->isHeaderMatch($header, $field)) {
@@ -147,15 +147,15 @@ class ExcelFieldMapper
                 }
             }
         }
-        
+
         if (config('app.import_debug_log', false)) {
             Log::debug('格式偵測', [
                 'simple_field_count' => $simpleFieldCount,
                 'full_field_count' => $fullFieldCount,
-                'is_simple_format' => $simpleFieldCount > $fullFieldCount
+                'is_simple_format' => $simpleFieldCount > $fullFieldCount,
             ]);
         }
-        
+
         return $simpleFieldCount > $fullFieldCount;
     }
 
@@ -166,7 +166,7 @@ class ExcelFieldMapper
     {
         $requiredFields = [
             'order_number' => '訂單編號',
-            'customer_name' => '客戶姓名', 
+            'customer_name' => '客戶姓名',
             'customer_phone' => '客戶電話',
             'ride_date' => '用車日期',
             'ride_time' => '用車時間',
@@ -208,8 +208,9 @@ class ExcelFieldMapper
     {
         $suggestions = [];
         foreach ($this->fieldMappings as $chinese => $englishKeys) {
-            $suggestions[] = $chinese . ' (' . implode(', ', array_slice($englishKeys, 0, 2)) . ')';
+            $suggestions[] = $chinese.' ('.implode(', ', array_slice($englishKeys, 0, 2)).')';
         }
+
         return $suggestions;
     }
 }
