@@ -3,15 +3,29 @@
 namespace App\Exports;
 
 use App\Models\Order;
+use Illuminate\Http\Request;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
 class SimpleOrdersExport implements FromCollection, WithHeadings
 {
+    protected $request;
+
+    public function __construct(Request $request = null)
+    {
+        $this->request = $request;
+    }
+
     public function collection()
     {
-        return Order::with(['customer', 'driver'])
-            ->orderBy('ride_date', 'desc')
+        $query = Order::with(['customer', 'driver']);
+        
+        // 如果有篩選參數，應用篩選條件
+        if ($this->request) {
+            $query = $query->filter($this->request);
+        }
+        
+        return $query->orderBy('ride_date', 'desc')
             ->orderBy('ride_time', 'desc')
             ->get()
             ->map(function ($order) {
@@ -19,7 +33,7 @@ class SimpleOrdersExport implements FromCollection, WithHeadings
                     'order_code' => $order->order_number,
                     'name' => $order->customer_name,
                     'phone' => $order->customer_phone,
-                    'unit_number' => $order->customer_id_number ?: $order->order_number,
+                    'unit_number' => $order->customer_id_number ? (($order->order_type === '新北長照' ? 'NT' : ($order->order_type === '台北長照' ? 'TP' : '')) . substr($order->customer_id_number, -5)) : '',
                     'type' => $order->order_type,
                     'date' => $order->ride_date ? $order->ride_date->format('Y-m-d') : '',
                     'time' => $order->ride_time ? \Carbon\Carbon::parse($order->ride_time)->format('H:i') : '',
@@ -40,7 +54,7 @@ class SimpleOrdersExport implements FromCollection, WithHeadings
             '訂單編號',
             '姓名',
             '電話',
-            '編號',
+            '身分證',
             '類型',
             '日期',
             '時間',
@@ -54,21 +68,31 @@ class SimpleOrdersExport implements FromCollection, WithHeadings
         ];
     }
 
-    private function formatAddress($fullAddress, $district)
-    {
-        if (empty($fullAddress)) {
-            return '';
+        private function formatAddress($fullAddress, $district)
+        {
+            if (empty($fullAddress)) {
+                return '';
+            }
+
+            $address = $fullAddress;
+
+            // 1) 若地址中已含指定區名，先只移除「第一次」出現，避免路名誤刪
+            if (!empty($district) && str_contains($address, $district)) {
+                $safeDistrict = preg_quote($district, '/');
+                $address = preg_replace('/' . $safeDistrict . '/', '', $address, 1);
+            }
+
+            // 2) 無論是否有區名，一律移除開頭的「XXX市 / XXX縣」
+            //    例：新北市板橋區XX路100號 -> 板橋區XX路100號
+            //        宜蘭縣羅東鎮中山路一段10號 -> 羅東鎮中山路一段10號
+            $address = preg_replace('/^[\p{Han}]+(?:縣|市)/u', '', $address);
+
+            // 3) 清理前後多餘符號/空白
+            $address = trim($address, " \t\n\r\0\x0B-、，,／/");
+
+            return trim($address);
         }
 
-        // 如果地址已經包含區域，移除重複的區域部分
-        $address = $fullAddress;
-        if (! empty($district) && str_contains($address, $district)) {
-            $address = str_replace($district, '', $address);
-            $address = preg_replace('/^[縣市]+/', '', $address);
-        }
-
-        return trim($address);
-    }
 
     private function mapSpecialStatus($status)
     {

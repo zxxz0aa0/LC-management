@@ -181,6 +181,18 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Import Debug Logging
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, detailed logging will be written during import processes
+    | to help debug field mapping and data processing issues.
+    |
+    */
+
+    'import_debug_log' => env('IMPORT_DEBUG_LOG', false),
+
     'aliases' => Facade::defaultAliases()->merge([
         // 'Example' => App\Facades\Example::class,
     ])->toArray(),

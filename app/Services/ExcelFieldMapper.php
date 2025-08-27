@@ -14,18 +14,18 @@ class ExcelFieldMapper
      * 中文關鍵字映射表
      */
     private $fieldMappings = [
-        '訂單編號' => ['order_number', 'order_code', '編號', '單號'],
+        '訂單編號' => ['order_number', 'order_code', '單號'],
         '客戶姓名' => ['customer_name', 'name', '姓名', '客戶'],
         '客戶電話' => ['customer_phone', 'phone', 'tel', '電話', '聯絡'],
         '用車日期' => ['ride_date', 'date', '日期'],
         '用車時間' => ['ride_time', 'time', '時間'],
-        '上車地址' => ['pickup_address', 'origin_address', '上車地址', '起點地址', 'pickup'],
-        '下車地址' => ['dropoff_address', 'destination_address', '下車地址', '終點地址', 'dropoff', 'destination', 'dest'],
+        '上車地址' => ['pickup_address', 'origin_address', '上車地址', '起點地址'],
+        '下車地址' => ['dropoff_address', 'destination_address', '下車地址', '終點地址', 'destination', 'dest'],
         '上車區' => ['pickup_district', 'origin_area', 'pickup_area', '上車區域', '上車區', 'origin_district'],
         '下車區' => ['dropoff_district', 'dest_area', 'dropoff_area', '下車區域', '下車區', 'dest_district'],
         '服務公司' => ['service_company', 'company', '公司'],
         '訂單類型' => ['order_type', 'type', '類型'],
-        '身分證' => ['customer_id_number', '身分證', '編號', 'unit_number'],
+        '身分證' => ['customer_id_number', '身分證', 'unit_number'],
         '身分別' => ['identity', '身份別'],
         '輪椅' => ['wheelchair', '輪椅需求'],
         '爬梯機' => ['stair_machine', '爬梯機需求'],
@@ -115,11 +115,6 @@ class ExcelFieldMapper
 
         // 完全匹配
         if ($header === $targetKey) {
-            return true;
-        }
-
-        // 包含關係檢查
-        if (strpos($header, $targetKey) !== false || strpos($targetKey, $header) !== false) {
             return true;
         }
 

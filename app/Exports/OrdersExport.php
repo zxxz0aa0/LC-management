@@ -3,15 +3,29 @@
 namespace App\Exports;
 
 use App\Models\Order;
+use Illuminate\Http\Request;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
 class OrdersExport implements FromCollection, WithHeadings
 {
+    protected $request;
+
+    public function __construct(Request $request = null)
+    {
+        $this->request = $request;
+    }
+
     public function collection()
     {
-        return Order::with(['customer', 'driver'])
-            ->orderBy('ride_date', 'desc')
+        $query = Order::with(['customer', 'driver']);
+        
+        // 如果有篩選參數，應用篩選條件
+        if ($this->request) {
+            $query = $query->filter($this->request);
+        }
+        
+        return $query->orderBy('ride_date', 'desc')
             ->orderBy('ride_time', 'desc')
             ->get()
             ->map(function ($order) {

@@ -1086,15 +1086,15 @@ class OrderController extends Controller
     }
 
     // 匯出 Excel (完整格式)
-    public function export()
+    public function export(Request $request)
     {
-        return Excel::download(new OrdersExport, 'orders.xlsx');
+        return Excel::download(new OrdersExport($request), 'orders.xlsx');
     }
 
     // 匯出 Excel (簡化格式)
-    public function exportSimple()
+    public function exportSimple(Request $request)
     {
-        return Excel::download(new SimpleOrdersExport, 'orders_simple.xlsx');
+        return Excel::download(new SimpleOrdersExport($request), 'orders_simple.xlsx');
     }
 
     // 處理匯入

@@ -232,8 +232,8 @@ class OrdersImport implements ToCollection, WithChunkReading
         $pickupCounty = $this->addressResolver->inferCountyFromArea($pickupArea);
         $dropoffCounty = $this->addressResolver->inferCountyFromArea($dropoffArea);
 
-        $pickupFullAddress = $this->addressResolver->buildFullAddress($pickupArea, $pickupAddress);
-        $dropoffFullAddress = $this->addressResolver->buildFullAddress($dropoffArea, $dropoffAddress);
+        $pickupFullAddress = $pickupAddress;
+        $dropoffFullAddress = $dropoffAddress;
 
         if (config('app.import_debug_log', false)) {
             Log::channel('import')->debug('簡化格式最終地址欄位', [
@@ -307,10 +307,12 @@ class OrdersImport implements ToCollection, WithChunkReading
             ? ['name', '姓名', 'customer_name']
             : ['customer_name', 'name', '客戶姓名', '姓名'];
 
+        $customerIdNumber = $this->fieldMapper->getRowValue($row, ['customer_id_number', '身分證', '編號', 'unit_number'], $this->headingRow);
+
         return [
             'name' => $this->fieldMapper->getRowValue($row, $nameKeys, $this->headingRow),
             'phone' => $this->fieldMapper->getRowValue($row, ['customer_phone', 'phone', 'tel', '客戶電話', '電話', '聯絡'], $this->headingRow),
-            'id_number' => $this->fieldMapper->getRowValue($row, ['customer_id_number', '身分證', '編號', 'unit_number'], $this->headingRow),
+            'customer_id_number' => $customerIdNumber,
             'identity' => $this->fieldMapper->getRowValue($row, ['identity', '身分別'], $this->headingRow),
         ];
     }
@@ -322,7 +324,7 @@ class OrdersImport implements ToCollection, WithChunkReading
     {
         return [
             // 基本訂單資訊
-            'order_number' => $this->fieldMapper->getRowValue($row, ['order_number', 'order_code', '訂單編號', '編號', '單號'], $this->headingRow),
+            'order_number' => $this->fieldMapper->getRowValue($row, ['order_number', 'order_code', '訂單編號', '單號'], $this->headingRow),
             'order_type' => $this->fieldMapper->getRowValue($row, ['order_type', '訂單類型', 'type', '類型'], $this->headingRow),
             'service_company' => $this->fieldMapper->getRowValue($row, ['service_company', '服務公司', 'company', '公司'], $this->headingRow),
 
@@ -334,7 +336,7 @@ class OrdersImport implements ToCollection, WithChunkReading
             'customer_id' => $customer ? $customer->id : null,
             'customer_name' => $customerData['name'],
             'customer_phone' => $customerData['phone'],
-            'customer_id_number' => $customerData['id_number'],
+            'customer_id_number' => $customerData['customer_id_number'],
             'identity' => $customerData['identity'],
 
             // 特殊需求
