@@ -20,6 +20,7 @@ use App\Services\CarpoolGroupService;
 use App\Services\OrderNumberService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -1148,6 +1149,7 @@ class OrderController extends Controller
             'batch_id' => $batchId,
             'type' => 'orders',
             'filename' => $filename,
+            'file_path' => $filePath,
             'total_rows' => $totalRows,
             'status' => 'pending',
         ]);
@@ -1205,23 +1207,55 @@ class OrderController extends Controller
         try {
             // 檢查匯入類型並啟動相應的處理
             if ($importProgress->type === 'orders') {
-                // 訂單匯入：檢查是否有檔案路徑
-                $filePath = 'imports/' . $importProgress->batch_id . '.xlsx';
+                // 訂單匯入：使用資料庫中存儲的檔案路徑
+                $filePath = $importProgress->file_path;
                 
-                if (!\Storage::exists($filePath)) {
+                if (!$filePath || !\Storage::exists($filePath)) {
                     return response()->json([
                         'success' => false,
                         'message' => '匯入檔案不存在，請重新上傳',
                     ], 404);
                 }
                 
-                // 如果Job還沒有被dispatch，這裡重新dispatch
+                // 派發佇列任務處理匯入
                 ProcessOrderImportJob::dispatch($batchId, $filePath);
                 
-                return response()->json([
-                    'success' => true,
-                    'message' => '訂單匯入處理已啟動，請稍候監控進度',
-                ]);
+                // 立即執行佇列任務
+                try {
+                    Log::info('開始執行佇列任務', ['batch_id' => $batchId]);
+                    
+                    // 使用 Artisan::call 立即處理佇列任務
+                    Artisan::call('queue:work', [
+                        '--once' => true,           // 只處理一個任務後停止
+                        '--timeout' => 7200,        // 2小時超時
+                        '--memory' => 2048,         // 2GB 記憶體限制
+                        '--sleep' => 0,             // 不等待，立即處理
+                        '--tries' => 3,             // 最多重試3次
+                    ]);
+                    
+                    $output = Artisan::output();
+                    Log::info('佇列任務執行完成', [
+                        'batch_id' => $batchId,
+                        'output' => $output
+                    ]);
+                    
+                    return response()->json([
+                        'success' => true,
+                        'message' => '訂單匯入處理已啟動並開始執行，請監控進度',
+                    ]);
+                    
+                } catch (\Exception $e) {
+                    Log::error('執行佇列任務失敗', [
+                        'batch_id' => $batchId,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                    
+                    return response()->json([
+                        'success' => false,
+                        'message' => '啟動處理失敗: ' . $e->getMessage(),
+                    ], 500);
+                }
             } else {
                 // 使用原有的queue:work方式處理客戶匯入
                 $command = 'php artisan queue:work --once';

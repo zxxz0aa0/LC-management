@@ -15,6 +15,7 @@ class ImportProgress extends Model
         'batch_id',
         'type',
         'filename',
+        'file_path',
         'total_rows',
         'processed_rows',
         'success_count',

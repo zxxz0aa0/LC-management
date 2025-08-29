@@ -89,7 +89,7 @@ class CarpoolGroupService
         $carpoolData = [];
         if ($carpoolCustomer) {
             $carpoolData = [
-                'special_status' => '共乘',
+                'special_status' => '共乘單',
                 'carpool_customer_id' => $carpoolCustomer->id,
                 'carpool_name' => $carpoolCustomer->name,
                 'carpool_id' => $carpoolCustomer->id_number,
@@ -113,7 +113,7 @@ class CarpoolGroupService
         $carpoolData = [];
         if ($mainCustomer) {
             $carpoolData = [
-                'special_status' => '共乘',
+                'special_status' => '共乘單',
                 'carpool_customer_id' => $mainCustomer->id,
                 'carpool_name' => $mainCustomer->name,
                 'carpool_id' => $mainCustomer->id_number,
