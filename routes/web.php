@@ -58,6 +58,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/orders/export', [OrderController::class, 'export'])->name('orders.export');
     Route::get('/orders/export-simple', [OrderController::class, 'exportSimple'])->name('orders.export.simple');
     Route::post('/orders/import', [OrderController::class, 'import'])->name('orders.import');
+    Route::post('/orders/batch-update', [OrderController::class, 'batchUpdate'])->name('orders.batch-update');
     Route::post('/orders/queued-import', [OrderController::class, 'queuedImport'])->name('orders.queuedImport');
     Route::get('/orders/import-progress/{batchId}', [OrderController::class, 'importProgress'])->name('orders.import.progress');
     Route::get('/api/orders/import-progress/{batchId}', [OrderController::class, 'getImportProgress'])->name('api.orders.import.progress');

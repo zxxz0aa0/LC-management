@@ -9,6 +9,10 @@
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#importModal">
                     <i class="fas fa-file-import me-2"></i>匯入 Excel
                 </button>
+                <!-- 批量更新按鈕 -->
+                <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#batchUpdateModal">
+                    <i class="fas fa-edit me-2"></i>批量更新
+                </button>
                 <!-- 匯出按鈕組 -->
                 <div class="btn-group">
                     <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown">
@@ -73,7 +77,16 @@
                         <td>{{ $order->customer_name }}</td>
                         <td>{{ $order->customer_phone }}</td>
                         <td>{{ $order->ride_date ? (is_string($order->ride_date) ? $order->ride_date : $order->ride_date->format('Y-m-d')) : 'N/A' }}</td>
-                        <td>{{ $order->ride_time ? \Illuminate\Support\Carbon::parse($order->ride_time)->format('H:i') : 'N/A' }}</td>
+                        <td>
+                            @if($order->match_time)
+                                <div class="d-flex align-items-center gap-1">
+                                    <span>{{ $order->match_time->format('H:i') }}</span>
+                                    <span class="badge bg-dark">搓合</span>
+                                </div>
+                            @else
+                                {{ $order->ride_time ? \Illuminate\Support\Carbon::parse($order->ride_time)->format('H:i') : 'N/A' }}
+                            @endif
+                        </td>
                         <td>{{ Str::limit($order->pickup_address, 30) }}<br>{{ Str::limit($order->dropoff_address, 30) }}</td>
                         <!--<td>{{ Str::limit($order->dropoff_address, 30) }}</td>-->
                         <td>{{ $order->carpool_name }}</td>
@@ -257,6 +270,99 @@
     </div>
 </div>
 
+{{-- 批量更新 Modal --}}
+<div class="modal fade" id="batchUpdateModal" tabindex="-1" aria-labelledby="batchUpdateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title" id="batchUpdateModalLabel">
+                    <i class="fas fa-edit me-2"></i>批量更新訂單
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('orders.batch-update') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="batchUpdateFile" class="form-label">選擇 Excel 檔案</label>
+                        <input type="file" class="form-control" id="batchUpdateFile" name="file" accept=".xlsx,.xls" required>
+                        <div class="form-text">
+                            支援格式：.xlsx, .xls
+                        </div>
+                    </div>
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>批量更新說明：</h6>
+                        <ul class="mb-0">
+                            <li><strong>A欄（訂單編號）</strong>：用於查詢要更新的訂單，必填</li>
+                            <li><strong>E欄（隊員編號）</strong>：更新駕駛資訊，對應 drivers 表的 fleet_number</li>
+                            <li><strong>H欄（媒合時間）</strong>：更新媒合時間，格式：YYYY-MM-DD HH:MM:SS</li>
+                            <li><strong>M欄（狀態）</strong>：更新訂單狀態（待搶單/已指派/已取消/已候補/已完成）</li>
+                            <li>系統會根據訂單編號查詢現有訂單並更新相應欄位</li>
+                            <li>找不到的訂單編號會被跳過</li>
+                            <li>駕駛資訊會根據隊員編號自動填入駕駛姓名、車牌等</li>
+                        </ul>
+                    </div>
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>Excel 欄位格式範例：</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>A欄</th>
+                                        <th>B欄</th>
+                                        <th>C欄</th>
+                                        <th>D欄</th>
+                                        <th>E欄</th>
+                                        <th>F欄</th>
+                                        <th>G欄</th>
+                                        <th>H欄</th>
+                                        <th>...</th>
+                                        <th>M欄</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>訂單編號</td>
+                                        <td>-</td>
+                                        <td>-</td>
+                                        <td>-</td>
+                                        <td>隊員編號</td>
+                                        <td>-</td>
+                                        <td>-</td>
+                                        <td>媒合時間</td>
+                                        <td>...</td>
+                                        <td>狀態</td>
+                                    </tr>
+                                    <tr class="text-muted">
+                                        <td>ORD20250829001</td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td>A001</td>
+                                        <td></td>
+                                        <td></td>
+                                        <td>2025-08-29 08:30</td>
+                                        <td></td>
+                                        <td>已指派</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>取消
+                    </button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-edit me-2"></i>開始批量更新
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {{-- 取消訂單 JavaScript 功能 --}}
 <script>
 let currentOrderId = null;
@@ -274,11 +380,11 @@ function cancelOrderWithReason(reason) {
         alert('錯誤：無法取得訂單 ID');
         return;
     }
-    
+
     // 關閉 Modal
     const cancelModal = bootstrap.Modal.getInstance(document.getElementById('cancelModal'));
     cancelModal.hide();
-    
+
     // 發送 AJAX 請求
     fetch(`/orders/${currentOrderId}/cancel`, {
         method: 'PATCH',
@@ -295,7 +401,7 @@ function cancelOrderWithReason(reason) {
         if (data.success) {
             // 成功提示
             alert('✅ ' + data.message);
-            
+
             // 重新載入頁面以更新狀態顯示
             location.reload();
         } else {

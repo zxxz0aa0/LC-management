@@ -1304,4 +1304,35 @@ class OrderController extends Controller
     {
         return Excel::download(new SimpleOrderTemplateExport, '訂單匯入範例檔案_簡化版.xlsx');
     }
+
+    /**
+     * 批量更新匯入 - 根據訂單編號更新訂單資訊
+     */
+    public function batchUpdate(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls',
+        ]);
+
+        try {
+            $importer = new \App\Imports\OrderBatchUpdateImport;
+            Excel::import($importer, $request->file('file'));
+
+            $success = $importer->successCount;
+            $fail = $importer->skipCount;
+            $errors = $importer->errorMessages;
+
+            return redirect()->route('orders.index')->with([
+                'success' => "批量更新完成：成功 {$success} 筆，失敗 {$fail} 筆。",
+                'import_errors' => $errors,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('批量更新匯入失敗', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return redirect()->route('orders.index')->with('error', '批量更新失敗：'.$e->getMessage());
+        }
+    }
 }

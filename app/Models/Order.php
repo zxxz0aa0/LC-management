@@ -24,7 +24,7 @@ class Order extends Model
         'wheelchair', 'stair_machine', 'companions', 'carpool_customer_id', 'carpool_name', 'carpool_id',
         'remark', 'created_by', 'identity', 'carpool_with',
         'status', 'special_status', 'special_order',
-        'carpool_id_number',
+        'carpool_id_number', 'match_time',
 
         // 共乘群組相關欄位
         'carpool_group_id',
@@ -46,6 +46,7 @@ class Order extends Model
         'pickup_lng' => 'decimal:8',
         'dropoff_lat' => 'decimal:8',
         'dropoff_lng' => 'decimal:8',
+        'match_time' => 'datetime',
 
         // 共乘群組相關欄位
         'is_main_order' => 'boolean',
