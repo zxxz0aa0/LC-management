@@ -242,7 +242,7 @@ class CustomerController extends Controller
             ]);
 
             return redirect()->back()->withErrors([
-                'file' => '匯入失敗：' . $e->getMessage()
+                'file' => '匯入失敗：'.$e->getMessage(),
             ])->withInput();
         }
     }
@@ -259,7 +259,7 @@ class CustomerController extends Controller
         try {
             $file = $request->file('file');
             $filename = $file->getClientOriginalName();
-            
+
             Log::info('開始客戶佇列匯入', [
                 'filename' => $filename,
                 'file_size' => $file->getSize(),
@@ -268,7 +268,7 @@ class CustomerController extends Controller
 
             // 儲存檔案
             $filePath = $file->store('imports', 'local');
-            
+
             // 預先讀取檔案計算總行數
             $rowCounter = new \App\Imports\RowCountImport;
             Excel::import($rowCounter, storage_path('app/'.$filePath));
@@ -304,7 +304,7 @@ class CustomerController extends Controller
             ]);
 
             return redirect()->back()->withErrors([
-                'file' => '佇列匯入失敗：' . $e->getMessage()
+                'file' => '佇列匯入失敗：'.$e->getMessage(),
             ])->withInput();
         }
     }
@@ -315,11 +315,11 @@ class CustomerController extends Controller
     private function processImportDirectly(ImportSession $session, string $filePath): \Illuminate\Http\RedirectResponse
     {
         try {
-            $importService = new CustomerImportService();
+            $importService = new CustomerImportService;
             $importService->setImportSession($session);
 
             // 讀取並處理檔案 (修復：使用 session_id 而不是 id)
-            $data = Excel::toCollection(new CustomerImport($session->session_id), storage_path('app/' . $filePath))->first();
+            $data = Excel::toCollection(new CustomerImport($session->session_id), storage_path('app/'.$filePath))->first();
             $result = $importService->processImport($data);
 
             // 清理檔案
@@ -335,7 +335,7 @@ class CustomerController extends Controller
         } catch (\Exception $e) {
             $session->update([
                 'status' => 'failed',
-                'error_messages' => ['直接匯入失敗：' . $e->getMessage()],
+                'error_messages' => ['直接匯入失敗：'.$e->getMessage()],
                 'completed_at' => now(),
             ]);
 
@@ -349,7 +349,7 @@ class CustomerController extends Controller
     private function processImportWithQueue(ImportSession $session, string $filePath): \Illuminate\Http\RedirectResponse
     {
         // 加入佇列
-        Excel::queueImport(new CustomerImport($session->id), storage_path('app/' . $filePath));
+        Excel::queueImport(new CustomerImport($session->id), storage_path('app/'.$filePath));
 
         Log::info('客戶匯入已加入佇列', [
             'session_id' => $session->session_id,
@@ -367,7 +367,7 @@ class CustomerController extends Controller
     {
         try {
             $tempPath = $file->store('temp', 'local');
-            $fullPath = storage_path('app/' . $tempPath);
+            $fullPath = storage_path('app/'.$tempPath);
 
             $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx;
             $reader->setReadDataOnly(true);
@@ -383,8 +383,8 @@ class CustomerController extends Controller
             for ($row = 2; $row <= $highestRow; $row++) {
                 $hasData = false;
                 for ($col = 'A'; $col <= $highestColumn; $col++) {
-                    $cellValue = $worksheet->getCell($col . $row)->getValue();
-                    if (!empty(trim((string)$cellValue))) {
+                    $cellValue = $worksheet->getCell($col.$row)->getValue();
+                    if (! empty(trim((string) $cellValue))) {
                         $hasData = true;
                         break;
                     }
@@ -415,45 +415,46 @@ class CustomerController extends Controller
     public function importProgress(string $sessionId)
     {
         $session = ImportSession::where('session_id', $sessionId)->firstOrFail();
+
         return view('customers.import-progress', compact('session'));
     }
-    
+
     /**
      * 啟動匯入處理的 API 端點
      */
     public function startImportProcess(string $sessionId)
     {
         $session = ImportSession::where('session_id', $sessionId)->first();
-        
-        if (!$session) {
+
+        if (! $session) {
             return response()->json(['error' => '找不到匯入會話'], 404);
         }
-        
+
         if ($session->status !== 'pending') {
             return response()->json(['error' => '匯入會話狀態不正確'], 400);
         }
-        
+
         // 立即返回響應，然後在背景執行匯入
         if (function_exists('fastcgi_finish_request')) {
             // FastCGI 環境，先發送響應再執行匯入
             $response = response()->json(['message' => '匯入已開始']);
-            
+
             // 發送響應後執行匯入
             fastcgi_finish_request();
-            
+
             $this->executeImportProcess($session);
-            
+
             return $response;
         } else {
             // 非 FastCGI 環境，延遲執行
             register_shutdown_function(function () use ($session) {
                 $this->executeImportProcess($session);
             });
-            
+
             return response()->json(['message' => '匯入已開始']);
         }
     }
-    
+
     /**
      * 執行匯入處理
      */
@@ -464,38 +465,38 @@ class CustomerController extends Controller
             ini_set('max_execution_time', 3600); // 1小時
             ini_set('memory_limit', '2G'); // 2GB記憶體
             set_time_limit(3600); // 1小時執行時間
-            
+
             Log::info('開始執行客戶匯入處理', [
                 'session_id' => $session->session_id,
                 'filename' => $session->filename,
             ]);
-            
+
             // 開始匯入處理（使用正確的 session_id UUID）
             Log::info('準備執行 Excel 匯入', [
                 'session_id' => $session->session_id,
                 'session_db_id' => $session->id,
                 'file_path' => $session->file_path,
             ]);
-            
+
             $import = new \App\Imports\CustomerImport($session->session_id);
-            Excel::import($import, storage_path('app/' . $session->file_path));
-            
+            Excel::import($import, storage_path('app/'.$session->file_path));
+
             Log::info('客戶匯入處理完成', [
                 'session_id' => $session->session_id,
                 'total_rows' => $session->total_rows,
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('背景匯入處理失敗', [
                 'session_id' => $session->session_id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            
+
             // 標記會話為失敗
             $session->update([
                 'status' => 'failed',
-                'error_messages' => ['匯入處理失敗：' . $e->getMessage()],
+                'error_messages' => ['匯入處理失敗：'.$e->getMessage()],
                 'completed_at' => now(),
             ]);
         }
@@ -511,15 +512,16 @@ class CustomerController extends Controller
                 'session_id' => $sessionId,
                 'request_time' => now()->toDateTimeString(),
             ]);
-            
+
             $session = ImportSession::where('session_id', $sessionId)->first();
 
-            if (!$session) {
+            if (! $session) {
                 Log::warning('找不到匯入會話', ['session_id' => $sessionId]);
+
                 return response()->json([
                     'error' => '找不到匯入會話',
                     'session_id' => $sessionId,
-                    'timestamp' => now()->toISOString()
+                    'timestamp' => now()->toISOString(),
                 ], 404);
             }
 
@@ -527,27 +529,27 @@ class CustomerController extends Controller
             $responseData = [
                 'session_id' => $session->session_id,
                 'filename' => $session->filename ?? '',
-                'total_rows' => max(0, (int)$session->total_rows),
-                'processed_rows' => max(0, min((int)$session->processed_rows, (int)$session->total_rows)),
-                'success_count' => max(0, (int)$session->success_count),
-                'error_count' => max(0, (int)$session->error_count),
+                'total_rows' => max(0, (int) $session->total_rows),
+                'processed_rows' => max(0, min((int) $session->processed_rows, (int) $session->total_rows)),
+                'success_count' => max(0, (int) $session->success_count),
+                'error_count' => max(0, (int) $session->error_count),
                 'status' => $session->status ?? 'pending',
                 'status_text' => $session->status_text ?? '未知狀態',
-                'progress_percentage' => round(max(0, min(100, (float)$session->progress_percentage)), 2),
-                'remaining_rows' => max(0, (int)$session->remaining_rows),
+                'progress_percentage' => round(max(0, min(100, (float) $session->progress_percentage)), 2),
+                'remaining_rows' => max(0, (int) $session->remaining_rows),
                 'error_messages' => is_array($session->error_messages) ? $session->error_messages : [],
                 'started_at' => $session->started_at?->format('Y-m-d H:i:s'),
                 'completed_at' => $session->completed_at?->format('Y-m-d H:i:s'),
-                'processing_time' => $session->processing_time ? (int)$session->processing_time : null,
+                'processing_time' => $session->processing_time ? (int) $session->processing_time : null,
                 'last_updated' => now()->toISOString(),
             ];
-            
+
             // 數據一致性檢查
             if ($responseData['processed_rows'] > $responseData['total_rows']) {
                 $responseData['processed_rows'] = $responseData['total_rows'];
             }
-            
-            if ($responseData['success_count'] + $responseData['error_count'] > $responseData['processed_rows']) {
+
+            if ($responseData['processed_rows'] < $responseData['success_count'] + $responseData['error_count']) {
                 Log::warning('數據不一致檢測', [
                     'session_id' => $sessionId,
                     'processed_rows' => $responseData['processed_rows'],
@@ -568,26 +570,22 @@ class CustomerController extends Controller
                 ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
                 ->header('Pragma', 'no-cache')
                 ->header('Expires', '0');
-                
+
         } catch (\Exception $e) {
             Log::error('獲取匯入進度失敗', [
                 'session_id' => $sessionId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return response()->json([
                 'error' => '系統錯誤，無法獲取進度',
                 'message' => config('app.debug') ? $e->getMessage() : '請稍後再試',
                 'session_id' => $sessionId,
-                'timestamp' => now()->toISOString()
+                'timestamp' => now()->toISOString(),
             ], 500);
         }
     }
-
-
-
-
 
     public function batchDelete(Request $request)
     {
@@ -651,8 +649,6 @@ class CustomerController extends Controller
     {
         return Excel::download(new CustomerTemplateExport, '客戶匯入範例檔案.xlsx');
     }
-
-
 
     /**
      * 診斷佇列系統狀態

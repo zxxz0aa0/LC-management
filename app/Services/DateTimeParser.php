@@ -125,10 +125,10 @@ class DateTimeParser
                 $numericTime = floatval($time);
 
                 if ($numericTime >= 0 && $numericTime <= 1) {
-                    $totalSeconds = $numericTime * 86400;
-                    $hours = floor($totalSeconds / 3600);
-                    $minutes = floor(($totalSeconds % 3600) / 60);
-                    $seconds = $totalSeconds % 60;
+                    $totalSeconds = round($numericTime * 86400);
+                    $hours = intval($totalSeconds / 3600);
+                    $minutes = intval(($totalSeconds % 3600) / 60);
+                    $seconds = intval($totalSeconds % 60);
 
                     $result = sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
 

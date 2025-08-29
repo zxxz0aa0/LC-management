@@ -89,7 +89,7 @@ class CustomerTemplateExport implements FromCollection, WithHeadings
     {
         return [
             '姓名',
-            '身分證號', 
+            '身分證號',
             '出生年月日',
             '性別',
             '聯絡電話',

@@ -475,16 +475,16 @@ class OrderController extends Controller
 
             // 取得取消原因，預設為一般取消
             $cancelReason = $request->input('cancel_reason', 'cancelled');
-            
+
             // 驗證取消原因是否有效
             $validCancelReasons = [
                 'cancelled',      // 一般取消
                 'cancelledOOC',   // 別家有車
                 'cancelledNOC',   // !取消
-                'cancelledCOTD'   // X取消
+                'cancelledCOTD',   // X取消
             ];
-            
-            if (!in_array($cancelReason, $validCancelReasons)) {
+
+            if (! in_array($cancelReason, $validCancelReasons)) {
                 return response()->json([
                     'success' => false,
                     'message' => '無效的取消原因',
@@ -496,7 +496,7 @@ class OrderController extends Controller
                 'cancelled' => '訂單已取消',
                 'cancelledOOC' => '訂單已取消（別家有車）',
                 'cancelledNOC' => '訂單已取消（!取消）',
-                'cancelledCOTD' => '訂單已取消（X取消）'
+                'cancelledCOTD' => '訂單已取消（X取消）',
             ];
 
             // 更新訂單狀態
@@ -1209,21 +1209,21 @@ class OrderController extends Controller
             if ($importProgress->type === 'orders') {
                 // 訂單匯入：使用資料庫中存儲的檔案路徑
                 $filePath = $importProgress->file_path;
-                
-                if (!$filePath || !\Storage::exists($filePath)) {
+
+                if (! $filePath || ! \Storage::exists($filePath)) {
                     return response()->json([
                         'success' => false,
                         'message' => '匯入檔案不存在，請重新上傳',
                     ], 404);
                 }
-                
+
                 // 派發佇列任務處理匯入
                 ProcessOrderImportJob::dispatch($batchId, $filePath);
-                
+
                 // 立即執行佇列任務
                 try {
                     Log::info('開始執行佇列任務', ['batch_id' => $batchId]);
-                    
+
                     // 使用 Artisan::call 立即處理佇列任務
                     Artisan::call('queue:work', [
                         '--once' => true,           // 只處理一個任務後停止
@@ -1232,28 +1232,28 @@ class OrderController extends Controller
                         '--sleep' => 0,             // 不等待，立即處理
                         '--tries' => 3,             // 最多重試3次
                     ]);
-                    
+
                     $output = Artisan::output();
                     Log::info('佇列任務執行完成', [
                         'batch_id' => $batchId,
-                        'output' => $output
+                        'output' => $output,
                     ]);
-                    
+
                     return response()->json([
                         'success' => true,
                         'message' => '訂單匯入處理已啟動並開始執行，請監控進度',
                     ]);
-                    
+
                 } catch (\Exception $e) {
                     Log::error('執行佇列任務失敗', [
                         'batch_id' => $batchId,
                         'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString()
+                        'trace' => $e->getTraceAsString(),
                     ]);
-                    
+
                     return response()->json([
                         'success' => false,
-                        'message' => '啟動處理失敗: ' . $e->getMessage(),
+                        'message' => '啟動處理失敗: '.$e->getMessage(),
                     ], 500);
                 }
             } else {
@@ -1273,7 +1273,7 @@ class OrderController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => '啟動佇列處理失敗：'.$e->getMessage(),

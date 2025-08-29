@@ -6,23 +6,24 @@ use App\Models\ImportSession;
 use App\Services\CustomerImportService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Concerns\RegistersEventListeners;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterImport;
-use Maatwebsite\Excel\Concerns\RegistersEventListeners;
 
 class CustomerImport implements ToCollection, WithChunkReading, WithEvents
 {
     use RegistersEventListeners;
 
     public string $sessionId;
+
     private CustomerImportService $importService;
 
     public function __construct($sessionId)
     {
         $this->sessionId = $sessionId;
-        $this->importService = new CustomerImportService();
+        $this->importService = new CustomerImportService;
     }
 
     public function collection(Collection $rows)
@@ -32,17 +33,17 @@ class CustomerImport implements ToCollection, WithChunkReading, WithEvents
 
         // 啟用垃圾回收機制
         gc_enable();
-        
+
         Log::info('開始客戶匯入批次處理', [
             'session_id' => $this->sessionId,
             'rows_count' => $rows->count(),
-            'start_memory' => round($startMemory / 1024 / 1024, 2) . 'MB',
+            'start_memory' => round($startMemory / 1024 / 1024, 2).'MB',
         ]);
 
         try {
             // 取得匯入會話（通過 session_id UUID 查詢）
             $session = ImportSession::where('session_id', $this->sessionId)->first();
-            if (!$session) {
+            if (! $session) {
                 throw new \Exception("找不到匯入會話 session_id: {$this->sessionId}");
             }
 
@@ -67,8 +68,8 @@ class CustomerImport implements ToCollection, WithChunkReading, WithEvents
 
             Log::info('客戶匯入批次處理完成', [
                 'session_id' => $this->sessionId,
-                'processing_time' => $processingTime . '秒',
-                'memory_used' => $memoryUsed . 'MB',
+                'processing_time' => $processingTime.'秒',
+                'memory_used' => $memoryUsed.'MB',
             ]);
 
         } catch (\Exception $e) {
@@ -82,7 +83,7 @@ class CustomerImport implements ToCollection, WithChunkReading, WithEvents
             if (isset($session)) {
                 $session->update([
                     'status' => 'failed',
-                    'error_messages' => ['系統錯誤：' . $e->getMessage()],
+                    'error_messages' => ['系統錯誤：'.$e->getMessage()],
                     'completed_at' => now(),
                 ]);
             }
@@ -115,10 +116,10 @@ class CustomerImport implements ToCollection, WithChunkReading, WithEvents
 
         $session = ImportSession::where('session_id', $sessionId)->first();
         if ($session) {
-            $processedRows = max(0, (int)$session->processed_rows);
-            $successCount = max(0, (int)$session->success_count);
-            $errorCount = max(0, (int)$session->error_count);
-            
+            $processedRows = max(0, (int) $session->processed_rows);
+            $successCount = max(0, (int) $session->success_count);
+            $errorCount = max(0, (int) $session->error_count);
+
             // 改善最終狀態判斷邏輯
             $status = 'completed';
             if ($processedRows === 0) {
@@ -128,7 +129,7 @@ class CustomerImport implements ToCollection, WithChunkReading, WithEvents
             } else {
                 $status = 'completed'; // 有成功匯入的資料（即使有部分錯誤）
             }
-            
+
             // 最終數據一致性檢查
             if ($successCount + $errorCount > $processedRows) {
                 Log::warning('最終數據不一致修正', [
@@ -137,12 +138,12 @@ class CustomerImport implements ToCollection, WithChunkReading, WithEvents
                     'success_count' => $successCount,
                     'error_count' => $errorCount,
                 ]);
-                
+
                 // 修正數據一致性
                 $total = $successCount + $errorCount;
                 if ($total > $processedRows && $processedRows > 0) {
                     $ratio = $processedRows / $total;
-                    $successCount = (int)round($successCount * $ratio);
+                    $successCount = (int) round($successCount * $ratio);
                     $errorCount = $processedRows - $successCount;
                 }
             }
@@ -156,7 +157,7 @@ class CustomerImport implements ToCollection, WithChunkReading, WithEvents
             ]);
 
             Log::info('最終狀態已更新', [
-                'session_id' => $sessionId, 
+                'session_id' => $sessionId,
                 'status' => $status,
                 'processed_rows' => $processedRows,
                 'success_count' => $successCount,

@@ -41,10 +41,10 @@ class ImportProgress extends Model
 
         // 處理已處理行數為負數的情況
         $processedRows = max(0, $this->processed_rows);
-        
+
         // 確保進度不超過100%
         $percentage = min(100, ($processedRows / $this->total_rows) * 100);
-        
+
         return round($percentage, 2);
     }
 

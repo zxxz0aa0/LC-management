@@ -8,23 +8,29 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 
 class CustomerImportService
 {
     private $importSession;
+
     private $processedCount = 0;
+
     private $successCount = 0;
+
     private $errorCount = 0;
+
     private $warningCount = 0;
+
     private $errorMessages = [];
+
     private $warningMessages = [];
+
     /**
      * 中英文標題對照表
      */
     private static $headerMapping = [
         '姓名' => 'name',
-        '身分證號' => 'id_number', 
+        '身分證號' => 'id_number',
         '出生年月日' => 'birthday',
         '性別' => 'gender',
         '聯絡電話' => 'phone_number',
@@ -47,10 +53,7 @@ class CustomerImportService
         '狀態' => 'status',
     ];
 
-    public function __construct()
-    {
-        
-    }
+    public function __construct() {}
 
     /**
      * 設定匯入會話
@@ -58,9 +61,9 @@ class CustomerImportService
     public function setImportSession(ImportSession $session)
     {
         $this->importSession = $session;
+
         return $this;
     }
-
 
     /**
      * 處理匯入資料
@@ -80,21 +83,21 @@ class CustomerImportService
 
         // 取得第一列並檢查是否為標題列
         $firstRow = $rows->first()->toArray();
-        
+
         // 檢查第一列是否包含中文標題欄位
         $hasHeaders = false;
         $headerMatchCount = 0;
-        
+
         foreach ($firstRow as $cell) {
-            $trimmedCell = trim((string)$cell);
+            $trimmedCell = trim((string) $cell);
             if (isset(self::$headerMapping[$trimmedCell])) {
                 $headerMatchCount++;
             }
         }
-        
+
         // 如果匹配到3個以上的標題，視為有標題列
         $hasHeaders = $headerMatchCount >= 3;
-        
+
         if ($hasHeaders) {
             Log::info('檢測到標題列，使用動態標題對照');
             $headers = $firstRow;
@@ -104,11 +107,11 @@ class CustomerImportService
                 'first_row_sample' => array_slice($firstRow, 0, 5),
                 'header_match_count' => $headerMatchCount,
             ]);
-            
+
             // 預設的欄位順序 - 根據你的 Excel 檔案結構調整
             $headers = [
                 '姓名',           // 0
-                '身分證號',       // 1 
+                '身分證號',       // 1
                 '出生年月日',     // 2
                 '性別',           // 3
                 '聯絡電話',       // 4
@@ -130,18 +133,18 @@ class CustomerImportService
                 '照會日期',       // 20
                 '狀態',           // 21
             ];
-            
+
             // 確保標題陣列長度與資料欄位數相符
             $headerCount = count($headers);
             $dataCount = count($firstRow);
-            
+
             if ($dataCount > $headerCount) {
                 // 如果資料欄位比預設標題多，補充未知欄位
                 for ($i = $headerCount; $i < $dataCount; $i++) {
                     $headers[$i] = "未知欄位_{$i}";
                 }
             }
-            
+
             $dataRows = $rows; // 所有列都是資料列
         }
 
@@ -170,17 +173,18 @@ class CustomerImportService
         foreach ($dataRows as $index => $row) {
             if ($this->isRowEmpty($row)) {
                 Log::debug('跳過空白列', ['row_index' => $index + 2]);
+
                 continue;
             }
 
             $result = $this->processCustomerRow($row->toArray(), $headers, $index + 2);
-            
+
             if ($result['success']) {
                 $currentBatch[] = $result['data'];
                 $this->successCount++;
-                
+
                 // 處理警告訊息
-                if (!empty($result['warnings'])) {
+                if (! empty($result['warnings'])) {
                     $this->warningCount++;
                     $this->warningMessages = array_merge($this->warningMessages, $result['warnings']);
                 }
@@ -198,7 +202,7 @@ class CustomerImportService
 
                 // 更新進度
                 $this->updateProgress();
-                
+
                 // 定期執行垃圾回收
                 if ($this->processedCount % 500 === 0) {
                     gc_collect_cycles();
@@ -207,7 +211,7 @@ class CustomerImportService
         }
 
         // 處理剩餘的資料
-        if (!empty($currentBatch)) {
+        if (! empty($currentBatch)) {
             $this->processBatch($currentBatch);
             $this->updateProgress();
         }
@@ -224,10 +228,10 @@ class CustomerImportService
 
             // 驗證必填欄位
             $validation = $this->validateCustomerData($mappedData, $rowNumber);
-            if (!$validation['valid']) {
+            if (! $validation['valid']) {
                 return [
                     'success' => false,
-                    'error' => $validation['error']
+                    'error' => $validation['error'],
                 ];
             }
 
@@ -236,11 +240,11 @@ class CustomerImportService
 
             $result = [
                 'success' => true,
-                'data' => $customerData
+                'data' => $customerData,
             ];
-            
+
             // 加入警告訊息（如果有的話）
-            if (!empty($validation['warnings'])) {
+            if (! empty($validation['warnings'])) {
                 $result['warnings'] = $validation['warnings'];
             }
 
@@ -255,7 +259,7 @@ class CustomerImportService
 
             return [
                 'success' => false,
-                'error' => "第 {$rowNumber} 列處理失敗：{$e->getMessage()}"
+                'error' => "第 {$rowNumber} 列處理失敗：{$e->getMessage()}",
             ];
         }
     }
@@ -269,10 +273,12 @@ class CustomerImportService
         $englishHeaders = array_values(self::$headerMapping);
 
         foreach ($row as $index => $value) {
-            if (!isset($headers[$index])) continue;
+            if (! isset($headers[$index])) {
+                continue;
+            }
 
             $header = trim($headers[$index]);
-            
+
             // 檢查是否為中文標題
             if (isset(self::$headerMapping[$header])) {
                 $englishKey = self::$headerMapping[$header];
@@ -298,7 +304,7 @@ class CustomerImportService
     private function validateCustomerData(array $data, int $rowNumber): array
     {
         $warnings = [];
-        
+
         // 必填欄位驗證
         if (empty(trim($data['name'] ?? ''))) {
             Log::warning('姓名欄位驗證失敗', [
@@ -307,31 +313,31 @@ class CustomerImportService
                 'name_value' => $data['name'] ?? 'NOT_SET',
                 'all_data' => $data,
             ]);
-            
+
             return [
                 'valid' => false,
-                'error' => "第 {$rowNumber} 列：缺少姓名"
+                'error' => "第 {$rowNumber} 列：缺少姓名",
             ];
         }
 
         if (empty(trim($data['id_number'] ?? ''))) {
             return [
                 'valid' => false,
-                'error' => "第 {$rowNumber} 列：缺少身分證號"
+                'error' => "第 {$rowNumber} 列：缺少身分證號",
             ];
         }
 
         // EMAIL格式驗證（改為警告而非致命錯誤）
-        if (!empty($data['email'])) {
+        if (! empty($data['email'])) {
             $emailValue = trim($data['email']);
             // 排除明顯的空值
             if ($emailValue !== '0' && strtolower($emailValue) !== 'null' && $emailValue !== 'NULL') {
-                if (!filter_var($emailValue, FILTER_VALIDATE_EMAIL)) {
-                    $warnings[] = "電子郵件格式可能有誤，將清空此欄位";
+                if (! filter_var($emailValue, FILTER_VALIDATE_EMAIL)) {
+                    $warnings[] = '電子郵件格式可能有誤，將清空此欄位';
                     Log::info('Email格式警告', [
                         'row_number' => $rowNumber,
                         'email_value' => $emailValue,
-                        'action' => 'set_to_null'
+                        'action' => 'set_to_null',
                     ]);
                 }
             }
@@ -339,11 +345,11 @@ class CustomerImportService
 
         // 返回驗證結果（包含警告但不阻止匯入）
         $result = ['valid' => true];
-        if (!empty($warnings)) {
+        if (! empty($warnings)) {
             $result['warnings'] = $warnings;
-            $result['warning_message'] = "第 {$rowNumber} 列：" . implode(', ', $warnings);
+            $result['warning_message'] = "第 {$rowNumber} 列：".implode(', ', $warnings);
         }
-        
+
         return $result;
     }
 
@@ -388,7 +394,7 @@ class CustomerImportService
         if (empty($email) || $email === '0' || strtolower($email) === 'null') {
             return null;
         }
-        
+
         return filter_var(trim($email), FILTER_VALIDATE_EMAIL) ? trim($email) : null;
     }
 
@@ -404,11 +410,12 @@ class CustomerImportService
         // 已經是JSON格式
         if (is_string($value) && str_starts_with($value, '[') && str_ends_with($value, ']')) {
             $decoded = json_decode($value, true);
+
             return is_array($decoded) ? array_filter(array_map('trim', $decoded)) : [];
         }
 
         // 逗號分隔
-        return array_filter(array_map('trim', explode(',', (string)$value)));
+        return array_filter(array_map('trim', explode(',', (string) $value)));
     }
 
     /**
@@ -437,7 +444,7 @@ class CustomerImportService
         }
 
         return $row->every(function ($value) {
-            return empty(trim((string)$value));
+            return empty(trim((string) $value));
         });
     }
 
@@ -456,9 +463,9 @@ class CustomerImportService
                 } catch (\Exception $e) {
                     Log::error('批次處理客戶資料失敗', [
                         'id_number' => $customerData['id_number'],
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
-                    
+
                     $this->errorCount++;
                     $this->successCount--;
                     $this->errorMessages[] = "身分證號 {$customerData['id_number']} 儲存失敗：{$e->getMessage()}";
@@ -476,11 +483,11 @@ class CustomerImportService
             // 合併錯誤和警告訊息，警告用不同的前綴標示
             $allMessages = array_merge(
                 $this->errorMessages,
-                array_map(function($warning) {
+                array_map(function ($warning) {
                     return "⚠️ {$warning}";
                 }, $this->warningMessages)
             );
-            
+
             Log::debug('更新匯入進度', [
                 'session_uuid' => $this->importSession->session_id,
                 'session_db_id' => $this->importSession->id,
@@ -489,7 +496,7 @@ class CustomerImportService
                 'error_count' => $this->errorCount,
                 'messages_count' => count($allMessages),
             ]);
-            
+
             $this->importSession->update([
                 'processed_rows' => $this->processedCount,
                 'success_count' => $this->successCount,
@@ -506,8 +513,6 @@ class CustomerImportService
         }
     }
 
-    
-
     /**
      * 取得匯入結果
      */
@@ -516,11 +521,11 @@ class CustomerImportService
         // 合併錯誤和警告訊息
         $allMessages = array_merge(
             $this->errorMessages,
-            array_map(function($warning) {
+            array_map(function ($warning) {
                 return "⚠️ {$warning}";
             }, $this->warningMessages)
         );
-        
+
         return [
             'processed_count' => $this->processedCount,
             'success_count' => $this->successCount,

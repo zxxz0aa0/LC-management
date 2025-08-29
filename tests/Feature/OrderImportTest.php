@@ -65,7 +65,7 @@ class OrderImportTest extends TestCase
 
         // 建立測試用的匯入進度記錄
         $batchId = (string) Str::uuid();
-        
+
         $importProgress = ImportProgress::create([
             'batch_id' => $batchId,
             'type' => 'orders',
@@ -92,7 +92,7 @@ class OrderImportTest extends TestCase
 
         // 建立測試用的匯入進度記錄
         $batchId = (string) Str::uuid();
-        
+
         $importProgress = ImportProgress::create([
             'batch_id' => $batchId,
             'type' => 'orders',
@@ -109,7 +109,7 @@ class OrderImportTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonStructure([
             'batch_id',
-            'type', 
+            'type',
             'filename',
             'total_rows',
             'processed_rows',
@@ -127,7 +127,7 @@ class OrderImportTest extends TestCase
 
         // 建立測試用的匯入進度記錄
         $batchId = (string) Str::uuid();
-        
+
         ImportProgress::create([
             'batch_id' => $batchId,
             'type' => 'orders',
@@ -138,7 +138,7 @@ class OrderImportTest extends TestCase
 
         // 模擬檔案存在
         Storage::fake('local');
-        Storage::put('imports/' . $batchId . '.xlsx', 'fake excel content');
+        Storage::put('imports/'.$batchId.'.xlsx', 'fake excel content');
 
         Queue::fake();
 

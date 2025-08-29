@@ -42,7 +42,7 @@ class ImportSession extends Model
 
         $processedRows = max(0, $this->processed_rows);
         $percentage = min(100.0, ($processedRows / $this->total_rows) * 100);
-        
+
         return round($percentage, 2);
     }
 
@@ -83,7 +83,7 @@ class ImportSession extends Model
      */
     public function getStatusTextAttribute(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             'pending' => '等待中',
             'processing' => '處理中',
             'completed' => '已完成',
@@ -105,11 +105,12 @@ class ImportSession extends Model
      */
     public function getProcessingTimeAttribute(): ?int
     {
-        if (!$this->started_at) {
+        if (! $this->started_at) {
             return null;
         }
 
         $endTime = $this->completed_at ?? now();
+
         return $this->started_at->diffInSeconds($endTime);
     }
 
