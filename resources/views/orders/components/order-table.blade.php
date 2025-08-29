@@ -172,12 +172,6 @@
             </table>
         </div>
 
-        {{-- 分頁 --}}
-        @if(method_exists($orders, 'links'))
-            <div class="d-flex justify-content-center mt-4">
-                {{ $orders->appends(request()->only(['keyword', 'start_date', 'end_date', 'customer_id']))->links() }}
-            </div>
-        @endif
     </div>
 </div>
 

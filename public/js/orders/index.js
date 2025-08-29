@@ -84,8 +84,8 @@ class OrderIndex {
                         previous: "上一頁"
                     }
                 },
-                pageLength: 50,
-                order: [[3, 'asc']], // 按用車日期降序desc 升序asc
+                pageLength: 100,
+                order: [[4, 'asc']], // 按用車日期降序desc 升序asc
                 columnDefs: [
                     { targets: [columnCount - 1], orderable: false } // 最後一欄（操作欄）不可排序
                 ],

@@ -8,8 +8,18 @@
     {{-- 隱藏欄位 --}}
     <input type="hidden" name="customer_id" value="{{ old('customer_id', isset($order) ? $order->customer_id : ($customer->id ?? '')) }}">
 
+    {{-- 搜尋參數隱藏欄位 --}}
     @if(request('keyword'))
         <input type="hidden" name="keyword" value="{{ request('keyword') }}">
+    @endif
+    @if(request('start_date'))
+        <input type="hidden" name="start_date" value="{{ request('start_date') }}">
+    @endif
+    @if(request('end_date'))
+        <input type="hidden" name="end_date" value="{{ request('end_date') }}">
+    @endif
+    @if(request('customer_id'))
+        <input type="hidden" name="search_customer_id" value="{{ request('customer_id') }}">
     @endif
 
     @if ($errors->any())
