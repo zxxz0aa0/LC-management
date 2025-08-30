@@ -20,6 +20,12 @@ class SimpleOrdersExport implements FromCollection, WithHeadings
     {
         $query = Order::with(['customer', 'driver']);
 
+        // 簡化格式只匯出特定狀態的訂單
+        $query->whereIn('status', ['open', 'assigned', 'bkorder']);
+
+        // 只匯出主訂單（避免共乘重複）
+        $query->where('is_main_order', true);
+
         // 如果有篩選參數，應用篩選條件
         if ($this->request) {
             $query = $query->filter($this->request);
@@ -38,7 +44,7 @@ class SimpleOrdersExport implements FromCollection, WithHeadings
                     'date' => $order->ride_date ? $order->ride_date->format('Y-m-d') : '',
                     'time' => $order->ride_time ? \Carbon\Carbon::parse($order->ride_time)->format('H:i') : '',
                     'origin_area' => $order->pickup_district,
-                    'origin_address' => $this->formatAddress($order->pickup_address, $order->pickup_district),
+                    'origin_address' => $this->formatAddress($order->pickup_address, $order->pickup_district, $order->carpool_member_count > 1),
                     'dest_area' => $order->dropoff_district,
                     'dest_address' => $this->formatAddress($order->dropoff_address, $order->dropoff_district),
                     'remark' => $order->remark ?: '',
@@ -68,7 +74,7 @@ class SimpleOrdersExport implements FromCollection, WithHeadings
         ];
     }
 
-    private function formatAddress($fullAddress, $district)
+    private function formatAddress($fullAddress, $district, $isCarpool = false)
     {
         if (empty($fullAddress)) {
             return '';
@@ -89,6 +95,11 @@ class SimpleOrdersExport implements FromCollection, WithHeadings
 
         // 3) 清理前後多餘符號/空白
         $address = trim($address, " \t\n\r\0\x0B-、，,／/");
+
+        // 4) 如果是共乘訂單，在地址前添加標記
+        if ($isCarpool) {
+            $address = '(共乘)'.$address;
+        }
 
         return trim($address);
     }

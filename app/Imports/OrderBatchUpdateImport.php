@@ -143,13 +143,26 @@ class OrderBatchUpdateImport implements ToCollection, WithChunkReading
 
             // 執行更新
             if (! empty($updateData)) {
-                $order->update($updateData);
-                $this->successCount++;
+                // 找出所有需要同步更新的共乘訂單
+                $ordersToUpdate = $this->getCarpoolGroupOrders($order);
+                $updatedCount = 0;
 
-                Log::info('成功更新訂單', [
-                    'order_number' => $order->order_number,
-                    'updates' => array_keys($updateData),
-                ]);
+                foreach ($ordersToUpdate as $orderToUpdate) {
+                    $orderToUpdate->update($updateData);
+                    $updatedCount++;
+
+                    Log::info('成功更新訂單', [
+                        'order_number' => $orderToUpdate->order_number,
+                        'updates' => array_keys($updateData),
+                        'is_carpool_sync' => count($ordersToUpdate) > 1,
+                    ]);
+                }
+
+                $this->successCount += $updatedCount;
+
+                if (count($ordersToUpdate) > 1) {
+                    Log::info("第 {$rowNumber} 行：共乘組合同步更新完成，共更新 {$updatedCount} 筆訂單");
+                }
             } else {
                 $this->skipCount++;
                 Log::info("第 {$rowNumber} 行：沒有需要更新的資料");
@@ -165,6 +178,22 @@ class OrderBatchUpdateImport implements ToCollection, WithChunkReading
         }
 
         return $this->driverCache[$fleetNumber];
+    }
+
+    /**
+     * 取得共乘組合中的所有訂單
+     */
+    private function getCarpoolGroupOrders(Order $order): Collection
+    {
+        // 如果不是共乘訂單，只返回自己
+        if (empty($order->carpool_group_id)) {
+            return collect([$order]);
+        }
+
+        // 查詢同一個共乘群組的所有訂單
+        return Order::where('carpool_group_id', $order->carpool_group_id)
+            ->where('is_group_dissolved', false) // 排除已解散的群組
+            ->get();
     }
 
     private function parseDateTime(string $dateTimeString): Carbon

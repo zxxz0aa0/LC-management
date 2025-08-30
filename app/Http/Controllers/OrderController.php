@@ -442,12 +442,12 @@ class OrderController extends Controller
 
             // 取得搜尋參數以保持列表頁面的搜尋狀態
             $searchParams = $request->only(['keyword', 'start_date', 'end_date']);
-            
+
             // 處理 customer_id 參數 (表單中用 search_customer_id 避免與資料庫欄位衝突)
             if ($request->filled('search_customer_id')) {
                 $searchParams['customer_id'] = $request->get('search_customer_id');
             }
-            
+
             return redirect()->route('orders.index', $searchParams)->with('success', '訂單更新成功');
         } catch (ValidationException $e) {
             if ($request->ajax()) {

@@ -42,6 +42,14 @@
         </div>
         <div class="card-body">
             <div class="row g-3">
+                <div class="col-md-2 d-flex justify-content-center align-items-center">
+                @if(!isset($order))
+                <button type="button" class="btn btn-outline-primary btn-lg" id="historyOrderBtn"
+                        style="display: none;" title="選擇歷史訂單快速填入">
+                    <i class="fas fa-history me-1"></i>歷史訂單
+                </button>
+                @endif
+                </div>
                 <div class="col-md-2">
                     <label class="form-label">電話</label>
                     <input type="text" name="customer_phone" class="form-control"
@@ -71,14 +79,6 @@
                     <label class="form-label">交通公司</label>
                     <input type="text" name="service_company" class="form-control"
                         value="{{ old('service_company', isset($order) ? $order->service_company : ($customer->service_company ?? '')) }}" readonly>
-                </div>
-                <div class="col-md-2 d-flex justify-content-center align-items-center">
-                @if(!isset($order))
-                <button type="button" class="btn btn-outline-primary btn-lg" id="historyOrderBtn"
-                        style="display: none;" title="選擇歷史訂單快速填入">
-                    <i class="fas fa-history me-1"></i>歷史訂單
-                </button>
-                @endif
                 </div>
                 @if(old('special_status', isset($order) ? $order->special_status : ($customer->special_status ?? '')) == '黑名單')
                     <div class="col-md-12">
@@ -346,6 +346,10 @@
                 <div class="col-12 text-center">
                     <button type="button" class="btn btn-outline-primary" id="swapAddressBtn">
                         <i class="fas fa-exchange-alt"></i> 交換地址
+                    </button>
+                    <button type="button" class="btn btn-outline-info" id="copyOrderInfoBtn">
+                        <i class="fas fa-copy me-1"></i>
+                        複製訂單資訊
                     </button>
                 </div>
                 <div class="col-12">

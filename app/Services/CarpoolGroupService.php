@@ -172,7 +172,7 @@ class CarpoolGroupService
             'main_order_number' => $orderNumbers['return_main'],
             'member_sequence' => 1,
             // 共乘資訊：主訂單指向共乘客戶
-            'special_status' => '共乘',
+            'special_status' => '共乘單',
             'carpool_customer_id' => $carpoolCustomer->id,
             'carpool_name' => $carpoolCustomer->name,
             'carpool_id' => $carpoolCustomer->id_number,
@@ -186,7 +186,7 @@ class CarpoolGroupService
             'main_order_number' => $orderNumbers['return_main'],
             'member_sequence' => 2,
             // 共乘資訊：成員訂單指向主客戶
-            'special_status' => '共乘',
+            'special_status' => '共乘單',
             'carpool_customer_id' => $mainCustomer->id,
             'carpool_name' => $mainCustomer->name,
             'carpool_id' => $mainCustomer->id_number,

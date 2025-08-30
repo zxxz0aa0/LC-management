@@ -1,8 +1,13 @@
 <div class="card mb-2">
     <div class="card-header bg-info">
-        <h5 class="mb-0">
-            <i class="fas fa-search me-2"></i>客戶搜尋
-        </h5>
+         <div class="d-flex  align-items-center">
+            <h5 class="mb-0 pe-3">
+                <i class="fas fa-search me-2"></i>客戶搜尋
+            </h5>
+            <a href="{{ route('customers.create', array_merge(['return_to' => 'orders'], request()->only(['keyword', 'start_date', 'end_date', 'customer_id']))) }}" class="btn btn-outline-dark">
+                <i class="fas fa-user-plus me-2"></i>新增客戶
+            </a>
+        </div>
     </div>
     <div class="card-body">
         <form method="GET" action="{{ route('orders.index') }}" class="row g-3">
@@ -22,16 +27,27 @@
                 <input type="date" name="end_date" id="end_date" class="form-control"
                        value="{{ request('end_date') ?? \Carbon\Carbon::now()->addMonth()->endOfMonth()->toDateString() }}">
             </div>
-            <div class="col-12">
+            <div class="col-6">
                 <button type="submit" class="btn btn-success">
                     <i class="fas fa-search me-2"></i>搜尋
                 </button>
                 <a href="{{ route('orders.index') }}" class="btn btn-dark">
                     <i class="fas fa-undo me-2"></i>清除
                 </a>
-                <a href="{{ route('customers.create', array_merge(['return_to' => 'orders'], request()->only(['keyword', 'start_date', 'end_date', 'customer_id']))) }}" class="btn btn-primary">
-                    <i class="fas fa-user-plus me-2"></i>新增客戶
-                </a>
+            </div>
+            <div class="col-6">
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-search me-2"></i>搜尋
+                </button>
+                <button type="button" class="btn btn-outline-dark" onclick="setQuickDate('today')">
+                    <i class="fas fa-calendar-day me-2"></i>今天
+                </button>
+                <button type="button" class="btn btn-outline-dark" onclick="setQuickDate('tomorrow')">
+                    <i class="fas fa-calendar-day me-2"></i>明天
+                </button>
+                <button type="button" class="btn btn-outline-dark" onclick="setQuickDate('dayAfterTomorrow')">
+                    <i class="fas fa-calendar-day me-2"></i>大後天
+                </button>
             </div>
         </form>
 
@@ -204,3 +220,33 @@
         @endif
     </div>
 </div>
+
+<script>
+function setQuickDate(period) {
+    const today = new Date();
+    let targetDate;
+    
+    switch(period) {
+        case 'today':
+            targetDate = new Date(today);
+            break;
+        case 'tomorrow':
+            targetDate = new Date(today);
+            targetDate.setDate(today.getDate() + 1);
+            break;
+        case 'dayAfterTomorrow':
+            targetDate = new Date(today);
+            targetDate.setDate(today.getDate() + 2);
+            break;
+        default:
+            return;
+    }
+    
+    // 格式化為 YYYY-MM-DD
+    const dateString = targetDate.toISOString().split('T')[0];
+    
+    // 設定開始日期和結束日期
+    document.getElementById('start_date').value = dateString;
+    document.getElementById('end_date').value = dateString;
+}
+</script>
