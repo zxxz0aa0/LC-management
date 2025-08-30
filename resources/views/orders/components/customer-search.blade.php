@@ -102,7 +102,7 @@
                             <i class="fas fa-user me-2"></i>客戶資料
                         </h6>
                     </div>
-                    <div class="card-body ">
+                    <div class="card-body" style="font-size: 19px">
                         <div class="row">
                             <div class="col-md-2">
                                 <strong>姓名：</strong><br>{{ $customer->name }}

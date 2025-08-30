@@ -52,7 +52,7 @@
             </div>
         @endif
 
-        <div class="table-responsive">
+        <div class="table-responsive" style="font-size: 18px" >
             <table class="table table-hover" id="ordersTable">
                 <thead class="table-success">
                     <tr>

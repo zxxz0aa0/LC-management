@@ -1,3 +1,9 @@
+<style>
+.form-control-custom {
+    font-size: 19px !important;
+}
+</style>
+
 <form method="POST" action="{{ isset($order) ? route('orders.update', $order) : route('orders.store') }}"
       class="order-form">
     @csrf
@@ -52,32 +58,31 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">電話</label>
-                    <input type="text" name="customer_phone" class="form-control"
-                        value="{{ old('customer_phone', isset($order) ? $order->customer_phone : '') }}" >
+                    <input type="text" name="customer_phone" class="form-control form-control-custom"                         value="{{ old('customer_phone', isset($order) ? $order->customer_phone : '') }}" >
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">客戶姓名</label>
-                    <input type="text" name="customer_name" class="form-control"
+                    <input type="text" name="customer_name" class="form-control form-control-custom"
                         value="{{ old('customer_name', isset($order) ? $order->customer_name : ($customer->name ?? '')) }}" readonly>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">身分證字號</label>
-                    <input type="text" name="customer_id_number" class="form-control"
+                    <input type="text" name="customer_id_number" class="form-control form-control-custom"
                         value="{{ old('customer_id_number', isset($order) ? $order->customer_id_number : ($customer->id_number ?? '')) }}" readonly>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">訂單類型</label>
-                    <input type="text" name="order_type" class="form-control"
+                    <input type="text" name="order_type" class="form-control form-control-custom"
                         value="{{ old('order_type', isset($order) ? $order->order_type : ($customer->county_care ?? '')) }}" readonly>
                 </div>
                 <!--<div class="col-md-2"> 這邊主要先隱藏欄位，有需要用再打開
                     <label class="form-label">身份別</label>-->
-                    <input type="hidden" name="identity" class="form-control"
+                    <input type="hidden" name="identity" class="form-control form-control-custom"
                         value="{{ old('identity', isset($order) ? $order->identity : ($customer->identity ?? '')) }}" readonly>
                 <!--</div>-->
                 <div class="col-md-2">
                     <label class="form-label">交通公司</label>
-                    <input type="text" name="service_company" class="form-control"
+                    <input type="text" name="service_company" class="form-control form-control-custom"
                         value="{{ old('service_company', isset($order) ? $order->service_company : ($customer->service_company ?? '')) }}" readonly>
                 </div>
                 @if(old('special_status', isset($order) ? $order->special_status : ($customer->special_status ?? '')) == '黑名單')
@@ -121,10 +126,10 @@
 
             {{-- 單日模式 --}}
             <div id="single-date-section">
-                <div class="row g-3">
+                <div class="row g-3" >
                     <div class="col-md-3">
                         <label class="form-label">用車日期</label>
-                        <input type="date" name="ride_date" class="form-control" required
+                        <input type="date" name="ride_date" class="form-control form-control-custom"  required
                                value="{{ old('ride_date', isset($order) ? $order->ride_date?->format('Y-m-d') : now()->format('Y-m-d')) }}">
                     </div>
                 </div>
@@ -136,7 +141,7 @@
                 <div class="row">
                     <div class="col-md-6">
                         <label class="form-label">選擇日期</label>
-                        <input type="text" id="multiple-date-picker" class="form-control" placeholder="點擊選擇多個日期">
+                        <input type="text" id="multiple-date-picker" class="form-control form-control-custom" placeholder="點擊選擇多個日期">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">已選擇的日期</label>
@@ -160,11 +165,11 @@
                 <div class="row g-3 mb-3">
                     <div class="col-md-4">
                         <label class="form-label">開始日期</label>
-                        <input type="date" name="start_date" class="form-control">
+                        <input type="date" name="start_date" class="form-control form-control-custom">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">結束日期</label>
-                        <input type="date" name="end_date" class="form-control">
+                        <input type="date" name="end_date" class="form-control form-control-custom">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">重複週期</label>
@@ -286,7 +291,7 @@
             <div class="row g-3">
                 <div class="col-md-2">
                     <label class="form-label">用車時間</label>
-                    <input type="text" name="ride_time" class="form-control time-auto-format" required
+                    <input type="text" name="ride_time" class="form-control form-control-custom time-auto-format" required
                            pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
                            placeholder="直接輸入4位數字"
                            maxlength="5"
@@ -298,7 +303,7 @@
                     <label class="form-label">
                         回程時間
                     </label>
-                    <input type="text" name="back_time" class="form-control time-auto-format"
+                    <input type="text" name="back_time" class="form-control form-control-custom time-auto-format"
                            pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
                            placeholder="例如1600"
                            maxlength="5"
@@ -309,12 +314,12 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">陪同人數</label>
-                    <input type="number" name="companions" class="form-control" min="0"
+                    <input type="number" name="companions" class="form-control form-control-custom" min="0"
                            value="{{ old('companions', isset($order) ? $order->companions : 0) }}">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">輪椅</label>
-                    <select name="wheelchair" class="form-select">
+                    <select name="wheelchair" class="form-select form-control-custom">
                         <option value="否" {{ old('wheelchair', isset($order) ? $order->wheelchair : '否') == '否' ? 'selected' : '' }}>否</option>
                         <option value="是" {{ old('wheelchair', isset($order) ? $order->wheelchair : '否') == '是' ? 'selected' : '' }}>是</option>
                         <option value="未知" {{ old('wheelchair', isset($order) ? $order->wheelchair : '否') == '未知' ? 'selected' : '' }}>未知</option>
@@ -322,7 +327,7 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">爬梯機</label>
-                    <select name="stair_machine" class="form-select">
+                    <select name="stair_machine" class="form-select form-control-custom">
                         <option value="否" {{ old('stair_machine', isset($order) ? $order->stair_machine : '否') == '否' ? 'selected' : '' }}>否</option>
                         <option value="是" {{ old('stair_machine', isset($order) ? $order->stair_machine : '否') == '是' ? 'selected' : '' }}>是</option>
                         <option value="未知" {{ old('stair_machine', isset($order) ? $order->stair_machine : '否') == '未知' ? 'selected' : '' }}>未知</option>
@@ -335,7 +340,7 @@
                 <div class="col-12">
                     <label class="form-label">上車地址</label>
                     <div class="input-group">
-                        <input type="text" name="pickup_address" id="pickup_address" class="form-control landmark-input" required
+                        <input type="text" name="pickup_address" id="pickup_address" class="form-control form-control-custom landmark-input" required
                                value="{{ old('pickup_address', isset($order) ? $order->pickup_address : (is_array($customer->addresses ?? []) && !empty($customer->addresses) ? $customer->addresses[0] : '')) }}"
                                placeholder="輸入地址或使用*觸發地標搜尋">
                         <button type="button" class="btn btn-outline-secondary" onclick="openLandmarkModal('pickup')">
@@ -355,7 +360,7 @@
                 <div class="col-12">
                     <label class="form-label">下車地址</label>
                     <div class="input-group">
-                        <input type="text" name="dropoff_address" id="dropoff_address" class="form-control landmark-input" required
+                        <input type="text" name="dropoff_address" id="dropoff_address" class="form-control form-control-custom landmark-input" required
                                value="{{ old('dropoff_address', isset($order) ? $order->dropoff_address : '') }}"
                                placeholder="輸入地址或使用*觸發地標搜尋">
                         <button type="button" class="btn btn-outline-secondary" onclick="openLandmarkModal('dropoff')">
@@ -390,7 +395,7 @@
                     <div class="col-md-3">
                         <label class="form-label">共乘對象搜尋</label>
                         <div class="input-group">
-                            <input type="text" id="carpoolSearchInput" class="form-control"
+                            <input type="text" id="carpoolSearchInput" class="form-control form-control-custom"
                                 placeholder="輸入姓名、ID或電話" value="{{ old('carpool_with') }}">
                             <button type="button" class="btn btn-success" id="searchCarpoolBtn">
                                 <i class="fas fa-search"></i>
@@ -407,22 +412,22 @@
                 <div class="row g-3 mt-2">
                     <div class="col-md-3">
                         <label class="form-label">共乘姓名</label>
-                        <input type="text" name="carpool_with" id="carpool_with" class="form-control" readonly
+                        <input type="text" name="carpool_with" id="carpool_with" class="form-control form-control-custom" readonly
                         value="{{ old('carpool_with', isset($order) ? $order->carpool_name : '') }}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">共乘身分證</label>
-                        <input type="text" name="carpool_id_number" id="carpool_id_number" class="form-control" readonly
+                        <input type="text" name="carpool_id_number" id="carpool_id_number" class="form-control form-control-custom" readonly
                         value="{{ old('carpool_id_number', isset($order) ? $order->carpool_id : '') }}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">共乘電話</label>
-                        <input type="text" name="carpool_phone_number" id="carpool_phone_number" class="form-control" readonly
+                        <input type="text" name="carpool_phone_number" id="carpool_phone_number" class="form-control form-control-custom" readonly
                         value="{{ old('carpool_phone_number')}}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">共乘地址</label>
-                        <input type="text" name="carpool_addresses" id="carpool_addresses" class="form-control" readonly
+                        <input type="text" name="carpool_addresses" id="carpool_addresses" class="form-control form-control-custom" readonly
                         value="{{ old('carpool_addresses')}}">
                     </div>
                 </div>
@@ -453,7 +458,7 @@
                         <div class="col-md-4">
                             <label class="form-label">駕駛隊編</label>
                             <div class="input-group">
-                                <input type="text" name="driver_fleet_number" id="driver_fleet_number" class="form-control"
+                                <input type="text" name="driver_fleet_number" id="driver_fleet_number" class="form-control form-control-custom"
                                     value="{{ old('driver_fleet_number', isset($order) ? $order->driver_fleet_number : '') }}">
                                 <button type="button" class="btn btn-success" id="searchDriverBtn" data-target="outbound">
                                     <i class="fas fa-search"></i>
@@ -465,12 +470,12 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">駕駛姓名</label>
-                            <input type="text" name="driver_name" id="driver_name" class="form-control" readonly
+                            <input type="text" name="driver_name" id="driver_name" class="form-control form-control-custom" readonly
                             value="{{ old('driver_name', isset($order) ? $order->driver_name : '') }}">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">車牌號碼</label>
-                            <input type="text" name="driver_plate_number" id="driver_plate_number" class="form-control" readonly
+                            <input type="text" name="driver_plate_number" id="driver_plate_number" class="form-control form-control-custom" readonly
                             value="{{ old('driver_plate_number', isset($order) ? $order->driver_plate_number : '') }}">
                         </div>
                     </div>
@@ -495,7 +500,7 @@
                         <div class="col-md-4">
                             <label class="form-label">駕駛隊編</label>
                             <div class="input-group">
-                                <input type="text" name="return_driver_fleet_number" id="return_driver_fleet_number" class="form-control"
+                                <input type="text" name="return_driver_fleet_number" id="return_driver_fleet_number" class="form-control form-control-custom"
                                     value="{{ old('return_driver_fleet_number', '') }}">
                                 <button type="button" class="btn btn-success" id="searchReturnDriverBtn" data-target="return">
                                     <i class="fas fa-search"></i>
@@ -507,12 +512,12 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">駕駛姓名</label>
-                            <input type="text" name="return_driver_name" id="return_driver_name" class="form-control" readonly
+                            <input type="text" name="return_driver_name" id="return_driver_name" class="form-control form-control-custom" readonly
                             value="{{ old('return_driver_name', '') }}">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">車牌號碼</label>
-                            <input type="text" name="return_driver_plate_number" id="return_driver_plate_number" class="form-control" readonly
+                            <input type="text" name="return_driver_plate_number" id="return_driver_plate_number" class="form-control form-control-custom" readonly
                             value="{{ old('return_driver_plate_number', '') }}">
                         </div>
                     </div>
@@ -534,7 +539,7 @@
             <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">特殊狀態</label>
-                    <select name="special_status" class="form-select">
+                    <select name="special_status" class="form-select form-control-custom">
                         <option value="一般" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '一般' ? 'selected' : '' }}>一般</option>
                         <option value="網頁單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '網頁單' ? 'selected' : '' }}>網頁單</option>
                         <option value="Line" {{ old('special_status', isset($order) ? $order->special_status : '一般') == 'Line' ? 'selected' : '' }}>Line</option>
@@ -545,7 +550,7 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">訂單狀態</label>
-                    <select name="status" class="form-select">
+                    <select name="status" class="form-select form-control-custom">
                         <option value="open" {{ old('status', isset($order) ? $order->status : 'open') == 'open' ? 'selected' : '' }}>可派遣</option>
                         <option value="assigned" {{ old('status', isset($order) ? $order->status : 'open') == 'assigned' ? 'selected' : '' }}>已指派</option>
                         <option value="bkorder" {{ old('status', isset($order) ? $order->status : 'open') == 'bkorder' ? 'selected' : '' }}>已候補</option>                      
@@ -553,12 +558,12 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">建立者</label>
-                    <input type="text" name="created_by" class="form-control"
+                    <input type="text" name="created_by" class="form-control form-control-custom"
                     value="{{ old('created_by', isset($order) ? $order->created_by : optional(auth()->user())->name) }}" readonly>
                 </div>
                 <div class="col-12">
                     <label class="form-label">訂單備註</label>
-                    <textarea name="remark" class="form-control" rows="3">{{ old('remark', isset($order) ? $order->remark : '') }}</textarea>
+                    <textarea name="remark" class="form-control form-control-custom" rows="3">{{ old('remark', isset($order) ? $order->remark : '') }}</textarea>
                 </div>
             </div>
         </div>
@@ -594,7 +599,7 @@
                 <div id="singleTripArea">
                     <div class="mb-3">
                         <label class="form-label">訂單資訊文字</label>
-                        <textarea id="orderInfoText" class="form-control" rows="8" readonly
+                        <textarea id="orderInfoText" class="form-control form-control-custom" rows="8" readonly
                                   style="font-family: monospace; background-color: #f8f9fa;"></textarea>
                     </div>
                     <div class="alert alert-info">
@@ -610,7 +615,7 @@
                             <label class="form-label text-primary">
                                 <i class="fas fa-arrow-right me-1"></i>去程資訊
                             </label>
-                            <textarea id="outboundInfoText" class="form-control" rows="6" readonly
+                            <textarea id="outboundInfoText" class="form-control form-control-custom" rows="6" readonly
                                       style="font-family: monospace; background-color: #f8f9fa;"></textarea>
                             <button type="button" class="btn btn-primary btn-sm mt-2 w-100" id="copyOutboundBtn">
                                 <i class="fas fa-copy me-1"></i>複製去程資訊
@@ -620,7 +625,7 @@
                             <label class="form-label text-success">
                                 <i class="fas fa-arrow-left me-1"></i>回程資訊
                             </label>
-                            <textarea id="returnInfoText" class="form-control" rows="6" readonly
+                            <textarea id="returnInfoText" class="form-control form-control-custom" rows="6" readonly
                                       style="font-family: monospace; background-color: #f8f9fa;"></textarea>
                             <button type="button" class="btn btn-success btn-sm mt-2 w-100" id="copyReturnBtn">
                                 <i class="fas fa-copy me-1"></i>複製回程資訊
