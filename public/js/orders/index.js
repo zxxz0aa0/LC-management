@@ -85,7 +85,7 @@ class OrderIndex {
                     }
                 },
                 pageLength: 100,
-                order: [[4, 'asc']], // 按用車日期降序desc 升序asc
+                order: [[3, 'asc'], [4, 'asc']], // 先依日期欄(前一欄)升序，再依時間欄升序
                 columnDefs: [
                     { targets: [columnCount - 1], orderable: false } // 最後一欄（操作欄）不可排序
                 ],
