@@ -84,6 +84,11 @@ php artisan db:seed --class=LandmarkSeeder
 # 併發安全性測試
 php artisan test:concurrency                     # 預設併發測試 (5執行緒×10訂單)
 php artisan test:concurrency --threads=10 --orders=20  # 自訂併發測試參數
+
+# 特定測試執行
+php artisan test --filter=CustomerImportTest     # 客戶匯入測試
+php artisan test --filter=OrderImportTest        # 訂單匯入測試  
+php artisan test --filter=AuthenticationTest     # 認證測試
 ```
 
 ### 前端建置指令
@@ -109,13 +114,18 @@ npm run dev -- --host  # 允許外部存取
 /orders                       # 訂單管理 (CRUD + 複雜搜尋)
 /admin/drivers                # 駕駛管理 (CRUD + 匯入匯出)
 /landmarks                    # 地標管理 (CRUD + 搜尋 API)
+/carpool-groups               # 共乘群組管理
 /profile                      # 使用者資料管理
 
 # 重要 API 端點
-GET  /landmarks-search        # 地標搜尋 API
-POST /orders/check-duplicate  # 重複訂單檢查
-GET  /customers/{id}/history-orders  # 客戶歷史訂單
-POST /landmarks-usage         # 更新地標使用統計
+GET  /landmarks-search                     # 地標搜尋 API
+POST /orders/check-duplicate               # 重複訂單檢查
+POST /orders/check-batch-duplicate         # 批量重複檢查
+GET  /customers/{id}/history-orders        # 客戶歷史訂單
+POST /landmarks-usage                      # 更新地標使用統計
+POST /orders/batch                         # 批量建立訂單
+POST /carpool-groups/{id}/assign-driver    # 指派司機給共乘群組
+POST /carpool-groups/{id}/dissolve         # 解除共乘群組
 ```
 
 ## 核心功能與架構
@@ -130,8 +140,17 @@ POST /landmarks-usage         # 更新地標使用統計
 
 #### 核心服務
 - **OrderNumberService**: 原子化訂單編號生成，使用 SELECT FOR UPDATE 確保併發安全
+  - 支援重試機制處理併發衝突 (最多3次重試)
+  - 使用 order_sequences 表管理每日序列號
+  - 自動處理 MySQL 死鎖和鎖等待超時錯誤
 - **CarpoolGroupService**: 共乘群組管理，支援建立、解除、狀態同步
+  - 使用 UUID 生成獨立的群組 ID
+  - 支援去程回程獨立群組管理
+  - 提供群組狀態同步和司機指派功能
 - **BatchOrderService**: 批量訂單建立，支援手動多日和週期性模式
+  - 支援最多50筆訂單的批量建立
+  - 內建記憶體管理，分批處理避免記憶體溢出
+  - 支援多星期幾選擇的週期性日期生成
 
 ### 客戶管理系統
 - **JSON 欄位**: 支援多筆電話和地址儲存
@@ -276,8 +295,13 @@ php artisan optimize:clear
 
 ### 併發錯誤處理
 1. **ConcurrencyException**: 訂單編號衝突，建議重試
+   - 錯誤碼 1213: MySQL 死鎖檢測
+   - 錯誤碼 1205: 鎖等待超時
+   - 錯誤碼 1062: 重複鍵衝突
 2. **資料庫鎖等待**: 檢查併發負載，確認索引存在
 3. **測試失敗**: 執行 `php artisan test:concurrency` 診斷併發問題
+   - 檢查序列號一致性：實際增加數量應等於成功建立數量
+   - 檢查訂單編號唯一性：無重複編號產生
 
 ### 測試指令
 ```bash
