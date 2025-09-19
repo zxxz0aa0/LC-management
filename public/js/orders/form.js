@@ -1901,8 +1901,9 @@ class OrderForm {
      * 處理產生週期性日期
      */
     handleGenerateRecurringDates() {
-        const startDate = $('input[name="start_date"]').val();
-        const endDate = $('input[name="end_date"]').val();
+        // 明確選擇週期性區域內的日期輸入框，避免與隱藏的搜尋參數衝突
+        const startDate = $('#recurring-dates-section input[name="start_date"]').val();
+        const endDate = $('#recurring-dates-section input[name="end_date"]').val();
         const weekdays = $('input[name="weekdays[]"]:checked').map(function() {
             return parseInt($(this).val());
         }).get();
@@ -1947,53 +1948,77 @@ class OrderForm {
      */
     generateRecurringDates(startDate, endDate, weekdays, recurrenceType) {
         const dates = [];
-        const start = new Date(startDate);
-        const end = new Date(endDate);
+        
+        // 使用更可靠的日期解析方式，避免時區問題
+        const start = this.parseLocalDate(startDate);
+        const end = this.parseLocalDate(endDate);
 
-        // 週期間隔天數
-        const intervals = {
-            'weekly': 7,
-            'biweekly': 14,
-            'monthly': 28  // 簡化為4週，避免月份天數差異
-        };
-        const interval = intervals[recurrenceType] || 7;
 
-        // 從開始日期的當週開始
-        let currentWeekStart = new Date(start);
-        // 移動到該週的週一（JavaScript: 1=Monday）
-        const dayOffset = currentWeekStart.getDay() === 0 ? 6 : currentWeekStart.getDay() - 1;
-        currentWeekStart.setDate(currentWeekStart.getDate() - dayOffset);
+        // 將 weekdays 轉換為 Set 提高查詢效率
+        const targetWeekdays = new Set(weekdays.map(w => parseInt(w)));
 
-        while (currentWeekStart <= end) {
-            // 檢查當前週的所有目標星期幾
-            weekdays.forEach(targetWeekday => {
-                const targetDate = new Date(currentWeekStart);
+        // 簡單的逐日遍歷，確保不會產生範圍外的日期
+        const currentDate = new Date(start);
 
-                // 統一星期幾映射：0=週日, 1=週一, ..., 6=週六
-                // 轉換為相對於週一的天數偏移
-                let dayOffset;
-                if (targetWeekday === 0) {
-                    dayOffset = 6; // 週日是週一後6天
-                } else {
-                    dayOffset = targetWeekday - 1; // 週一是0，週二是1，依此類推
-                }
+        while (currentDate <= end) {
+            // 檢查當前日期是否為目標星期幾
+            const currentWeekday = currentDate.getDay(); // 0=週日, 1=週一, ..., 6=週六
 
-                targetDate.setDate(currentWeekStart.getDate() + dayOffset);
-
-                // 檢查日期是否在指定範圍內
-                if (targetDate >= start && targetDate <= end) {
-                    const dateStr = this.formatDateForBackend(targetDate);
+            if (targetWeekdays.has(currentWeekday)) {
+                // 檢查是否符合週期性條件
+                if (this.isDateInRecurrencePattern(currentDate, start, recurrenceType)) {
+                    const dateStr = this.formatDateForBackend(currentDate);
                     if (!dates.includes(dateStr)) {
                         dates.push(dateStr);
                     }
                 }
-            });
+            }
 
-            // 移動到下一個週期
-            currentWeekStart.setDate(currentWeekStart.getDate() + interval);
+            // 移動到下一天
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        return dates.sort();
+    }
+
+    /**
+     * 解析本地日期，避免時區轉換問題
+     */
+    parseLocalDate(dateString) {
+        if (!dateString) return null;
+        
+        // 將 YYYY-MM-DD 格式轉換為本地日期物件
+        const parts = dateString.split('-');
+        if (parts.length !== 3) return new Date(dateString);
+        
+        const year = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1; // JavaScript 月份從 0 開始
+        const day = parseInt(parts[2]);
+        
+        return new Date(year, month, day);
+    }
+
+    /**
+     * 檢查日期是否符合週期性模式
+     */
+    isDateInRecurrencePattern(currentDate, startDate, recurrenceType) {
+        if (recurrenceType === 'weekly') {
+            return true; // 每週都符合
         }
 
-        return dates.sort();
+        // 計算從開始日期到當前日期的天數差
+        const diffTime = currentDate.getTime() - startDate.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const diffWeeks = Math.floor(diffDays / 7);
+
+        if (recurrenceType === 'biweekly') {
+            return diffWeeks % 2 === 0; // 偶數週
+        }
+
+        if (recurrenceType === 'monthly') {
+            return diffWeeks % 4 === 0; // 每4週
+        }
+
+        return true;
     }
 
     /**
