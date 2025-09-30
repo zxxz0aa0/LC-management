@@ -40,7 +40,7 @@ php artisan ide-helper:generate
 ## 個人偏好
 1. 使用繁體中文應答
 2. 設計新功能前先規劃，並討論完後，有確定再執行
-3. 做任何分析、查詢、檢查時使用Claude Opus 4.1模型，編寫代碼時使用Claude Sonnet 4模型，來降低使用次數成本。
+3. 做任何分析、查詢、檢查時使用Claude Opus 4.1模型，編寫代碼時使用Claude Opus 4.1模型，來降低使用次數成本。
 4. 注重安全性問題
 5. 開始寫程式或修改程式前先做一個to do
 
@@ -121,21 +121,35 @@ npm run dev -- --host  # 允許外部存取
 GET  /landmarks-search                     # 地標搜尋 API
 POST /orders/check-duplicate               # 重複訂單檢查
 POST /orders/check-batch-duplicate         # 批量重複檢查
+POST /orders/check-date-pickup-duplicate   # 日期與上車時間重複檢查
 GET  /customers/{id}/history-orders        # 客戶歷史訂單
 POST /landmarks-usage                      # 更新地標使用統計
 POST /orders/batch                         # 批量建立訂單
+POST /orders/batch-update                  # 批量更新訂單
+GET  /orders/export                        # 完整格式訂單匯出
+GET  /orders/export-simple                 # 簡化格式訂單匯出（14欄位）
+GET  /orders/export-simple-by-date         # 依建立時間範圍匯出（含時間選擇）
+POST /orders/import                        # 訂單匯入
 POST /carpool-groups/{id}/assign-driver    # 指派司機給共乘群組
+POST /carpool-groups/{id}/cancel           # 取消共乘群組
 POST /carpool-groups/{id}/dissolve         # 解除共乘群組
+POST /carpool-groups/{id}/update-status    # 更新共乘群組狀態
 ```
 
 ## 核心功能與架構
 
 ### 訂單管理系統
-- **多種建立模式**: 單日訂單、手動多日、週期性批量建立
+- **多種建立模式**: 單日訂單、手動多日、週期性批量建立（支援最多50筆）
 - **併發安全性**: 使用 OrderNumberService 確保訂單編號唯一性
 - **共乘功能**: CarpoolGroupService 管理共乘群組，支援主訂單代表制
-- **重複檢查**: 前後端雙重檢查防止重複訂單
+- **重複檢查**: 前後端雙重檢查防止重複訂單（日期+上車時間匹配檢測）
+- **批量更新**: 支援批量更新訂單欄位，含用車時間搓合辨識
+- **取消機制**: 訂單可標記為取消狀態，含取消類型分類
 - **歷史訂單**: 快速選擇客戶歷史訂單進行填入
+- **匯入匯出**:
+  - 完整格式匯出（所有欄位）
+  - 簡化格式匯出（14欄位，適合快速查看）
+  - 依建立時間範圍匯出（含時間選擇器，支援快捷選項）
 - **組件化設計**: 5個可重用組件，主頁面代碼減少97%
 
 #### 核心服務
@@ -143,14 +157,28 @@ POST /carpool-groups/{id}/dissolve         # 解除共乘群組
   - 支援重試機制處理併發衝突 (最多3次重試)
   - 使用 order_sequences 表管理每日序列號
   - 自動處理 MySQL 死鎖和鎖等待超時錯誤
+  - 位置：`app/Services/OrderNumberService.php`
 - **CarpoolGroupService**: 共乘群組管理，支援建立、解除、狀態同步
   - 使用 UUID 生成獨立的群組 ID
   - 支援去程回程獨立群組管理
   - 提供群組狀態同步和司機指派功能
+  - 位置：`app/Services/CarpoolGroupService.php`
 - **BatchOrderService**: 批量訂單建立，支援手動多日和週期性模式
   - 支援最多50筆訂單的批量建立
   - 內建記憶體管理，分批處理避免記憶體溢出
   - 支援多星期幾選擇的週期性日期生成
+  - 位置：`app/Services/BatchOrderService.php`
+- **CustomerImportService**: 客戶資料匯入，支援 Excel 批量匯入
+  - 智能欄位對照和資料驗證
+  - 重複檢查（姓名、身分證、電話）
+  - 錯誤回報與部分成功處理
+  - 位置：`app/Services/CustomerImportService.php`
+- **DateTimeParser**: 時間格式解析，支援多種日期時間格式
+  - 位置：`app/Services/DateTimeParser.php`
+- **TaiwanAddressResolver**: 台灣地址解析，自動拆分縣市區域
+  - 位置：`app/Services/TaiwanAddressResolver.php`
+- **ExcelFieldMapper**: Excel 欄位對照，統一處理匯入欄位名稱
+  - 位置：`app/Services/ExcelFieldMapper.php`
 
 ### 客戶管理系統
 - **JSON 欄位**: 支援多筆電話和地址儲存
@@ -172,19 +200,47 @@ POST /carpool-groups/{id}/dissolve         # 解除共乘群組
 - **匯入匯出**: Excel 批次處理，含座標驗證
 
 ### 資料庫架構
-- **Customer**: 客戶管理，支援 JSON 欄位儲存多筆電話和地址
-- **Order**: 訂單管理，具備智能編號生成和客戶快照功能，包含共乘群組欄位
-- **Driver**: 司機管理，包含車輛資訊和服務能力
-- **Landmark**: 地標管理，支援地址快速選擇和使用統計
-- **CustomerEvent**: 客戶事件追蹤系統
+主要資料表位於 `database/migrations/` 目錄：
+
+- **users**: 使用者認證系統（Laravel Breeze）
+- **customers**: 客戶管理，支援 JSON 欄位儲存多筆電話和地址
+  - 包含姓名、身分證、電話（JSON陣列）、地址（JSON陣列）、備註等
+- **orders**: 訂單管理，具備智能編號生成和客戶快照功能
+  - 包含訂單編號、客戶快照、司機快照、上下車地址、共乘群組欄位
+  - 狀態欄位：status（進行中/已完成/已取消）、special_status（特殊標記）
+  - 共乘欄位：carpool_group_id、is_main_order、carpool_member_count 等
+- **order_sequences**: 訂單編號序列表，確保併發安全的序列號生成
+  - 使用 date + sequence_number 管理每日訂單編號
+- **drivers**: 司機管理，包含車輛資訊和服務能力
+  - 包含姓名、電話、車牌號碼、隊編、服務類型、狀態等13個欄位
+- **landmarks**: 地標管理，支援地址快速選擇和使用統計
+  - 包含名稱、分類、地址、經緯度、使用次數、啟用狀態等
+- **customer_events**: 客戶事件追蹤系統
+- **import_sessions**: 匯入工作階段追蹤
+- **import_progresses**: 匯入進度記錄
+- **jobs**: 佇列任務（用於大量匯入處理）
+- **failed_jobs**: 失敗任務記錄
 
 ### 前端架構
 - **Vite**: 現代前端建置工具，提供快速熱更新
-- **Tailwind CSS**: 實用性優先的 CSS 框架
+- **Tailwind CSS**: 實用性優先的 CSS 框架（配置檔：`tailwind.config.js`）
 - **Alpine.js**: 輕量級 JavaScript 框架（透過 CDN 引入）
 - **AdminLTE 3.2**: 主要管理介面框架
-- **Bootstrap 5.3** + **DataTables**: 表格展示
+- **Bootstrap 5.3** + **DataTables**: 表格展示和互動功能
 - **組件化設計**: 訂單系統採用組件化架構，提升維護性
+
+#### Blade 組件結構
+訂單系統的組件位於 `resources/views/orders/components/`：
+- `order-form.blade.php` - 訂單基本資訊表單
+- `customer-info.blade.php` - 客戶資訊輸入區塊
+- `ride-details.blade.php` - 乘車詳情（日期、時間、地址）
+- `additional-info.blade.php` - 額外資訊（輪椅、爬梯機、備註）
+- `order-table.blade.php` - 訂單列表表格（含搜尋、匯出功能）
+
+通用佈局檔案位於 `resources/views/layouts/`：
+- `app.blade.php` - 主要應用程式佈局
+- `navigation.blade.php` - 導航選單
+- `guest.blade.php` - 訪客佈局（登入/註冊頁面）
 
 ## 記憶體管理要點
 
@@ -284,6 +340,21 @@ npm run build
 php artisan optimize:clear
 ```
 
+## 最近開發活動與已知問題
+
+### 最近完成的功能（2025年9月）
+1. **訂單週期性建立日期修正** - 修復週期性訂單建立時的日期計算問題
+2. **訂單管理排序優化** - 調整訂單列表的排序邏輯
+3. **匯入匯出介面調整** - 改善使用者體驗和錯誤處理
+4. **批量訂單更新** - 新增批量更新功能和用車時間搓合辨識
+5. **訂單取消類型** - 新增訂單取消功能和取消類型分類
+6. **共乘文字填入調整** - 優化共乘訂單的文字顯示邏輯
+
+### 待處理或規劃中的功能
+- 依建立時間範圍匯出功能完整實現（規劃文件已完成）
+- 更多的快捷時間範圍選項
+- 匯出進度指示器（大量資料匯出時）
+
 ## 除錯與問題排查
 
 ### 常見開發問題
@@ -325,15 +396,28 @@ php artisan tinker
 - **定期審查**: 確保 $fillable 陣列只包含實際存在的資料庫欄位
 - **前後端分離**: 前端欄位不一定要儲存到資料庫
 - **安全性**: 使用白名單原則，避免 Mass Assignment 風險
+- **關鍵模型位置**:
+  - `app/Models/Order.php` - 訂單模型（含大量共乘群組欄位）
+  - `app/Models/Customer.php` - 客戶模型（含 JSON 欄位轉換）
+  - `app/Models/Driver.php` - 司機模型
+  - `app/Models/Landmark.php` - 地標模型
 
 ### 效能最佳化
 - **查詢優化**: 使用 `with()` 預載關聯避免 N+1 查詢
 - **索引使用**: 為常用查詢欄位建立適當索引
+  - `orders` 表：order_number (unique)、ride_date、customer_id、driver_id
+  - `order_sequences` 表：date (unique)
 - **快取策略**: 熱門查詢結果使用 Redis 快取
-- **分塊處理**: 大量資料操作使用 `chunk()` 方法
+- **分塊處理**: 大量資料操作使用 `chunk()` 方法，建議每批 1000 筆
+- **匯出最佳化**: 超過 10000 筆記錄時使用分塊匯出
 
 ### 維護要點
 - **代碼風格**: 定期執行 `./vendor/bin/pint` 格式化代碼
 - **依賴更新**: 定期檢查並更新 Composer 和 NPM 依賴
 - **安全性**: 定期檢查並修復安全漏洞
 - **備份策略**: 定期備份資料庫和重要檔案
+- **文件同步**: 專案包含多個 .md 規劃文件，開發時參考：
+  - `EXCEL_匯入格式規格說明.md` - Excel 匯入格式定義
+  - `共乘單方案.md` - 共乘功能設計文件
+  - `訂單建立多天功能.md` - 批量訂單建立規劃
+  - `order-export-by-creation-date.md` - 時間範圍匯出功能規劃

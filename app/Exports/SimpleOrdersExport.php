@@ -29,11 +29,24 @@ class SimpleOrdersExport implements FromCollection, WithHeadings
         // 如果有篩選參數，應用篩選條件
         if ($this->request) {
             $query = $query->filter($this->request);
+
+            // 如果有建立時間範圍篩選（用於依建立時間匯出）
+            if ($this->request->has('created_at_start') && $this->request->has('created_at_end')) {
+                $query->whereBetween('created_at', [
+                    $this->request->input('created_at_start'),
+                    $this->request->input('created_at_end'),
+                ]);
+            }
         }
 
-        return $query->orderBy('ride_date', 'desc')
-            ->orderBy('ride_time', 'desc')
-            ->get()
+        // 根據是否有建立時間篩選來決定排序方式
+        if ($this->request && $this->request->has('created_at_start')) {
+            $query->orderBy('created_at', 'desc');
+        } else {
+            $query->orderBy('ride_date', 'desc')->orderBy('ride_time', 'desc');
+        }
+
+        return $query->get()
             ->map(function ($order) {
                 return [
                     'order_code' => $order->order_number,

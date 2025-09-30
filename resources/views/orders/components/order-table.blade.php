@@ -25,6 +25,9 @@
                         <li><a class="dropdown-item" href="{{ route('orders.export.simple') }}{{ request()->getQueryString() ? '?' . request()->getQueryString() : '' }}">
                             <i class="fas fa-file-csv me-2"></i>簡化格式 (14欄位)
                         </a></li>
+                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#exportDateModal">
+                            <i class="fas fa-calendar-alt me-2"></i>簡化格式 (依建立時間)
+                        </a></li>
                     </ul>
                 </div>
                 <!-- 範本下載按鈕組 -->
@@ -363,6 +366,63 @@
     </div>
 </div>
 
+{{-- 時間範圍匯出 Modal --}}
+<div class="modal fade" id="exportDateModal" tabindex="-1" aria-labelledby="exportDateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="exportDateModalLabel">
+                    <i class="fas fa-calendar-alt me-2"></i>選擇匯出時間範圍
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="exportDateForm">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">開始時間</label>
+                            <input type="datetime-local" class="form-control" name="start_date" id="export_start_date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">結束時間</label>
+                            <input type="datetime-local" class="form-control" name="end_date" id="export_end_date" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">
+                            <i class="fas fa-bolt me-1"></i>快捷選項：
+                        </label>
+                        <div class="btn-group d-flex flex-wrap gap-2" role="group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-range="today">今日</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-range="yesterday">昨日</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-range="week">本週</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-range="month">本月</button>
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>說明：</h6>
+                        <ul class="mb-0">
+                            <li>根據訂單的<strong>建立時間</strong>（created_at）篩選</li>
+                            <li>匯出格式：簡化格式（14欄位）</li>
+                            <li>狀態限制：僅匯出可派遣、已指派、已候補訂單</li>
+                            <li>共乘訂單：僅匯出主訂單，避免重複</li>
+                            <li>時間範圍：最多一年</li>
+                        </ul>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>取消
+                </button>
+                <button type="button" class="btn btn-success" id="confirmExport">
+                    <i class="fas fa-file-export me-2"></i>確認匯出
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {{-- 取消訂單 JavaScript 功能 --}}
 <script>
 let currentOrderId = null;
@@ -417,6 +477,97 @@ function cancelOrderWithReason(reason) {
         currentOrderId = null; // 清除當前訂單 ID
     });
 }
+
+// ===== 時間範圍匯出功能 =====
+// 格式化日期時間為 datetime-local 格式
+function formatDateTime(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+// 快捷時間範圍設定
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[data-range]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const range = this.dataset.range;
+            const now = new Date();
+            let startDate, endDate;
+
+            switch(range) {
+                case 'today':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0);
+                    endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59);
+                    break;
+                case 'yesterday':
+                    const yesterday = new Date(now);
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    startDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0);
+                    endDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59);
+                    break;
+                case 'week':
+                    const weekStart = new Date(now);
+                    weekStart.setDate(now.getDate() - now.getDay());
+                    startDate = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate(), 0, 0);
+                    endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59);
+                    break;
+                case 'month':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0);
+                    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59);
+                    break;
+            }
+
+            document.getElementById('export_start_date').value = formatDateTime(startDate);
+            document.getElementById('export_end_date').value = formatDateTime(endDate);
+        });
+    });
+
+    // 確認匯出處理
+    document.getElementById('confirmExport').addEventListener('click', function() {
+        const form = document.getElementById('exportDateForm');
+        const startDateInput = document.getElementById('export_start_date');
+        const endDateInput = document.getElementById('export_end_date');
+
+        // 驗證必填欄位
+        if (!startDateInput.value || !endDateInput.value) {
+            alert('請選擇開始時間和結束時間');
+            return;
+        }
+
+        // 驗證時間範圍
+        const startDate = new Date(startDateInput.value);
+        const endDate = new Date(endDateInput.value);
+
+        if (startDate >= endDate) {
+            alert('開始時間必須早於結束時間');
+            return;
+        }
+
+        // 檢查時間範圍是否超過一年
+        const daysDiff = (endDate - startDate) / (1000 * 60 * 60 * 24);
+        if (daysDiff > 365) {
+            alert('時間範圍不得超過一年（365天）');
+            return;
+        }
+
+        // 建構匯出URL
+        const params = new URLSearchParams();
+        params.append('start_date', startDateInput.value);
+        params.append('end_date', endDateInput.value);
+
+        // 執行匯出
+        window.location.href = `/orders/export-simple-by-date?${params.toString()}`;
+
+        // 關閉Modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('exportDateModal'));
+        if (modal) {
+            modal.hide();
+        }
+    });
+});
 </script>
 
 @if(session('import_errors'))

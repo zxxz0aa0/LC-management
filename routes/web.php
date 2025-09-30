@@ -57,6 +57,7 @@ Route::middleware('auth')->group(function () {
     // 訂單管理路由 - 匯入匯出路由必須在 resource 路由之前，避免路由衝突
     Route::get('/orders/export', [OrderController::class, 'export'])->name('orders.export');
     Route::get('/orders/export-simple', [OrderController::class, 'exportSimple'])->name('orders.export.simple');
+    Route::get('/orders/export-simple-by-date', [OrderController::class, 'exportSimpleByDate'])->name('orders.export.simple.by-date');
     Route::post('/orders/import', [OrderController::class, 'import'])->name('orders.import');
     Route::post('/orders/batch-update', [OrderController::class, 'batchUpdate'])->name('orders.batch-update');
     Route::post('/orders/queued-import', [OrderController::class, 'queuedImport'])->name('orders.queuedImport');
