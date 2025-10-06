@@ -2748,7 +2748,7 @@ class OrderForm {
         }
 
         // 使用現代 Clipboard API
-        if (navigator.clipboard) {
+        if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(orderText).then(() => {
                 // 顯示成功提示
                 const btn = $('#copyToClipboardBtn');
@@ -2762,34 +2762,68 @@ class OrderForm {
                     btn.removeClass('btn-success').addClass('btn-primary');
                 }, 3000);
 
-                console.log('訂單資訊已複製到剪貼板');
+                console.log('訂單資訊已複製到剪貼板（使用 Clipboard API）');
             }).catch(err => {
-                console.error('複製失敗:', err);
-                this.fallbackCopyToClipboard(orderText);
+                console.error('Clipboard API 失敗:', err);
+                this.fallbackCopyToClipboard(orderText, '#copyToClipboardBtn', 'btn-primary', '已複製！');
             });
         } else {
-            // 後備方案
-            this.fallbackCopyToClipboard(orderText);
+            // 後備方案（HTTP 環境或舊瀏覽器）
+            console.log('使用後備複製方案（非安全環境或不支援 Clipboard API）');
+            this.fallbackCopyToClipboard(orderText, '#copyToClipboardBtn', 'btn-primary', '已複製！');
         }
     }
 
     /**
-     * 後備複製方法（適用於舊瀏覽器）
+     * 後備複製方法（適用於舊瀏覽器或非安全環境如 HTTP）
      */
-    fallbackCopyToClipboard(text) {
+    fallbackCopyToClipboard(text, buttonSelector = null, originalClass = 'btn-primary', successText = '已複製！') {
         const textArea = document.createElement('textarea');
         textArea.value = text;
-        textArea.style.position = 'fixed';
-        textArea.style.opacity = '0';
+
+        // 使用 absolute 定位移到螢幕外（比 fixed + opacity 更可靠）
+        textArea.style.position = 'absolute';
+        textArea.style.left = '-9999px';
+        textArea.style.top = '-9999px';
+        textArea.setAttribute('readonly', ''); // 避免鍵盤彈出（行動裝置）
+
         document.body.appendChild(textArea);
+
+        // 確保 focus 和選取
         textArea.focus();
         textArea.select();
 
+        // iOS 相容性：明確設定選取範圍
+        try {
+            textArea.setSelectionRange(0, textArea.value.length);
+        } catch (err) {
+            // 部分瀏覽器不支援，忽略錯誤
+        }
+
         try {
             const successful = document.execCommand('copy');
+
             if (successful) {
-                alert('訂單資訊已複製到剪貼板');
+                console.log('後備複製方法成功');
+
+                // 如果有提供按鈕選擇器，更新按鈕狀態
+                if (buttonSelector) {
+                    const btn = $(buttonSelector);
+                    const originalText = btn.html();
+                    btn.html('<i class="fas fa-check me-2"></i>' + successText);
+                    btn.removeClass(originalClass).addClass('btn-success');
+
+                    // 3秒後恢復原狀
+                    setTimeout(() => {
+                        btn.html(originalText);
+                        btn.removeClass('btn-success').addClass(originalClass);
+                    }, 3000);
+                } else {
+                    // 沒有按鈕時使用 alert
+                    alert('訂單資訊已複製到剪貼板');
+                }
             } else {
+                console.error('後備複製方法：execCommand 返回 false');
                 alert('複製失敗，請手動複製');
             }
         } catch (err) {
@@ -2847,7 +2881,7 @@ class OrderForm {
      */
     performCopy(text, buttonSelector, originalClass, successText) {
         // 使用現代 Clipboard API
-        if (navigator.clipboard) {
+        if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(text).then(() => {
                 // 顯示成功提示
                 const btn = $(buttonSelector);
@@ -2861,14 +2895,15 @@ class OrderForm {
                     btn.removeClass('btn-success').addClass(originalClass);
                 }, 3000);
 
-                console.log(`${successText} - 已複製到剪貼板`);
+                console.log(`${successText} - 已複製到剪貼板（使用 Clipboard API）`);
             }).catch(err => {
-                console.error('複製失敗:', err);
-                this.fallbackCopyToClipboard(text);
+                console.error('Clipboard API 失敗:', err);
+                this.fallbackCopyToClipboard(text, buttonSelector, originalClass, successText);
             });
         } else {
-            // 後備方案
-            this.fallbackCopyToClipboard(text);
+            // 後備方案（HTTP 環境或舊瀏覽器）
+            console.log('使用後備複製方案（非安全環境或不支援 Clipboard API）');
+            this.fallbackCopyToClipboard(text, buttonSelector, originalClass, successText);
         }
     }
 }
