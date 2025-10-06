@@ -79,7 +79,7 @@ class OrderForm {
         });
 
         // 訂單資訊複製功能
-        $('#copyOrderInfoBtn').on('click', () => {
+        $('.copyOrderInfoBtn').on('click', () => {
             console.log('複製訂單資訊按鈕被點擊');
             this.showOrderInfoModal();
         });

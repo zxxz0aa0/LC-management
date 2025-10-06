@@ -352,7 +352,7 @@
                     <button type="button" class="btn btn-outline-primary" id="swapAddressBtn">
                         <i class="fas fa-exchange-alt"></i> 交換地址
                     </button>
-                    <button type="button" class="btn btn-outline-info" id="copyOrderInfoBtn">
+                    <button type="button" class="btn btn-outline-info copyOrderInfoBtn">
                         <i class="fas fa-copy me-1"></i>
                         複製訂單資訊
                     </button>
@@ -576,7 +576,7 @@
                 <i class="fas fa-save me-2"></i>
                 {{ isset($order) ? '更新訂單' : '建立單日訂單' }}
             </button>
-            <button type="button" class="btn btn-outline-info btn-lg px-4" id="copyOrderInfoBtn">
+            <button type="button" class="btn btn-outline-info btn-lg px-4 copyOrderInfoBtn">
                 <i class="fas fa-copy me-2"></i>
                 複製訂單資訊
             </button>
