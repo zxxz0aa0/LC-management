@@ -20,11 +20,11 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login');
+    return auth()->check() ? redirect()->route('orders.index') : redirect()->route('login');
 });
 
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    return redirect()->route('orders.index');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
