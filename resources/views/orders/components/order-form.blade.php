@@ -341,7 +341,7 @@
                     <label class="form-label">上車地址</label>
                     <div class="input-group">
                         <input type="text" name="pickup_address" id="pickup_address" class="form-control form-control-custom landmark-input" required
-                               value="{{ old('pickup_address', isset($order) ? $order->pickup_address : (is_array($customer->addresses ?? []) && !empty($customer->addresses) ? $customer->addresses[0] : '')) }}"
+                               value="{{ old('pickup_address', isset($order) ? ($order->pickup_county ?? '') . ($order->pickup_district ?? '') . $order->pickup_address : (is_array($customer->addresses ?? []) && !empty($customer->addresses) ? $customer->addresses[0] : '')) }}"
                                placeholder="輸入地址或使用*觸發地標搜尋">
                         <button type="button" class="btn btn-outline-secondary" onclick="openLandmarkModal('pickup')">
                             <i class="fas fa-map-marker-alt"></i>
@@ -361,7 +361,7 @@
                     <label class="form-label">下車地址</label>
                     <div class="input-group">
                         <input type="text" name="dropoff_address" id="dropoff_address" class="form-control form-control-custom landmark-input" required
-                               value="{{ old('dropoff_address', isset($order) ? $order->dropoff_address : '') }}"
+                               value="{{ old('dropoff_address', isset($order) ? ($order->dropoff_county ?? '') . ($order->dropoff_district ?? '') . $order->dropoff_address : '') }}"
                                placeholder="輸入地址或使用*觸發地標搜尋">
                         <button type="button" class="btn btn-outline-secondary" onclick="openLandmarkModal('dropoff')">
                             <i class="fas fa-map-marker-alt"></i>

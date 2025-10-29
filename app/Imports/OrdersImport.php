@@ -391,10 +391,10 @@ class OrdersImport implements ToCollection, WithChunkReading
                 'customer_id_number' => $customerData['customer_id_number'],
                 'identity' => $customerData['identity'],
 
-                // 特殊需求（簡化格式通常沒有）
-                'wheelchair' => '未知',
-                'stair_machine' => '未知',
-                'companions' => 0,
+                // 特殊需求（從對應位置讀取）
+                'wheelchair' => $this->fieldMapper->getValueByPosition($row, 14) ?: '未知',
+                'stair_machine' => $this->fieldMapper->getValueByPosition($row, 15) ?: '未知',
+                'companions' => $this->fieldMapper->getValueByPosition($row, 16) ?: 0,
 
                 // 共乘資訊（簡化格式通常沒有）
                 'carpool_name' => null,
