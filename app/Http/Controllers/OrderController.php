@@ -1258,47 +1258,82 @@ class OrderController extends Controller
                     ], 404);
                 }
 
-                // 派發佇列任務處理匯入
-                ProcessOrderImportJob::dispatch($batchId, $filePath);
-
-                // 立即執行佇列任務
+                // 直接同步執行匯入處理（適合 XAMPP/Windows 環境）
                 try {
-                    Log::info('開始執行佇列任務', ['batch_id' => $batchId]);
+                    Log::info('開始同步執行訂單匯入', ['batch_id' => $batchId]);
 
-                    // 使用 Artisan::call 立即處理佇列任務
-                    Artisan::call('queue:work', [
-                        '--once' => true,           // 只處理一個任務後停止
-                        '--timeout' => 7200,        // 2小時超時
-                        '--memory' => 2048,         // 2GB 記憶體限制
-                        '--sleep' => 0,             // 不等待，立即處理
-                        '--tries' => 3,             // 最多重試3次
+                    // 更新狀態為處理中
+                    $importProgress->update([
+                        'status' => 'processing',
+                        'started_at' => now(),
                     ]);
 
-                    $output = Artisan::output();
-                    Log::info('佇列任務執行完成', [
+                    // 設定記憶體和執行時間限制
+                    ini_set('memory_limit', '3G');
+                    ini_set('max_execution_time', 7200);
+                    set_time_limit(7200);
+
+                    // 啟用垃圾回收
+                    gc_enable();
+
+                    // 建立匯入處理實例
+                    $importer = new OrdersImport();
+
+                    // 執行匯入
+                    Excel::import($importer, storage_path('app/'.$filePath));
+
+                    // 更新最終狀態
+                    $importProgress->update([
+                        'processed_rows' => $importer->successCount + $importer->skipCount,
+                        'success_count' => $importer->successCount,
+                        'error_count' => $importer->skipCount,
+                        'error_messages' => $importer->errorMessages,
+                        'status' => 'completed',
+                        'completed_at' => now(),
+                    ]);
+
+                    Log::info('訂單匯入同步執行完成', [
                         'batch_id' => $batchId,
-                        'output' => $output,
+                        'success_count' => $importer->successCount,
+                        'error_count' => $importer->skipCount,
                     ]);
+
+                    // 清理檔案
+                    \Storage::delete($filePath);
 
                     return response()->json([
                         'success' => true,
-                        'message' => '訂單匯入處理已啟動並開始執行，請監控進度',
+                        'message' => '訂單匯入處理已完成',
+                        'stats' => [
+                            'success' => $importer->successCount,
+                            'errors' => $importer->skipCount,
+                        ],
                     ]);
 
                 } catch (\Exception $e) {
-                    Log::error('執行佇列任務失敗', [
+                    Log::error('同步執行訂單匯入失敗', [
                         'batch_id' => $batchId,
                         'error' => $e->getMessage(),
                         'trace' => $e->getTraceAsString(),
                     ]);
 
+                    // 更新狀態為失敗
+                    $errorMessages = $importProgress->error_messages ?? [];
+                    $errorMessages[] = '匯入處理失敗: '.$e->getMessage();
+
+                    $importProgress->update([
+                        'status' => 'failed',
+                        'error_messages' => $errorMessages,
+                        'completed_at' => now(),
+                    ]);
+
                     return response()->json([
                         'success' => false,
-                        'message' => '啟動處理失敗: '.$e->getMessage(),
+                        'message' => '匯入處理失敗: '.$e->getMessage(),
                     ], 500);
                 }
             } else {
-                // 使用原有的queue:work方式處理客戶匯入
+                // 客戶匯入：使用原有的queue:work方式處理
                 $command = 'php artisan queue:work --once';
                 $output = shell_exec($command.' 2>&1');
 
@@ -1309,7 +1344,7 @@ class OrderController extends Controller
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('啟動佇列處理失敗', [
+            Log::error('啟動處理失敗', [
                 'batch_id' => $batchId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -1317,7 +1352,7 @@ class OrderController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => '啟動佇列處理失敗：'.$e->getMessage(),
+                'message' => '啟動處理失敗：'.$e->getMessage(),
             ], 500);
         }
     }
