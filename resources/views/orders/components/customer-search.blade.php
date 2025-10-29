@@ -78,12 +78,12 @@
                                     </div>
                                     <div class="col-md-2">
                                         <h5 class="mb-0">
-                                            {{ is_array($customer->phone_number) ? $customer->phone_number[0] : $customer->phone_number }}
+                                            {{ collect($customer->phone_number)->first() ?? '無電話' }}
                                         </h5>
                                     </div>
                                     <div class="col-md-5">
                                         <h5 class="mb-0">
-                                            {{ is_array($customer->addresses) ? $customer->addresses[0] : $customer->addresses }}
+                                            {{ collect($customer->addresses)->first() ?? '無地址' }}
                                         </h5>
                                     </div>
                                     <div class="col-md-2" style="color: rgb(205, 100, 26)">
@@ -111,7 +111,7 @@
                                 <strong>身分證字號：</strong><br>{{ $customer->id_number }}
                             </div>
                             <div class="col-md-2">
-                                <strong>電話：</strong><br>{{ is_array($customer->phone_number) ? implode(' / ', $customer->phone_number) : $customer->phone_number }}
+                                <strong>電話：</strong><br>{{ collect($customer->phone_number)->filter()->implode(' / ') ?: '無電話' }}
                             </div>
                             <div class="col-md-2">
                                 <strong>輪椅：</strong>
@@ -162,7 +162,7 @@
                         <hr style="border-top: 1px solid #000000;">
                         <div class="row mt-4">
                             <div class="col-md-3">
-                                <strong>住址：</strong><br>{{ is_array($customer->addresses) ? implode(' / ', $customer->addresses) : $customer->addresses }}
+                                <strong>住址：</strong><br>{{ collect($customer->addresses)->filter()->implode(' / ') ?: '無地址' }}
                             </div>
                             <div class="col-md-5">
                                 <div class="d-flex justify-content-between align-items-start">
