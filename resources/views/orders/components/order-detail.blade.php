@@ -99,6 +99,15 @@
                             @endswitch
                         </td>
                     </tr>
+                    <tr>
+                        {{-- 取消原因顯示 --}}
+                        @if(in_array($order->status, ['cancelled', 'cancelledOOC', 'cancelledNOC', 'cancelledCOTD']) && $order->cancellation_reason)
+                        <td><strong>取消原因：</strong></td>
+                        <td class="mt-3">
+                            <strong style="color : red">{{ $order->cancellation_reason }}</strong>
+                        </td>
+                        @endif
+                    </tr>
                 </table>
             </div>
         </div>
@@ -222,18 +231,26 @@
     </div>
     <div class="card-body">
         <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <strong>建立時間：</strong><br>
                 {{ $order->created_at->format('Y-m-d H:i:s') }}
             </div>
-            <div class="col-md-4">
-                <strong>更新時間：</strong><br>
-                {{ $order->updated_at->format('Y-m-d H:i:s') }}
-            </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <strong>建立人員：</strong><br>
                 {{ $order->created_by ?: 'N/A' }}
             </div>
+            <div class="col-md-3">
+                <strong>更新時間：</strong><br>
+                {{ $order->updated_at->format('Y-m-d H:i:s') }}
+            </div>
+
+            @if($order->updated_by)
+            <div class="col-md-3">
+                <strong>更新人員：</strong><br>
+                {{ $order->updatedBy->name ?? '未知使用者' }}
+            </div>
+            @endif
+
         </div>
     </div>
 </div>

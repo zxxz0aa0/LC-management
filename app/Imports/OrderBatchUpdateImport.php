@@ -143,6 +143,9 @@ class OrderBatchUpdateImport implements ToCollection, WithChunkReading
 
             // 執行更新
             if (! empty($updateData)) {
+                // 記錄更新人員
+                $updateData['updated_by'] = auth()->id();
+
                 // 找出所有需要同步更新的共乘訂單
                 $ordersToUpdate = $this->getCarpoolGroupOrders($order);
                 $updatedCount = 0;

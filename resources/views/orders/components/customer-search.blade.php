@@ -2,10 +2,10 @@
     <div class="card-header bg-info">
          <div class="d-flex  align-items-center">
             <h5 class="mb-0 pe-3">
-                <i class="fas fa-search me-2"></i>客戶搜尋
+                <i class="fas fa-search me-2"></i>個案搜尋
             </h5>
             <a href="{{ route('customers.create', array_merge(['return_to' => 'orders'], request()->only(['keyword', 'start_date', 'end_date', 'customer_id', 'order_type', 'stair_machine']))) }}" class="btn btn-outline-dark">
-                <i class="fas fa-user-plus me-2"></i>新增客戶
+                <i class="fas fa-user-plus me-2"></i>新增個案
             </a>
         </div>
     </div>
@@ -62,13 +62,16 @@
                 <button type="button" class="btn btn-outline-dark" onclick="setQuickDate('tomorrow')">
                     <i class="fas fa-calendar-day me-2"></i>明天
                 </button>
+                <button type="button" class="btn btn-outline-dark" onclick="setQuickDate('daytomorrow')">
+                    <i class="fas fa-calendar-day me-2"></i>後天
+                </button>
                 <button type="button" class="btn btn-outline-dark" onclick="setQuickDate('dayAfterTomorrow')">
                     <i class="fas fa-calendar-day me-2"></i>大後天
                 </button>
             </div>
         </form>
 
-        {{-- 客戶搜尋結果 --}}
+        {{-- 個案搜尋結果 --}}
         @if(request()->filled('keyword') || request()->filled('customer_id'))
             <hr class="my-3">
 
@@ -114,9 +117,9 @@
             @elseif(isset($customers) && $customers->count() == 1)
                 @php $customer = $customers->first(); @endphp
                 <div class="card">
-                    <div class="card-header bg-secondary text-white">
+                    <div class="card-header bg-primary text-white">
                         <h6 class="mb-0">
-                            <i class="fas fa-user me-2"></i>客戶資料
+                            <i class="fas fa-user me-2"></i>個案資料
                         </h6>
                     </div>
                     <div class="card-body" style="font-size: 19px">
@@ -167,7 +170,7 @@
                                     class="btn btn-warning btn-sm fs-6 d-flex align-items-center justify-content-center"
                                     style="width: 100%;"
                                     >
-                                        <i class="fas fa-user-edit me-1"></i>編輯客戶
+                                        <i class="fas fa-user-edit me-1"></i>編輯個案
                                     </a>
                                 </div>
                             @else
@@ -251,9 +254,13 @@ function setQuickDate(period) {
             targetDate = new Date(today);
             targetDate.setDate(today.getDate() + 1);
             break;
-        case 'dayAfterTomorrow':
+        case 'daytomorrow':
             targetDate = new Date(today);
             targetDate.setDate(today.getDate() + 2);
+            break;
+        case 'dayAfterTomorrow':
+            targetDate = new Date(today);
+            targetDate.setDate(today.getDate() + 3);
             break;
         default:
             return;

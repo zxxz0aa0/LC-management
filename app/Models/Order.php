@@ -22,8 +22,8 @@ class Order extends Model
         'dropoff_county', 'dropoff_district', 'dropoff_address',
         'dropoff_lat', 'dropoff_lng',
         'wheelchair', 'stair_machine', 'companions', 'carpool_customer_id', 'carpool_name', 'carpool_id',
-        'remark', 'created_by', 'identity', 'carpool_with',
-        'status', 'special_status', 'special_order',
+        'remark', 'created_by', 'updated_by', 'identity', 'carpool_with',
+        'status', 'cancellation_reason', 'special_status', 'special_order',
         'carpool_id_number', 'match_time',
 
         // 共乘群組相關欄位
@@ -66,6 +66,12 @@ class Order extends Model
     public function driver()
     {
         return $this->belongsTo(Driver::class);
+    }
+
+    // 關聯：更新人員
+    public function updatedBy()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'updated_by');
     }
 
     /**

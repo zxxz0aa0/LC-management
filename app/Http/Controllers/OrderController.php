@@ -425,6 +425,9 @@ class OrderController extends Controller
             $originalDriverId = $order->driver_id;
             $newDriverId = $validated['driver_id'] ?? null;
 
+            // 記錄更新人員
+            $validated['updated_by'] = auth()->id();
+
             $order->update($validated);
 
             // 檢查共乘訂單的駕駛變更並同步群組
@@ -507,9 +510,14 @@ class OrderController extends Controller
                 'cancelledCOTD' => '訂單已取消（X取消）',
             ];
 
+            // 取得取消原因說明（選填）
+            $cancellationReasonText = $request->input('cancellation_reason_text');
+
             // 更新訂單狀態
             $order->update([
                 'status' => $cancelReason,
+                'cancellation_reason' => $cancellationReasonText, // 儲存取消原因說明
+                'updated_by' => auth()->id(), // 記錄取消人員
             ]);
 
             return response()->json([

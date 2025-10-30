@@ -202,8 +202,22 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                <div class="mb-3">
+                    <label for="cancellationReasonText" class="form-label">
+                        <i class="fas fa-comment-alt me-2"></i>取消原因說明（選填）
+                    </label>
+                    <textarea
+                        class="form-control"
+                        id="cancellationReasonText"
+                        rows="3"
+                        maxlength="500"
+                        placeholder="請輸入取消原因詳細說明...（最多500字）"
+                    ></textarea>
+                    <small class="text-muted">別家有車也可以不用填</small>
+                </div>
+
                 <p class="mb-4">請選擇取消原因：</p>
-                <div class="d-grid gap-2">
+                <div class="d-grid gap-2 mb-4">
                     <button type="button"  class="btn btn-outline-dark" onclick="cancelOrderWithReason('cancelled')">
                         <i class="me-2"></i>一般取消
                     </button>
@@ -430,6 +444,8 @@ let currentOrderId = null;
 // 顯示取消原因選擇 Modal
 function showCancelModal(orderId) {
     currentOrderId = orderId;
+    // 清空之前的取消原因說明
+    document.getElementById('cancellationReasonText').value = '';
     const cancelModal = new bootstrap.Modal(document.getElementById('cancelModal'));
     cancelModal.show();
 }
@@ -440,6 +456,9 @@ function cancelOrderWithReason(reason) {
         alert('錯誤：無法取得訂單 ID');
         return;
     }
+
+    // 取得取消原因說明文字
+    const cancellationReasonText = document.getElementById('cancellationReasonText').value.trim();
 
     // 關閉 Modal
     const cancelModal = bootstrap.Modal.getInstance(document.getElementById('cancelModal'));
@@ -453,7 +472,8 @@ function cancelOrderWithReason(reason) {
             'X-CSRF-TOKEN': '{{ csrf_token() }}'
         },
         body: JSON.stringify({
-            cancel_reason: reason
+            cancel_reason: reason,
+            cancellation_reason_text: cancellationReasonText // 傳送取消原因說明
         })
     })
     .then(response => response.json())

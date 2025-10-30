@@ -269,6 +269,7 @@ class CarpoolGroupService
                 ->update(array_merge([
                     'status' => $newStatus,
                     'updated_at' => now(),
+                    'updated_by' => auth()->id(), // 記錄更新人員
                 ], $updateData));
         });
 
@@ -385,6 +386,7 @@ class CarpoolGroupService
             'is_group_dissolved' => true,
             'dissolved_at' => now(),
             'dissolved_by' => auth()->user()->name ?? 'system',
+            'updated_by' => auth()->id(), // 記錄更新人員
 
             // 清除共乘資訊
             'carpool_customer_id' => null,
