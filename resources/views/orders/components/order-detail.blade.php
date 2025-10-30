@@ -94,6 +94,15 @@
                                 @case('cancelled')
                                     <span class="badge bg-danger">已取消</span>
                                     @break
+                                @case('cancelledOOC')
+                                    <span class="badge bg-danger">已取消-9999</span>
+                                    @break
+                                @case('cancelledNOC')
+                                    <span class="badge bg-danger">取消！</span>
+                                    @break
+                                @case('cancelledCOTD')
+                                    <span class="badge bg-danger">取消 X</span>
+                                    @break
                                 @default
                                     <span class="badge bg-secondary">未知</span>
                             @endswitch
