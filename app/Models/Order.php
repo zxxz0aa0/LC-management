@@ -82,7 +82,9 @@ class Order extends Model
                        $request->filled('customer_id') ||
                        $request->filled('order_number') ||
                        $request->filled('start_date') ||
-                       $request->filled('end_date');
+                       $request->filled('end_date') ||
+                       $request->filled('order_type') ||
+                       $request->filled('stair_machine');
 
         // 關鍵字篩選
         if ($request->filled('keyword')) {
@@ -107,6 +109,16 @@ class Order extends Model
                         ->orWhere('customer_id_number', 'like', "%{$keyword}%");
                 });
             });
+        }
+
+        // 訂單來源篩選
+        if ($request->filled('order_type')) {
+            $query->where('order_type', $request->order_type);
+        }
+
+        // 爬梯機篩選
+        if ($request->filled('stair_machine')) {
+            $query->where('stair_machine', $request->stair_machine);
         }
 
         // 如果不是搜尋模式，只顯示主訂單

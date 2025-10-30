@@ -157,10 +157,10 @@
                         </td>
                         <td>
                             <div class="btn-group" role="group">
-                                <a href="{{ route('orders.show', array_merge(['order' => $order], request()->only(['keyword', 'start_date', 'end_date', 'customer_id']))) }}" class="btn btn-info btn-sm" title="檢視">
+                                <a href="{{ route('orders.show', array_merge(['order' => $order], request()->only(['keyword', 'start_date', 'end_date', 'customer_id', 'order_type', 'stair_machine']))) }}" class="btn btn-info btn-sm" title="檢視">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="{{ route('orders.edit', array_merge(['order' => $order], request()->only(['keyword', 'start_date', 'end_date', 'customer_id']))) }}" class="btn btn-warning btn-sm" title="編輯">
+                                <a href="{{ route('orders.edit', array_merge(['order' => $order], request()->only(['keyword', 'start_date', 'end_date', 'customer_id', 'order_type', 'stair_machine']))) }}" class="btn btn-warning btn-sm" title="編輯">
                                     <i class="fas fa-edit"></i>
                                 </a>
                                 @if(in_array($order->status, ['open', 'assigned', 'bkorder']) && !in_array($order->status, ['cancelled', 'cancelledOOC', 'cancelledNOC', 'cancelledCOTD']))

@@ -4,18 +4,35 @@
             <h5 class="mb-0 pe-3">
                 <i class="fas fa-search me-2"></i>客戶搜尋
             </h5>
-            <a href="{{ route('customers.create', array_merge(['return_to' => 'orders'], request()->only(['keyword', 'start_date', 'end_date', 'customer_id']))) }}" class="btn btn-outline-dark">
+            <a href="{{ route('customers.create', array_merge(['return_to' => 'orders'], request()->only(['keyword', 'start_date', 'end_date', 'customer_id', 'order_type', 'stair_machine']))) }}" class="btn btn-outline-dark">
                 <i class="fas fa-user-plus me-2"></i>新增客戶
             </a>
         </div>
     </div>
     <div class="card-body">
         <form method="GET" action="{{ route('orders.index') }}" class="row g-3">
-            <div class="col-md-6">
+            <div class="col-md-2">
                 <label for="keyword" class="form-label">搜尋關鍵字</label>
                 <input type="text" name="keyword" id="keyword" class="form-control"
                        placeholder="輸入姓名、電話或身分證字號"
                        value="{{ request('keyword') }}">
+            </div>
+            <div class="col-md-2">
+                <label for="order_type" class="form-label">訂單來源</label>
+                <select name="order_type" id="order_type" class="form-select">
+                    <option value="">全部</option>
+                    <option value="新北長照" {{ request('order_type') == '新北長照' ? 'selected' : '' }}>新北長照</option>
+                    <option value="台北長照" {{ request('order_type') == '台北長照' ? 'selected' : '' }}>台北長照</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="stair_machine" class="form-label">爬梯機</label>
+                <select name="stair_machine" id="stair_machine" class="form-select">
+                    <option value="">全部</option>
+                    <option value="是" {{ request('stair_machine') == '是' ? 'selected' : '' }}>是</option>
+                    <option value="否" {{ request('stair_machine') == '否' ? 'selected' : '' }}>否</option>
+                    <!--<option value="未知" {{ request('stair_machine') == '未知' ? 'selected' : '' }}>未知</option>-->
+                </select>
             </div>
             <div class="col-md-3">
                 <label for="start_date" class="form-label">開始日期</label>
@@ -67,7 +84,7 @@
                 </div>
                 <div class="list-group">
                     @foreach($customers as $customer)
-                        <a href="{{ route('orders.index', array_merge(['customer_id' => $customer->id], request()->only(['keyword', 'start_date', 'end_date']))) }}"
+                        <a href="{{ route('orders.index', array_merge(['customer_id' => $customer->id], request()->only(['keyword', 'start_date', 'end_date', 'order_type', 'stair_machine']))) }}"
                            class="list-group-item list-group-item-action">
                             <div class="d-flex justify-content-between align-items-center">
                                     <div class="col-md-1">
@@ -138,7 +155,7 @@
                             </div>
                             @if(( $customer->status ?? '') == '開案中')
                                 <div class="col-md-1">
-                                    <a href="{{ route('orders.create', array_merge(['customer_id' => $customer->id], request()->only(['keyword', 'start_date', 'end_date']))) }}"
+                                    <a href="{{ route('orders.create', array_merge(['customer_id' => $customer->id], request()->only(['keyword', 'start_date', 'end_date', 'order_type', 'stair_machine']))) }}"
                                     class="btn btn-success btn-sm fs-6 d-flex align-items-center justify-content-center"
                                     style="width: 100%;"
                                     >
@@ -146,7 +163,7 @@
                                     </a>
                                 </div>
                                 <div class="col-md-1">
-                                    <a href="{{ route('customers.edit', array_merge(['customer' => $customer->id, 'return_to' => 'orders'], request()->only(['keyword', 'start_date', 'end_date', 'customer_id']))) }}"
+                                    <a href="{{ route('customers.edit', array_merge(['customer' => $customer->id, 'return_to' => 'orders'], request()->only(['keyword', 'start_date', 'end_date', 'customer_id', 'order_type', 'stair_machine']))) }}"
                                     class="btn btn-warning btn-sm fs-6 d-flex align-items-center justify-content-center"
                                     style="width: 100%;"
                                     >

@@ -84,7 +84,7 @@ class OrderController extends Controller
         $user = auth()->user(); // 🔹目前登入的使用者
 
         // 保留搜尋參數，讓返回按鈕能維持搜尋狀態
-        $searchParams = $request->only(['keyword', 'start_date', 'end_date', 'customer_id']);
+        $searchParams = $request->only(['keyword', 'start_date', 'end_date', 'customer_id', 'order_type', 'stair_machine']);
 
         if ($request->ajax()) {
             return view('orders.create', compact('customer', 'user', 'searchParams'));
@@ -371,7 +371,7 @@ class OrderController extends Controller
         }
 
         // 保留搜尋參數，讓返回按鈕能維持搜尋狀態
-        $searchParams = request()->only(['keyword', 'start_date', 'end_date', 'customer_id']);
+        $searchParams = request()->only(['keyword', 'start_date', 'end_date', 'customer_id', 'order_type', 'stair_machine']);
 
         return view('orders.show', compact('order', 'driver', 'searchParams'));
     }
@@ -380,7 +380,7 @@ class OrderController extends Controller
     public function edit(Order $order)
     {
         // 保留搜尋參數，讓返回按鈕能維持搜尋狀態
-        $searchParams = request()->only(['keyword', 'start_date', 'end_date', 'customer_id']);
+        $searchParams = request()->only(['keyword', 'start_date', 'end_date', 'customer_id', 'order_type', 'stair_machine']);
 
         // 如果是AJAX
         if (request()->ajax()) {
