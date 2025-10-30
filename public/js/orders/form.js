@@ -1183,18 +1183,12 @@ class OrderForm {
                     <td>${order.ride_time ? order.ride_time.substring(0, 5) : '-'}</td>
                     <td>${(order.customer_phone)}</td>
                     <td>
-                        <small class="h6" title="${(order.pickup_county || '')}${(order.pickup_district || '')}">
-                            ${this.truncateText(`${(order.pickup_county || '')}${(order.pickup_district || '')}`, 30)}
-                        </small>
-                        <small class="h6" style="color: rgb(205, 100, 26)" title="${order.pickup_address}">
+                        <small class="h6" title="${order.pickup_address}">
                             ${this.truncateText(`${order.pickup_address}`, 30)}
                         </small>
                     </td>
                     <td>
-                        <small class="h6" title="${(order.dropoff_county || '')}${(order.dropoff_district || '')}">
-                            ${this.truncateText(`${(order.dropoff_county || '')}${(order.dropoff_district || '')}`, 30)}
-                        </small>
-                        <small class="h6" style="color: rgb(205, 100, 26)" title="${order.dropoff_address}">
+                        <small class="h6" title="${order.dropoff_address}">
                             ${this.truncateText(`${order.dropoff_address}`, 30)}
                         </small>
                     </td>
@@ -1263,15 +1257,13 @@ class OrderForm {
         $('select[name="wheelchair"]').val(order.wheelchair);
         $('select[name="stair_machine"]').val(order.stair_machine);
 
-        // 填入地址欄位（組合縣市+區域+地址）
+        // 填入地址欄位（直接使用完整地址）
         if (order.pickup_address) {
-            const pickupFullAddress = `${order.pickup_county || ''}${order.pickup_district || ''}${order.pickup_address}`;
-            $('input[name="pickup_address"]').val(pickupFullAddress);
+            $('input[name="pickup_address"]').val(order.pickup_address);
         }
 
         if (order.dropoff_address) {
-            const dropoffFullAddress = `${order.dropoff_county || ''}${order.dropoff_district || ''}${order.dropoff_address}`;
-            $('input[name="dropoff_address"]').val(dropoffFullAddress);
+            $('input[name="dropoff_address"]').val(order.dropoff_address);
         }
 
         // 顯示成功訊息

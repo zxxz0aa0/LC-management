@@ -90,7 +90,7 @@
                                 {{ $order->ride_time ? \Illuminate\Support\Carbon::parse($order->ride_time)->format('H:i') : 'N/A' }}
                             @endif
                         </td>
-                        <td>{{ $order->pickup_county }}{{ $order->pickup_district}}{{ Str::limit($order->pickup_address, 30) }}<br>{{ $order->dropoff_county }}{{ $order->dropoff_district}}{{ Str::limit($order->dropoff_address, 30) }}</td>
+                        <td>{{ Str::limit($order->pickup_address, 30) }}<br>{{ Str::limit($order->dropoff_address, 30) }}</td>
                         <!--<td>{{ Str::limit($order->dropoff_address, 30) }}</td>-->
                         <td>{{ $order->carpool_name }}</td>
                         <td>

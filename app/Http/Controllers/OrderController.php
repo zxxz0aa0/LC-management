@@ -587,8 +587,7 @@ class OrderController extends Controller
             ->limit(10)
             ->select([
                 'id', 'ride_date', 'ride_time',
-                'pickup_county', 'pickup_district', 'pickup_address',
-                'dropoff_county', 'dropoff_district', 'dropoff_address',
+                'pickup_address', 'dropoff_address',
                 'companions', 'wheelchair', 'stair_machine',
                 'status', 'customer_phone',
             ])
