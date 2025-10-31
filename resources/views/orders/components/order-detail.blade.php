@@ -22,11 +22,11 @@
                     </tr>
                     <tr>
                         <td><strong>上車地址：</strong></td>
-                        <td>{{ $order->pickup_county }}{{ $order->pickup_district}}{{ $order->pickup_address }}</td>
+                        <td>{{ $order->pickup_address }}</td>
                     </tr>
                     <tr>
                         <td><strong>下車地址：</strong></td>
-                        <td>{{ $order->dropoff_county }}{{ $order->dropoff_district}}{{ $order->dropoff_address }}</td>
+                        <td>{{ $order->dropoff_address }}</td>
                     </tr>
                     <tr>
                         <td><strong>是否輪椅：</strong></td>
