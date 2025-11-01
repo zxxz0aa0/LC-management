@@ -452,7 +452,9 @@
                             </label>
                             <div class="btn-group d-flex flex-wrap gap-2" role="group">
                                 <button type="button" class="btn btn-outline-secondary btn-sm" data-range-type="ride" data-range="today">今日</button>
-                                <button type="button" class="btn btn-outline-secondary btn-sm" data-range-type="ride" data-range="yesterday">昨日</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" data-range-type="ride" data-range="tomorrow">明天</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" data-range-type="ride" data-range="aftertomorrow">後天</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" data-range-type="ride" data-range="dayaftertomorrow">大後天</button>
                             </div>
                         </div>
                     </div>
@@ -613,6 +615,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     startDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0);
                     endDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59);
                     singleDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+                    break;
+                case 'tomorrow':
+                    const tomorrow = new Date(now);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    startDate = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 0, 0);
+                    endDate = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 23, 59);
+                    singleDate = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
+                    break;
+                case 'aftertomorrow':
+                    const aftertomorrow = new Date(now);
+                    aftertomorrow.setDate(aftertomorrow.getDate() + 2);
+                    startDate = new Date(aftertomorrow.getFullYear(), aftertomorrow.getMonth(), aftertomorrow.getDate(), 0, 0);
+                    endDate = new Date(aftertomorrow.getFullYear(), aftertomorrow.getMonth(), aftertomorrow.getDate(), 23, 59);
+                    singleDate = new Date(aftertomorrow.getFullYear(), aftertomorrow.getMonth(), aftertomorrow.getDate());
+                    break;
+                case 'dayaftertomorrow':
+                    const dayaftertomorrow = new Date(now);
+                    dayaftertomorrow.setDate(dayaftertomorrow.getDate() + 3);
+                    startDate = new Date(dayaftertomorrow.getFullYear(), dayaftertomorrow.getMonth(), dayaftertomorrow.getDate(), 0, 0);
+                    endDate = new Date(dayaftertomorrow.getFullYear(), dayaftertomorrow.getMonth(), dayaftertomorrow.getDate(), 23, 59);
+                    singleDate = new Date(dayaftertomorrow.getFullYear(), dayaftertomorrow.getMonth(), dayaftertomorrow.getDate());
                     break;
                 case 'week':
                     const weekStart = new Date(now);
