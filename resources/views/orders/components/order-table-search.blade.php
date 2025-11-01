@@ -4,47 +4,6 @@
             <h5 class="mb-0">
                 <i class="fas fa-list me-2"></i>訂單列表
             </h5>
-            <div class="btn-group">
-                <!-- 匯入按鈕 -->
-                <button type="button" class="btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#importModal">
-                    <i class="fas fa-file-import me-2"></i>匯入 Excel
-                </button>
-                <!-- 批量更新按鈕 -->
-                <button type="button" class="btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#batchUpdateModal">
-                    <i class="fas fa-edit me-2"></i>批量更新
-                </button>
-                <!-- 匯出按鈕組 -->
-                <div class="btn-group">
-                    <button type="button" class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
-                        <i class="fas fa-file-export me-2"></i>匯出 Excel
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{{ route('orders.export') }}{{ request()->getQueryString() ? '?' . request()->getQueryString() : '' }}">
-                            <i class="fas fa-file-excel me-2"></i>完整格式 (28欄位)
-                        </a></li>
-                        <li><a class="dropdown-item" href="{{ route('orders.export.simple') }}{{ request()->getQueryString() ? '?' . request()->getQueryString() : '' }}">
-                            <i class="fas fa-file-csv me-2"></i>簡化格式 (14欄位)
-                        </a></li>
-                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#exportDateModal">
-                            <i class="fas fa-calendar-alt me-2"></i>簡化格式 (依建立時間)
-                        </a></li>
-                    </ul>
-                </div>
-                <!-- 範本下載按鈕組 -->
-                <div class="btn-group">
-                    <button type="button" class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
-                        <i class="fas fa-download me-2"></i>下載範本
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{{ route('orders.template') }}">
-                            <i class="fas fa-file-excel me-2"></i>完整格式範本
-                        </a></li>
-                        <li><a class="dropdown-item" href="{{ route('orders.template.simple') }}">
-                            <i class="fas fa-file-csv me-2"></i>簡化格式範本
-                        </a></li>
-                    </ul>
-                </div>
-            </div>
         </div>
     </div>
     <div class="card-body">
@@ -56,16 +15,17 @@
         @endif
 
         <div class="table-responsive" style="font-size: 18px" >
-            <table class="table table-hover" id="ordersTable">
-                <thead class="table-success">
+            <table class="table table-hover" id="ordersTableSearch">
+                <thead class="table-info">
                     <tr>
                         <th>訂單來源</th>
                         <th>客戶姓名</th>
-                        <th>電話</th>
+                        <th>身分證字號</th>
+                        <th>生日</th>
                         <th>用車日期</th>
                         <th>用車時間</th>
                         <th>上車地址/下車地址</th>
-                        <th>共乘姓名</th>
+                        <th>備註</th>
                         <th>特殊狀態</th>
                         <th>駕駛</th>
                         <th>訂單狀態</th>
@@ -77,7 +37,19 @@
                     <tr>
                         <td>{{ $order->order_type }}</td>
                         <td>{{ $order->customer_name }}</td>
-                        <td>{{ $order->customer_phone }}</td>
+                        <td>{{ $order->customer_id_number}}</td>
+                        <td>
+                            @if($order->customer?->birthday)
+                                @php
+                                    $birthday = \Carbon\Carbon::parse($order->customer->birthday);
+                                    $rocYear = $birthday->year - 1911;
+                                    $rocDate = sprintf('%03d/%02d/%02d', $rocYear, $birthday->month, $birthday->day);
+                                @endphp
+                                {{ $rocDate }}
+                            @else
+                                N/A
+                            @endif
+                        </td>
                         <td>{{ $order->ride_date ? (is_string($order->ride_date) ? $order->ride_date : $order->ride_date->format('Y-m-d')) : 'N/A' }}</td>
                         <td>
                             @if($order->match_time)
@@ -90,16 +62,11 @@
                             @endif
                         </td>
                         <td>{{ Str::limit($order->pickup_address, 60) }}<br>{{ Str::limit($order->dropoff_address, 60) }}</td>
-                        <td>{{ $order->carpool_name }}</td>
+                        <td>{{ $order->customer?->note }}</td>
                         <td>
                             @if($order->stair_machine == '是')
                                 <span class="badge bg-warning">爬梯機</span>
                             @elseif($order->stair_machine == '未知')
-                                <span class="badge bg-secondary"></span>
-                            @endif
-                            @if($order->wheelchair == '是')
-                                <span class="badge bg-info">輪椅</span>
-                            @elseif($order->wheelchair == '未知')
                                 <span class="badge bg-secondary"></span>
                             @endif
                             @switch($order->special_status)

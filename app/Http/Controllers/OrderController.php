@@ -45,6 +45,9 @@ class OrderController extends Controller
     {
         $query = Order::filter($request);
 
+        // 預先載入客戶關聯，避免 N+1 查詢問題
+        $query->with('customer');
+
         // 如果沒有指定日期篩選，預設顯示今天的訂單
         if (! $request->filled('start_date') && ! $request->filled('end_date')) {
             $query->whereDate('ride_date', Carbon::today());
@@ -1114,35 +1117,77 @@ class OrderController extends Controller
         return Excel::download(new SimpleOrdersExport($request), 'orders_simple.xlsx');
     }
 
-    // 匯出 Excel (簡化格式 - 依建立時間範圍)
+    // 匯出 Excel (簡化格式 - 依建立時間範圍和/或用車日期)
     public function exportSimpleByDate(Request $request)
     {
         // 驗證輸入參數
         $request->validate([
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
+            'filter_mode' => 'required|in:created_at,ride_date,both',
+            'created_start_date' => 'nullable|date',
+            'created_end_date' => 'nullable|date|after_or_equal:created_start_date',
+            'ride_date' => 'nullable|date',
         ]);
 
-        $startDate = Carbon::parse($request->start_date)->startOfMinute();
-        $endDate = Carbon::parse($request->end_date)->endOfMinute();
+        $filterMode = $request->input('filter_mode');
+        $filenameComponents = ['訂單匯出_簡化格式'];
 
-        // 檢查時間範圍合理性（避免過大範圍影響效能）
-        if ($startDate->diffInDays($endDate) > 365) {
-            return back()->withErrors(['date_range' => '時間範圍不得超過一年']);
+        // 根據篩選模式驗證必要欄位
+        if ($filterMode === 'created_at' || $filterMode === 'both') {
+            if (!$request->has('created_start_date') || !$request->has('created_end_date')) {
+                return back()->withErrors(['created_date' => '請選擇建立時間範圍']);
+            }
         }
 
-        // 生成檔名（包含時間範圍）
-        $filename = sprintf(
-            '訂單匯出_簡化格式_%s_至_%s.xlsx',
-            $startDate->format('Y-m-d'),
-            $endDate->format('Y-m-d')
-        );
+        if ($filterMode === 'ride_date' || $filterMode === 'both') {
+            if (!$request->has('ride_date')) {
+                return back()->withErrors(['ride_date' => '請選擇用車日期']);
+            }
+        }
 
-        // 創建一個臨時的 Request 物件來傳遞建立時間篩選條件
-        $tempRequest = new Request([
-            'created_at_start' => $startDate->toDateTimeString(),
-            'created_at_end' => $endDate->toDateTimeString(),
-        ]);
+        // 處理建立時間範圍
+        $createdStartDate = null;
+        $createdEndDate = null;
+        if ($request->has('created_start_date') && $request->has('created_end_date')) {
+            $createdStartDate = Carbon::parse($request->created_start_date)->startOfMinute();
+            $createdEndDate = Carbon::parse($request->created_end_date)->endOfMinute();
+
+            // 檢查時間範圍合理性（避免過大範圍影響效能）
+            if ($createdStartDate->diffInDays($createdEndDate) > 365) {
+                return back()->withErrors(['date_range' => '建立時間範圍不得超過一年']);
+            }
+
+            $filenameComponents[] = sprintf(
+                '建立%s至%s',
+                $createdStartDate->format('Y-m-d'),
+                $createdEndDate->format('Y-m-d')
+            );
+        }
+
+        // 處理用車日期
+        $rideDate = null;
+        if ($request->has('ride_date')) {
+            $rideDate = Carbon::parse($request->ride_date);
+            $filenameComponents[] = sprintf('用車%s', $rideDate->format('Y-m-d'));
+        }
+
+        // 生成檔名
+        $filename = implode('_', $filenameComponents) . '.xlsx';
+
+        // 創建一個臨時的 Request 物件來傳遞篩選條件
+        $tempRequestData = [
+            'filter_mode' => $filterMode,
+        ];
+
+        if ($createdStartDate && $createdEndDate) {
+            $tempRequestData['created_at_start'] = $createdStartDate->toDateTimeString();
+            $tempRequestData['created_at_end'] = $createdEndDate->toDateTimeString();
+        }
+
+        if ($rideDate) {
+            $tempRequestData['ride_date'] = $rideDate->toDateString();
+        }
+
+        $tempRequest = new Request($tempRequestData);
 
         return Excel::download(new SimpleOrdersExport($tempRequest), $filename);
     }

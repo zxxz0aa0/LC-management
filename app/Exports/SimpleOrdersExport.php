@@ -28,20 +28,54 @@ class SimpleOrdersExport implements FromCollection, WithHeadings
 
         // 如果有篩選參數，應用篩選條件
         if ($this->request) {
+            // 先應用通用篩選條件（如果有的話）
             $query = $query->filter($this->request);
 
-            // 如果有建立時間範圍篩選（用於依建立時間匯出）
-            if ($this->request->has('created_at_start') && $this->request->has('created_at_end')) {
-                $query->whereBetween('created_at', [
-                    $this->request->input('created_at_start'),
-                    $this->request->input('created_at_end'),
-                ]);
+            // 取得篩選模式
+            $filterMode = $this->request->input('filter_mode', 'created_at');
+
+            // 根據篩選模式應用不同的篩選條件
+            switch ($filterMode) {
+                case 'created_at':
+                    // 只篩選建立時間
+                    if ($this->request->has('created_at_start') && $this->request->has('created_at_end')) {
+                        $query->whereBetween('created_at', [
+                            $this->request->input('created_at_start'),
+                            $this->request->input('created_at_end'),
+                        ]);
+                    }
+                    break;
+
+                case 'ride_date':
+                    // 只篩選用車日期
+                    if ($this->request->has('ride_date')) {
+                        $query->whereDate('ride_date', $this->request->input('ride_date'));
+                    }
+                    break;
+
+                case 'both':
+                    // 同時篩選建立時間和用車日期（AND 條件）
+                    if ($this->request->has('created_at_start') && $this->request->has('created_at_end')) {
+                        $query->whereBetween('created_at', [
+                            $this->request->input('created_at_start'),
+                            $this->request->input('created_at_end'),
+                        ]);
+                    }
+                    if ($this->request->has('ride_date')) {
+                        $query->whereDate('ride_date', $this->request->input('ride_date'));
+                    }
+                    break;
             }
         }
 
-        // 根據是否有建立時間篩選來決定排序方式
-        if ($this->request && $this->request->has('created_at_start')) {
+        // 根據篩選模式決定排序方式
+        if ($this->request && $this->request->input('filter_mode') === 'created_at') {
             $query->orderBy('created_at', 'desc');
+        } elseif ($this->request && $this->request->input('filter_mode') === 'ride_date') {
+            $query->orderBy('ride_date', 'desc')->orderBy('ride_time', 'desc');
+        } elseif ($this->request && $this->request->input('filter_mode') === 'both') {
+            // 兩者都要時，優先依建立時間排序，再依用車日期
+            $query->orderBy('created_at', 'desc')->orderBy('ride_date', 'desc');
         } else {
             $query->orderBy('ride_date', 'desc')->orderBy('ride_time', 'desc');
         }

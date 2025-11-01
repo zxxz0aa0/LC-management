@@ -5,12 +5,16 @@
 class OrderIndex {
     constructor() {
         this.dataTable = null;
+        this.searchDataTable = null;
         this.init();
     }
 
     init() {
         this.initializeDataTable();
         this.bindEvents();
+
+        // 將實例保存到 window 以便外部調用
+        window.orderIndex = this;
     }
 
     /**
@@ -104,6 +108,106 @@ class OrderIndex {
         } catch (error) {
             console.error('DataTable 初始化失敗:', error);
         }
+    }
+
+    /**
+     * 初始化搜尋模式表格 (爬梯模式)
+     */
+    initializeSearchTable() {
+        // 確保 jQuery 和 DataTable 已載入
+        if (typeof $ === 'undefined' || typeof $.fn.DataTable === 'undefined') {
+            console.error('jQuery 或 DataTable 未載入');
+            return;
+        }
+
+        // 檢查表格是否存在
+        const $table = $('#ordersTableSearch');
+        if (!$table.length) {
+            console.log('表格 #ordersTableSearch 不存在');
+            return;
+        }
+
+        // 檢查表格結構
+        const $thead = $table.find('thead');
+        const $tbody = $table.find('tbody');
+
+        if (!$thead.length || !$tbody.length) {
+            console.log('表格結構不完整，缺少 thead 或 tbody');
+            return;
+        }
+
+        // 檢查是否有資料行（排除空資料提示行）
+        const dataRows = $tbody.find('tr').filter(function() {
+            return $(this).find('td[colspan]').length === 0 && !$(this).hasClass('no-data-row');
+        });
+
+        console.log('搜尋表格檢測到資料行數量:', dataRows.length);
+
+        // 如果沒有資料行，不初始化 DataTable
+        if (dataRows.length === 0) {
+            console.log('搜尋表格無資料行，跳過 DataTable 初始化');
+            return;
+        }
+
+        // 先銷毀已存在的 DataTable
+        if ($.fn.DataTable.isDataTable('#ordersTableSearch')) {
+            $table.DataTable().destroy();
+        }
+
+        // 檢查表格欄位數量
+        const columnCount = $thead.find('th').length;
+        console.log('搜尋表格檢測到欄位數量:', columnCount);
+
+        // 確保欄位數量正確
+        if (columnCount === 0) {
+            console.error('搜尋表格欄位數量為 0，無法初始化 DataTable');
+            return;
+        }
+
+        try {
+            this.searchDataTable = $table.DataTable({
+                language: {
+                    lengthMenu: "每頁顯示 _MENU_ 筆資料",
+                    zeroRecords: "查無資料",
+                    info: "顯示第 _START_ 到 _END_ 筆，共 _TOTAL_ 筆資料",
+                    infoEmpty: "目前沒有資料",
+                    infoFiltered: "(從 _MAX_ 筆資料中篩選)",
+                    search: "快速搜尋：",
+                    paginate: {
+                        first: "第一頁",
+                        last: "最後一頁",
+                        next: "下一頁",
+                        previous: "上一頁"
+                    }
+                },
+                pageLength: 100,
+                order: [[4, 'asc'], [5, 'asc']], // 先依用車日期欄升序，再依用車時間欄升序
+                columnDefs: [
+                    { targets: [columnCount - 1], orderable: false } // 最後一欄（操作欄）不可排序
+                ],
+                responsive: true,
+                searching: true,
+                paging: true,
+                info: true,
+                autoWidth: false,
+                destroy: true,
+                drawCallback: function() {
+                    console.log('搜尋表格 DataTable 繪製完成');
+                }
+            });
+
+            console.log('搜尋表格 DataTable 初始化成功');
+        } catch (error) {
+            console.error('搜尋表格 DataTable 初始化失敗:', error);
+        }
+    }
+
+    /**
+     * 重新初始化主表格 (訂單模式)
+     */
+    reinitializeMainTable() {
+        console.log('重新初始化主表格');
+        this.initializeDataTable();
     }
 
     /**
