@@ -84,6 +84,13 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a href="{{ route('manual-dispatch.index') }}" 
+                        class="nav-link {{ request()->routeIs('manual-dispatch.*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-calendar-check"></i>
+                            <p>排趟管理</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a href="{{ route('carpool-groups.index') }}" class="nav-link {{ request()->is('carpool-groups*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-users"></i>
                             <p>共乘群組管理</p>

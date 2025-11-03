@@ -21,6 +21,9 @@
                     <x-nav-link :href="route('orders.index')" :active="request()->routeIs('orders.*')">
                         訂單管理
                     </x-nav-link>
+                    <x-nav-link :href="route('manual-dispatch.index')" :active="request()->routeIs('manual-dispatch.*')">
+                        人工排趟管理
+                    </x-nav-link>
                     <x-nav-link :href="route('landmarks.index')" :active="request()->routeIs('landmarks.*')">
                         地標管理
                     </x-nav-link>
@@ -84,6 +87,9 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('orders.index')" :active="request()->routeIs('orders.*')">
                 訂單管理
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('manual-dispatch.index')" :active="request()->routeIs('manual-dispatch.*')">
+                人工排趟管理
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('landmarks.index')" :active="request()->routeIs('landmarks.*')">
                 地標管理

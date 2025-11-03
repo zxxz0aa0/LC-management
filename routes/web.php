@@ -4,6 +4,7 @@ use App\Http\Controllers\CarpoolGroupController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerEventController;
 use App\Http\Controllers\LandmarkController;
+use App\Http\Controllers\ManualDispatchController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -95,6 +96,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/carpool-groups/{groupId}/cancel', [CarpoolGroupController::class, 'cancelGroup'])->name('carpool-groups.cancel');
     Route::post('/carpool-groups/{groupId}/dissolve', [CarpoolGroupController::class, 'dissolveGroup'])->name('carpool-groups.dissolve');
     Route::post('/carpool-groups/{groupId}/update-status', [CarpoolGroupController::class, 'updateStatus'])->name('carpool-groups.update-status');
+
+    // 人工排趟管理路由
+    Route::get('/manual-dispatch', [ManualDispatchController::class, 'index'])->name('manual-dispatch.index');
+    Route::post('/manual-dispatch/add', [ManualDispatchController::class, 'addToDispatch'])->name('manual-dispatch.add');
+    Route::delete('/manual-dispatch/remove', [ManualDispatchController::class, 'removeFromDispatch'])->name('manual-dispatch.remove');
+    Route::post('/manual-dispatch/clear', [ManualDispatchController::class, 'clearDispatch'])->name('manual-dispatch.clear');
+    Route::post('/manual-dispatch/batch-assign', [ManualDispatchController::class, 'batchAssign'])->name('manual-dispatch.batch-assign');
 });
 
 require __DIR__.'/auth.php';
