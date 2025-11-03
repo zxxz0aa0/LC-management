@@ -120,7 +120,7 @@
                             </td>
                             <td>
                                 <div class="d-flex gap-1"  style="width:150px;" >
-                                    <a href="{{ route('customers.edit', $customer) }}" class="btn btn-sm btn-warning">編輯</a>
+                                    <a href="{{ route('customers.edit', ['customer' => $customer, 'keyword' => request('keyword')]) }}" class="btn btn-sm btn-warning">編輯</a>
                                     <!--<form action="{{ route('customers.destroy', $customer) }}" method="POST" class="d-inline m-0 p-0">
                                         @csrf
                                         @method('DELETE')

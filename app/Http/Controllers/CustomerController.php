@@ -174,7 +174,13 @@ class CustomerController extends Controller
             return redirect()->route('orders.index', $searchParams)->with('success', '客戶已更新');
         }
 
-        return redirect()->route('customers.index')->with('success', '客戶已更新');
+        // 保留搜尋關鍵字
+        $redirectParams = [];
+        if ($request->filled('keyword')) {
+            $redirectParams['keyword'] = $request->input('keyword');
+        }
+
+        return redirect()->route('customers.index', $redirectParams)->with('success', '客戶已更新');
     }
 
     public function destroy(Customer $customer)

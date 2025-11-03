@@ -89,7 +89,7 @@
                                 {{ $order->ride_time ? \Illuminate\Support\Carbon::parse($order->ride_time)->format('H:i') : 'N/A' }}
                             @endif
                         </td>
-                        <td>{{ Str::limit($order->pickup_address, 60) }}<br>{{ Str::limit($order->dropoff_address, 60) }}</td>
+                        <td>{{ Str::limit($order->pickup_address, 90) }}<br>{{ Str::limit($order->dropoff_address, 90) }}</td>
                         <td>{{ $order->carpool_name }}</td>
                         <td>
                             @if($order->stair_machine == '是')
