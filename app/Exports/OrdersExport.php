@@ -40,10 +40,10 @@ class OrdersExport implements FromCollection, WithHeadings
                     'ride_time' => $order->ride_time ? \Carbon\Carbon::parse($order->ride_time)->format('H:i') : '',
                     'pickup_county' => $order->pickup_county,
                     'pickup_district' => $order->pickup_district,
-                    'pickup_address' => $order->pickup_address,
+                    'pickup_address' => $this->truncateText($order->pickup_address, 255),
                     'dropoff_county' => $order->dropoff_county,
                     'dropoff_district' => $order->dropoff_district,
-                    'dropoff_address' => $order->dropoff_address,
+                    'dropoff_address' => $this->truncateText($order->dropoff_address, 255),
                     'wheelchair' => $order->wheelchair,
                     'stair_machine' => $order->stair_machine,
                     'companions' => $order->companions,
@@ -54,7 +54,7 @@ class OrdersExport implements FromCollection, WithHeadings
                     'driver_plate_number' => $order->driver_plate_number,
                     'status' => $this->getStatusText($order->status),
                     'special_status' => $order->special_status,
-                    'remark' => $order->remark,
+                    'remark' => $this->truncateText($order->remark, 1000),
                     'created_by' => $order->created_by,
                     'identity' => $order->identity,
                     'created_at' => $order->created_at ? $order->created_at->format('Y-m-d H:i:s') : '',
@@ -106,5 +106,25 @@ class OrdersExport implements FromCollection, WithHeadings
         ];
 
         return $statusMap[$status] ?? $status;
+    }
+
+    /**
+     * 截斷過長的文字，避免 Excel 儲存格問題
+     *
+     * @param string|null $text 要處理的文字
+     * @param int $maxLength 最大長度
+     * @return string
+     */
+    private function truncateText($text, $maxLength = 255)
+    {
+        if (empty($text)) {
+            return '';
+        }
+
+        if (mb_strlen($text) > $maxLength) {
+            return mb_substr($text, 0, $maxLength - 3).'...';
+        }
+
+        return $text;
     }
 }

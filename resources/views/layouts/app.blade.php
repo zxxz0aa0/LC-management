@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>LC 管理系統</title>
+    <title>T9 管理系統</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
@@ -26,7 +26,7 @@
         <li class="nav-item">
             <a class="nav-link" data-widget="pushmenu" href="#" role="button">
                 <i class="fas fa-bars"></i>
-                <span class="navbar-brand">LC 管理系統</span>
+                <span class="navbar-brand">T9 管理系統</span>
             </a>
         </li>
     </ul>

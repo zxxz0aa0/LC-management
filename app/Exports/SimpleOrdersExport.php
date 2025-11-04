@@ -121,6 +121,23 @@ class SimpleOrdersExport implements FromCollection, WithHeadings
         ];
     }
 
+    /**
+     * 安全地修剪多位元組字符串的空白符號
+     * 使用正則表達式處理，避免 trim() 的邊界問題
+     *
+     * @param string $str 要修剪的字符串
+     * @return string 修剪後的字符串
+     */
+    private function mbTrim($str)
+    {
+        if (empty($str)) {
+            return '';
+        }
+
+        // 移除首尾的空白符號（包括所有 Unicode 空白）
+        return preg_replace('/^\s+|\s+$/u', '', $str);
+    }
+
     private function formatAddress($fullAddress, $district, $isCarpool = false)
     {
         if (empty($fullAddress)) {
@@ -140,15 +157,22 @@ class SimpleOrdersExport implements FromCollection, WithHeadings
         //        宜蘭縣羅東鎮中山路一段10號 -> 羅東鎮中山路一段10號
         $address = preg_replace('/^[\p{Han}]+(?:縣|市)/u', '', $address);
 
-        // 3) 清理前後多餘符號/空白
-        $address = trim($address, " \t\n\r\0\x0B-、，,／/");
+        // 3) 清理前後多餘符號/空白（使用 mbTrim 避免多位元組字符截斷問題）
+        // 舊代碼: $address = trim($address, " \t\n\r\0\x0B-、，,／/");
+        // 問題: trim() 會在字節級別處理，可能截斷 UTF-8 字符（如「區」字的最後字節 0x80）
+        $address = $this->mbTrim($address);
 
         // 4) 如果是共乘訂單，在地址前添加標記
         if ($isCarpool) {
             $address = '(共乘)'.$address;
         }
 
-        return trim($address);
+        // 5) 限制地址長度，避免 Excel 儲存格問題（最大 255 字元，安全起見設為 200）
+        if (mb_strlen($address) > 200) {
+            $address = mb_substr($address, 0, 197).'...';
+        }
+
+        return $this->mbTrim($address);
     }
 
     private function mapSpecialStatus($status)

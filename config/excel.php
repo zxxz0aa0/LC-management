@@ -46,9 +46,9 @@ return [
             'delimiter' => ',',
             'enclosure' => '"',
             'line_ending' => PHP_EOL,
-            'use_bom' => false,
+            'use_bom' => true,  // 啟用 BOM 讓 Excel 正確識別 UTF-8 編碼
             'include_separator_line' => false,
-            'excel_compatibility' => false,
+            'excel_compatibility' => true,  // 啟用 Excel 相容模式
             'output_encoding' => '',
             'test_auto_detect' => true,
         ],
