@@ -292,30 +292,28 @@
                         <option value="是" {{ old('stair_machine', isset($order) ? $order->stair_machine : '是') == '是' ? 'selected' : '' }}>是</option>
                         <option value="未知" {{ old('stair_machine', isset($order) ? $order->stair_machine : '否') == '未知' ? 'selected' : '' }}>未知</option>
                     </select>
-                            @if(in_array($customer->stair_climbing_machine, ['是']))
-                            <h5><span class="badge bg-danger">爬梯機個案
-                            @if(in_array($customer->note, ['']))
-                            @else
-                                @php
-                                    $note = $customer->note;
-                                    $keyword = '開發';
-                                    
-                                    if ($note && mb_strpos($note, $keyword) !== false) {
-                                        // 找到關鍵字的位置
-                                        $position = mb_strpos($note, $keyword);
-                                        // 計算起始位置（關鍵字前4個字元）
-                                        $start = max(0, $position - 4);
-                                        // 擷取：前4個字元 + 關鍵字（3個字）= 共7個字
-                                        $displayNote = mb_substr($note, $start, $position - $start + 2);
-                                    } else {
-                                        $displayNote = $note ?: '';
-                                    }
-                                @endphp
-                                {{ $displayNote }}
-                                </span></h5>
-                            @endif
-                        @else
-                            <span class="badge bg-secondary"></span>
+                        @if($customer->stair_climbing_machine === '是')
+                            @php
+                                $note = $customer->note;
+                                $keyword = '開發';
+                                $displayNote = '';
+
+                                // 只有當 note 包含「開發」關鍵字時才顯示
+                                if ($note && mb_strpos($note, $keyword) !== false) {
+                                    // 找到關鍵字的位置
+                                    $position = mb_strpos($note, $keyword);
+                                    // 計算起始位置（關鍵字前4個字元）
+                                    $start = max(0, $position - 4);
+                                    // 擷取：前4個字元 + 關鍵字（2個字）= 共6個字
+                                    $displayNote = mb_substr($note, $start, $position - $start + 2);
+                                }
+                            @endphp
+
+                            <h4>
+                                <span class="badge bg-danger">
+                                    爬梯機個案@if($displayNote) {{ $displayNote }}@endif
+                                </span>
+                            </h4>
                         @endif
                 </div>
             </div>
