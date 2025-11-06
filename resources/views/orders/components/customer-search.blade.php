@@ -243,9 +243,11 @@
 
 <script>
 function setQuickDate(period) {
-    const today = new Date();
+    // 使用伺服器端的今天日期作為基準，確保跨日時的一致性
+    const serverToday = '{{ \Carbon\Carbon::today()->toDateString() }}';
+    const today = new Date(serverToday + 'T00:00:00');
     let targetDate;
-    
+
     switch(period) {
         case 'today':
             targetDate = new Date(today);
@@ -265,10 +267,13 @@ function setQuickDate(period) {
         default:
             return;
     }
-    
-    // 格式化為 YYYY-MM-DD
-    const dateString = targetDate.toISOString().split('T')[0];
-    
+
+    // 格式化為 YYYY-MM-DD (使用本地時間，避免 UTC 時區轉換問題)
+    const year = targetDate.getFullYear();
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const day = String(targetDate.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+
     // 設定開始日期和結束日期
     document.getElementById('start_date').value = dateString;
     document.getElementById('end_date').value = dateString;

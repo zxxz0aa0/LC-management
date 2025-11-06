@@ -448,67 +448,8 @@
     </div>
 </div>
 
-{{-- 取消訂單 JavaScript 功能 --}}
+{{-- 時間範圍匯出功能 --}}
 <script>
-let currentOrderId = null;
-
-// 顯示取消原因選擇 Modal
-function showCancelModal(orderId) {
-    currentOrderId = orderId;
-    // 清空之前的取消原因說明
-    document.getElementById('cancellationReasonText').value = '';
-    const cancelModal = new bootstrap.Modal(document.getElementById('cancelModal'));
-    cancelModal.show();
-}
-
-// 使用指定原因取消訂單
-function cancelOrderWithReason(reason) {
-    if (!currentOrderId) {
-        alert('錯誤：無法取得訂單 ID');
-        return;
-    }
-
-    // 取得取消原因說明文字
-    const cancellationReasonText = document.getElementById('cancellationReasonText').value.trim();
-
-    // 關閉 Modal
-    const cancelModal = bootstrap.Modal.getInstance(document.getElementById('cancelModal'));
-    cancelModal.hide();
-
-    // 發送 AJAX 請求
-    fetch(`/orders/${currentOrderId}/cancel`, {
-        method: 'PATCH',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        },
-        body: JSON.stringify({
-            cancel_reason: reason,
-            cancellation_reason_text: cancellationReasonText // 傳送取消原因說明
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // 成功提示
-            alert('✅ ' + data.message);
-
-            // 重新載入頁面以更新狀態顯示
-            location.reload();
-        } else {
-            // 錯誤提示
-            alert('❌ ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('取消訂單失敗:', error);
-        alert('❌ 取消失敗，請稍後再試');
-    })
-    .finally(() => {
-        currentOrderId = null; // 清除當前訂單 ID
-    });
-}
-
 // ===== 時間範圍匯出功能 =====
 // 格式化日期時間為 datetime-local 格式
 function formatDateTime(date) {

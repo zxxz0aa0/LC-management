@@ -39,62 +39,6 @@
         </div>
     @endif
 
-    {{-- 客戶資訊區塊 --}}
-    <div class="card mb-4">
-        <div class="card-header bg-info text-white">
-            <h5 class="mb-0">
-                <i class="fas fa-user me-2"></i>客戶資訊
-            </h5>
-        </div>
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-2 d-flex justify-content-center align-items-center">
-                @if(!isset($order))
-                <button type="button" class="btn btn-outline-primary btn-lg" id="historyOrderBtn"
-                        style="display: none;" title="選擇歷史訂單快速填入">
-                    <i class="fas fa-history me-1"></i>歷史訂單
-                </button>
-                @endif
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">電話</label>
-                    <input type="text" name="customer_phone" class="form-control form-control-custom"                         value="{{ old('customer_phone', isset($order) ? $order->customer_phone : '') }}" >
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">客戶姓名</label>
-                    <input type="text" name="customer_name" class="form-control form-control-custom"
-                        value="{{ old('customer_name', isset($order) ? $order->customer_name : ($customer->name ?? '')) }}" readonly>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">身分證字號</label>
-                    <input type="text" name="customer_id_number" class="form-control form-control-custom"
-                        value="{{ old('customer_id_number', isset($order) ? $order->customer_id_number : ($customer->id_number ?? '')) }}" readonly>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">訂單類型</label>
-                    <input type="text" name="order_type" class="form-control form-control-custom"
-                        value="{{ old('order_type', isset($order) ? $order->order_type : ($customer->county_care ?? '')) }}" readonly>
-                </div>
-                <!--<div class="col-md-2"> 這邊主要先隱藏欄位，有需要用再打開
-                    <label class="form-label">身份別</label>-->
-                    <input type="hidden" name="identity" class="form-control form-control-custom"
-                        value="{{ old('identity', isset($order) ? $order->identity : ($customer->identity ?? '')) }}" readonly>
-                <!--</div>-->
-                <div class="col-md-2">
-                    <label class="form-label">交通公司</label>
-                    <input type="text" name="service_company" class="form-control form-control-custom"
-                        value="{{ old('service_company', isset($order) ? $order->service_company : ($customer->service_company ?? '')) }}" readonly>
-                </div>
-                @if(old('special_status', isset($order) ? $order->special_status : ($customer->special_status ?? '')) == '黑名單')
-                    <div class="col-md-12">
-                        <input type="text" name="special_status" class="form-control bg-danger text-white text-center fs-1" style="height:100px;"
-                            value="黑名單" readonly>
-                    </div>
-                @endif
-            </div>
-        </div>
-    </div>
-
     {{-- 日期資訊區塊 --}}
     <div class="card mb-4">
         <div class="card-header bg-info text-white">
@@ -289,6 +233,14 @@
         <div class="card-body">
             {{-- 用車基本資訊 --}}
             <div class="row g-3">
+                <div class="col-md-2 d-flex justify-content-center align-items-center">
+                    @if(!isset($order))
+                    <button type="button" class="btn btn-outline-primary btn-lg" id="historyOrderBtn"
+                            style="display: none;" title="選擇歷史訂單快速填入">
+                        <i class="fas fa-history me-1"></i>歷史訂單
+                    </button>
+                    @endif
+                </div>
                 <div class="col-md-2">
                     <label class="form-label">用車時間</label>
                     <input type="text" name="ride_time" class="form-control form-control-custom time-auto-format" required
@@ -378,6 +330,95 @@
         </div>
     </div>
 
+    {{-- 客戶資訊區塊 --}}
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-user me-2"></i>客戶資訊
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label">電話</label>
+                    <input type="text" name="customer_phone" class="form-control form-control-custom"                         value="{{ old('customer_phone', isset($order) ? $order->customer_phone : '') }}" >
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">客戶姓名</label>
+                    <input type="text" name="customer_name" class="form-control form-control-custom"
+                        value="{{ old('customer_name', isset($order) ? $order->customer_name : ($customer->name ?? '')) }}" readonly>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">身分證字號</label>
+                    <input type="text" name="customer_id_number" class="form-control form-control-custom"
+                        value="{{ old('customer_id_number', isset($order) ? $order->customer_id_number : ($customer->id_number ?? '')) }}" readonly>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">訂單類型</label>
+                    <input type="text" name="order_type" class="form-control form-control-custom"
+                        value="{{ old('order_type', isset($order) ? $order->order_type : ($customer->county_care ?? '')) }}" readonly>
+                </div>
+                <!--<div class="col-md-2"> 這邊主要先隱藏欄位，有需要用再打開
+                    <label class="form-label">身份別</label>-->
+                    <input type="hidden" name="identity" class="form-control form-control-custom"
+                        value="{{ old('identity', isset($order) ? $order->identity : ($customer->identity ?? '')) }}" readonly>
+                <!--</div>-->
+                <div class="col-md-2">
+                    <label class="form-label">交通公司</label>
+                    <input type="text" name="service_company" class="form-control form-control-custom"
+                        value="{{ old('service_company', isset($order) ? $order->service_company : ($customer->service_company ?? '')) }}" readonly>
+                </div>
+                @if(old('special_status', isset($order) ? $order->special_status : ($customer->special_status ?? '')) == '黑名單')
+                    <div class="col-md-12">
+                        <input type="text" name="special_status" class="form-control bg-danger text-white text-center fs-1" style="height:100px;"
+                            value="黑名單" readonly>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    {{-- 其他資訊區塊 --}}
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-info-circle me-2"></i>其他資訊
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">特殊狀態</label>
+                    <select name="special_status" class="form-select form-control-custom">
+                        <option value="一般" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '一般' ? 'selected' : '' }}>一般</option>
+                        <option value="網頁單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '網頁單' ? 'selected' : '' }}>網頁單</option>
+                        <option value="Line" {{ old('special_status', isset($order) ? $order->special_status : '一般') == 'Line' ? 'selected' : '' }}>Line</option>
+                        <option value="個管單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '個管單' ? 'selected' : '' }}>個管單</option>
+                        <option value="黑名單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '黑名單' ? 'selected' : '' }}>黑名單</option>
+                        <option value="共乘單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '共乘單' ? 'selected' : '' }}>共乘單</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">訂單狀態</label>
+                    <select name="status" class="form-select form-control-custom">
+                        <option value="open" {{ old('status', isset($order) ? $order->status : 'open') == 'open' ? 'selected' : '' }}>可派遣</option>
+                        <option value="assigned" {{ old('status', isset($order) ? $order->status : 'open') == 'assigned' ? 'selected' : '' }}>已指派</option>
+                        <option value="bkorder" {{ old('status', isset($order) ? $order->status : 'open') == 'bkorder' ? 'selected' : '' }}>已候補</option>                      
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">建立者</label>
+                    <input type="text" name="created_by" class="form-control form-control-custom"
+                    value="{{ old('created_by', isset($order) ? $order->created_by : optional(auth()->user())->name) }}" readonly>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">訂單備註</label>
+                    <textarea name="remark" class="form-control form-control-custom" rows="3">{{ old('remark', isset($order) ? $order->remark : '') }}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     {{-- 共乘資訊區塊 --}}
     <div class="card mb-4">
         <div class="card-header bg-info text-white"
@@ -523,47 +564,6 @@
                     </div>
                     <input type="hidden" name="return_driver_id" id="return_driver_id" value="{{ old('return_driver_id', '') }}">
 
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- 其他資訊區塊 --}}
-    <div class="card mb-4">
-        <div class="card-header bg-info text-white">
-            <h5 class="mb-0">
-                <i class="fas fa-info-circle me-2"></i>其他資訊
-            </h5>
-        </div>
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <label class="form-label">特殊狀態</label>
-                    <select name="special_status" class="form-select form-control-custom">
-                        <option value="一般" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '一般' ? 'selected' : '' }}>一般</option>
-                        <option value="網頁單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '網頁單' ? 'selected' : '' }}>網頁單</option>
-                        <option value="Line" {{ old('special_status', isset($order) ? $order->special_status : '一般') == 'Line' ? 'selected' : '' }}>Line</option>
-                        <option value="個管單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '個管單' ? 'selected' : '' }}>個管單</option>
-                        <option value="黑名單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '黑名單' ? 'selected' : '' }}>黑名單</option>
-                        <option value="共乘單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '共乘單' ? 'selected' : '' }}>共乘單</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">訂單狀態</label>
-                    <select name="status" class="form-select form-control-custom">
-                        <option value="open" {{ old('status', isset($order) ? $order->status : 'open') == 'open' ? 'selected' : '' }}>可派遣</option>
-                        <option value="assigned" {{ old('status', isset($order) ? $order->status : 'open') == 'assigned' ? 'selected' : '' }}>已指派</option>
-                        <option value="bkorder" {{ old('status', isset($order) ? $order->status : 'open') == 'bkorder' ? 'selected' : '' }}>已候補</option>                      
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">建立者</label>
-                    <input type="text" name="created_by" class="form-control form-control-custom"
-                    value="{{ old('created_by', isset($order) ? $order->created_by : optional(auth()->user())->name) }}" readonly>
-                </div>
-                <div class="col-12">
-                    <label class="form-label">訂單備註</label>
-                    <textarea name="remark" class="form-control form-control-custom" rows="3">{{ old('remark', isset($order) ? $order->remark : '') }}</textarea>
                 </div>
             </div>
         </div>
