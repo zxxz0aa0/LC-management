@@ -37,6 +37,7 @@ class Customer extends Model
     protected $casts = [
         'phone_number' => 'array',
         'addresses' => 'array',
+        'birthday' => 'date',
         'referral_date' => 'date',
     ];
 

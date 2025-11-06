@@ -131,7 +131,14 @@
                                 <strong>身分證字號：</strong><br>{{ $customer->id_number }}
                             </div>
                             <div class="col-md-2">
-                                <strong>電話：</strong><br>{{ collect($customer->phone_number)->filter()->implode(' / ') ?: '無電話' }}
+                                <strong>電話：</strong>{{ collect($customer->phone_number)->filter()->implode(' / ') ?: '無電話' }}
+                                <br>
+                                <strong>生日：</strong>
+                                @if($customer->birthday && $customer->birthday instanceof \Carbon\Carbon)
+                                    {{ sprintf('%d-%s', $customer->birthday->year - 1911, $customer->birthday->format('m-d')) }}
+                                @else
+                                    N/A
+                                @endif
                             </div>
                             <div class="col-md-2">
                                 <strong>輪椅：</strong>
@@ -157,17 +164,17 @@
                                 @endif
                             </div>
                             @if(( $customer->status ?? '') == '開案中')
-                                <div class="col-md-1">
+                                <div class="col-md-1 d-flex align-items-center">
                                     <a href="{{ route('orders.create', array_merge(['customer_id' => $customer->id], request()->only(['keyword', 'start_date', 'end_date', 'order_type', 'stair_machine']))) }}"
-                                    class="btn btn-success btn-sm fs-6 d-flex align-items-center justify-content-center"
+                                    class="btn btn-outline-success btn-sm fs-6"
                                     style="width: 100%;"
                                     >
                                         <i class="fas fa-plus me-1 "></i>建立訂單
                                     </a>
                                 </div>
-                                <div class="col-md-1">
+                                <div class="col-md-1 d-flex align-items-center">
                                     <a href="{{ route('customers.edit', array_merge(['customer' => $customer->id, 'return_to' => 'orders'], request()->only(['keyword', 'start_date', 'end_date', 'customer_id', 'order_type', 'stair_machine']))) }}"
-                                    class="btn btn-warning btn-sm fs-6 d-flex align-items-center justify-content-center"
+                                    class="btn btn-outline-secondary btn-sm fs-6"
                                     style="width: 100%;"
                                     >
                                         <i class="fas fa-user-edit me-1"></i>編輯個案
@@ -181,12 +188,12 @@
                         </div>
                         <hr style="border-top: 1px solid #000000;">
                         <div class="row mt-4">
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <strong>住址：</strong><br>{{ collect($customer->addresses)->filter()->implode(' / ') ?: '無地址' }}
                             </div>
-                            <div class="col-md-5">
+                            <div class="col-md-4">
                                 <div class="d-flex justify-content-between align-items-start">
-                                    <button type="button" class="btn btn-sm btn-outline-success ms-2"
+                                    <button type="button" class="btn btn-outline-secondary btn-sm ms-2"
                                             data-bs-toggle="modal"
                                             data-bs-target="#noteModal{{ $customer->id }}"
                                             title="編輯備註">
@@ -201,6 +208,33 @@
                             <div class="col-md-2">
                                 <strong>訂單來源：</strong>{{ $customer->county_care }}<br>
                                 <strong>照會日期：</strong>{{ $customer->referral_date ? $customer->referral_date->format('Y-m-d') : 'N/A' }}
+                            </div>
+                            <div class="col-md-2 text-center ">
+                                @if(in_array($customer->stair_climbing_machine, ['是']))
+                                    <h4><span class="badge bg-danger">爬梯機個案
+                                    @if(in_array($customer->note, ['']))
+                                    @else
+                                        @php
+                                            $note = $customer->note;
+                                            $keyword = '開發';
+                                            
+                                            if ($note && mb_strpos($note, $keyword) !== false) {
+                                                // 找到關鍵字的位置
+                                                $position = mb_strpos($note, $keyword);
+                                                // 計算起始位置（關鍵字前4個字元）
+                                                $start = max(0, $position - 4);
+                                                // 擷取：前4個字元 + 關鍵字（3個字）= 共7個字
+                                                $displayNote = mb_substr($note, $start, $position - $start + 2);
+                                            } else {
+                                                $displayNote = $note ?: '';
+                                            }
+                                        @endphp
+                                        {{ $displayNote }}
+                                        </span></h4>
+                                    @endif
+                                @else
+                                    <span class="badge bg-secondary"></span>
+                                @endif
                             </div>
                         </div>
                     </div>

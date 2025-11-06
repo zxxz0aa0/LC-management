@@ -29,6 +29,11 @@ class BatchOrderService
         // 驗證日期陣列
         $this->validateDates($dates);
 
+        // 台北長照日期限制驗證（14天內）
+        if (isset($orderData['order_type']) && $orderData['order_type'] === '台北長照') {
+            $this->validateTaipeiLongTermCareDates($dates);
+        }
+
         // 檢查重複訂單
         $conflicts = $this->checkDuplicateOrders($orderData['customer_id'], $dates, $orderData['ride_time']);
 
@@ -212,6 +217,24 @@ class BatchOrderService
             // 檢查日期不能超過 6 個月
             if ($parsedDate->diffInMonths(Carbon::now()) > 6) {
                 throw new \Exception("日期 {$date} 超過 6 個月限制");
+            }
+        }
+    }
+
+    /**
+     * 驗證台北長照訂單日期限制（14天內）
+     */
+    private function validateTaipeiLongTermCareDates($dates)
+    {
+        $maxDate = Carbon::today()->addDays(14)->endOfDay();
+
+        foreach ($dates as $dateString) {
+            $date = Carbon::parse($dateString);
+            if ($date->greaterThan($maxDate)) {
+                throw new \Exception(
+                    '台北長照訂單的用車日期僅能建立 14 天內（含今天）。'.
+                    '無效日期：'.$date->format('Y-m-d')
+                );
             }
         }
     }

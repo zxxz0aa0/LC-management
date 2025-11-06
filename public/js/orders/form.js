@@ -2,6 +2,18 @@
  * 訂單表單頁面 JavaScript
  * 職責：表單驗證、共乘查詢、駕駛查詢、地標選擇
  */
+
+/**
+ * 標準化台灣地址（異體字轉換）
+ * 將「臺」轉換為「台」
+ * @param {string} address - 原始地址
+ * @returns {string} - 標準化後的地址
+ */
+function normalizeAddress(address) {
+    if (!address) return address;
+    return address.replace(/臺/g, '台');
+}
+
 class OrderForm {
     constructor() {
         this.currentAddressType = ''; // 'pickup' 或 'dropoff'
@@ -24,6 +36,12 @@ class OrderForm {
 
         // 頁面載入時檢查日期與上車點重複（如果有預填資料）
         this.performInitialDatePickupCheck();
+
+        // 監聽訂單類型變化，動態調整日期限制
+        $('input[name="order_type"]').on('change input', this.updateDatePickerLimit.bind(this));
+
+        // 頁面載入時執行一次日期限制更新
+        this.updateDatePickerLimit();
     }
 
     /**
@@ -179,6 +197,16 @@ class OrderForm {
 
         // 地標輸入框星號觸發
         $('.landmark-input').on('input', this.handleLandmarkInput.bind(this));
+
+        // 地址輸入即時標準化（將「臺」轉換為「台」）
+        $('#pickup_address, #dropoff_address').on('input', function() {
+            const normalized = normalizeAddress($(this).val());
+            if (normalized !== $(this).val()) {
+                const cursorPos = this.selectionStart; // 保存游標位置
+                $(this).val(normalized);
+                this.setSelectionRange(cursorPos, cursorPos); // 恢復游標位置
+            }
+        });
     }
 
     /**
@@ -254,6 +282,23 @@ class OrderForm {
             $('#ride_date').addClass('is-invalid');
         }
 
+        // 台北長照日期限制（14天內）
+        const orderType = $('input[name="order_type"]').val();
+        if (orderType === '台北長照' && rideDate) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const maxDate = new Date(today);
+            maxDate.setDate(maxDate.getDate() + 14);
+            const selectedDate = new Date(rideDate);
+            selectedDate.setHours(0, 0, 0, 0);
+
+            if (selectedDate > maxDate) {
+                isValid = false;
+                errors.push('台北長照訂單的用車日期僅能建立 14 天內（含今天）');
+                $('#ride_date').addClass('is-invalid');
+            }
+        }
+
         // 時間驗證
         const rideTime = $('#ride_time').val();
         const backTime = $('#back_time').val();
@@ -272,8 +317,7 @@ class OrderForm {
             $('#dropoff_address').addClass('is-invalid');
         }
 
-        // 長照地址限制驗證
-        const orderType = $('input[name="order_type"]').val();
+        // 長照地址限制驗證（orderType 已在上方宣告過）
         if (orderType === '新北長照') {
             const hasNewTaipei = pickupAddress.startsWith('新北市') || dropoffAddress.startsWith('新北市');
             if (!hasNewTaipei) {
@@ -298,6 +342,41 @@ class OrderForm {
         }
 
         return isValid;
+    }
+
+    /**
+     * 根據訂單類型動態調整日期選擇器的最大日期限制
+     * 台北長照訂單僅能選擇 14 天內的日期
+     */
+    updateDatePickerLimit() {
+        const orderType = $('input[name="order_type"]').val();
+        const dateInput = $('#ride_date');
+
+        if (orderType === '台北長照') {
+            // 計算今天 + 14 天
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const maxDate = new Date(today);
+            maxDate.setDate(maxDate.getDate() + 14);
+
+            // 格式化為 YYYY-MM-DD
+            const year = maxDate.getFullYear();
+            const month = String(maxDate.getMonth() + 1).padStart(2, '0');
+            const day = String(maxDate.getDate()).padStart(2, '0');
+            const maxDateString = `${year}-${month}-${day}`;
+
+            dateInput.attr('max', maxDateString);
+
+            // 如果已選日期超過限制，清空並提示
+            const currentValue = dateInput.val();
+            if (currentValue && new Date(currentValue) > maxDate) {
+                dateInput.val('');
+                alert('⚠️ 台北長照訂單僅能建立 14 天內的日期，已清空您的選擇，請重新選擇');
+            }
+        } else {
+            // 移除限制
+            dateInput.removeAttr('max');
+        }
     }
 
     /**
@@ -1643,12 +1722,25 @@ class OrderForm {
     initializeFlatpickr() {
         const multipleDatePicker = document.getElementById('multiple-date-picker');
         if (multipleDatePicker) {
+            // 根據訂單類型決定最大日期限制
+            const orderType = $('input[name="order_type"]').val();
+            let maxDate;
+
+            if (orderType === '台北長照') {
+                // 台北長照：今天 + 14 天
+                const today = new Date();
+                maxDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 14);
+            } else {
+                // 其他訂單類型：一年內
+                maxDate = new Date().fp_incr(365);
+            }
+
             this.datePicker = flatpickr(multipleDatePicker, {
                 mode: 'multiple',
                 locale: 'zh-tw',
                 dateFormat: 'Y-m-d',
                 minDate: 'today',
-                maxDate: new Date().fp_incr(365), // 一年內
+                maxDate: maxDate,
                 static: true, // 防止日曆自動滾動到視窗頂部
                 disableMobile: true, // 在行動裝置上也使用桌面版本
                 onChange: this.handleDatePickerChange.bind(this),

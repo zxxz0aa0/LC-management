@@ -60,8 +60,11 @@
                             <input type="radio" class="btn-check" name="date_mode" id="manual_multiple" value="manual">
                             <label class="btn btn-outline-primary" for="manual_multiple">手動多日</label>
 
+                            {{-- 週期性選項：台北長照時不顯示（14天限制不適合週期訂單） --}}
+                            @if(!isset($customer) || $customer->county_care !== '台北長照')
                             <input type="radio" class="btn-check" name="date_mode" id="recurring" value="recurring">
                             <label class="btn btn-outline-primary" for="recurring">週期性</label>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -73,7 +76,12 @@
                 <div class="row g-3" >
                     <div class="col-md-3">
                         <label class="form-label">用車日期</label>
-                        <input type="date" name="ride_date" class="form-control form-control-custom"  required
+                        <input type="date"
+                               name="ride_date"
+                               id="ride_date"
+                               class="form-control form-control-custom"
+                               required
+                               min="{{ \Carbon\Carbon::today()->toDateString() }}"
                                value="{{ old('ride_date', isset($order) ? $order->ride_date?->format('Y-m-d') : now()->format('Y-m-d')) }}">
                     </div>
                 </div>
@@ -233,7 +241,7 @@
         <div class="card-body">
             {{-- 用車基本資訊 --}}
             <div class="row g-3">
-                <div class="col-md-2 d-flex justify-content-center align-items-center">
+                <div class="col-md-2 d-grid align-items-center">
                     @if(!isset($order))
                     <button type="button" class="btn btn-outline-primary btn-lg" id="historyOrderBtn"
                             style="display: none;" title="選擇歷史訂單快速填入">
@@ -281,9 +289,34 @@
                     <label class="form-label">爬梯機</label>
                     <select name="stair_machine" class="form-select form-control-custom">
                         <option value="否" {{ old('stair_machine', isset($order) ? $order->stair_machine : '否') == '否' ? 'selected' : '' }}>否</option>
-                        <option value="是" {{ old('stair_machine', isset($order) ? $order->stair_machine : '否') == '是' ? 'selected' : '' }}>是</option>
+                        <option value="是" {{ old('stair_machine', isset($order) ? $order->stair_machine : '是') == '是' ? 'selected' : '' }}>是</option>
                         <option value="未知" {{ old('stair_machine', isset($order) ? $order->stair_machine : '否') == '未知' ? 'selected' : '' }}>未知</option>
                     </select>
+                            @if(in_array($customer->stair_climbing_machine, ['是']))
+                            <h5><span class="badge bg-danger">爬梯機個案
+                            @if(in_array($customer->note, ['']))
+                            @else
+                                @php
+                                    $note = $customer->note;
+                                    $keyword = '開發';
+                                    
+                                    if ($note && mb_strpos($note, $keyword) !== false) {
+                                        // 找到關鍵字的位置
+                                        $position = mb_strpos($note, $keyword);
+                                        // 計算起始位置（關鍵字前4個字元）
+                                        $start = max(0, $position - 4);
+                                        // 擷取：前4個字元 + 關鍵字（3個字）= 共7個字
+                                        $displayNote = mb_substr($note, $start, $position - $start + 2);
+                                    } else {
+                                        $displayNote = $note ?: '';
+                                    }
+                                @endphp
+                                {{ $displayNote }}
+                                </span></h5>
+                            @endif
+                        @else
+                            <span class="badge bg-secondary"></span>
+                        @endif
                 </div>
             </div>
 
@@ -341,11 +374,11 @@
             <div class="row g-3">
                 <div class="col-md-2">
                     <label class="form-label">電話</label>
-                    <input type="text" name="customer_phone" class="form-control form-control-custom"                         value="{{ old('customer_phone', isset($order) ? $order->customer_phone : '') }}" >
+                    <input type="text" name="customer_phone" class="form-control form-control-custom"  value="{{ old('customer_phone', isset($order) ? $order->customer_phone : '') }}" >
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">客戶姓名</label>
-                    <input type="text" name="customer_name" class="form-control form-control-custom"
+                        <input type="text" name="customer_name" class="form-control form-control-custom"
                         value="{{ old('customer_name', isset($order) ? $order->customer_name : ($customer->name ?? '')) }}" readonly>
                 </div>
                 <div class="col-md-2">
