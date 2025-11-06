@@ -228,6 +228,7 @@
                                     @endphp
 
                                     <h4>
+                                        <label style="color:red" >!!!請留意!!!</label>
                                         <span class="badge bg-danger">
                                             爬梯機個案@if($displayNote) {{ $displayNote }}@endif
                                         </span>
