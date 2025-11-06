@@ -229,6 +229,7 @@
 
                                     <h4>
                                         <label style="color:red" >!!!請留意!!!</label>
+                                        <br>
                                         <span class="badge bg-danger">
                                             爬梯機個案@if($displayNote) {{ $displayNote }}@endif
                                         </span>
