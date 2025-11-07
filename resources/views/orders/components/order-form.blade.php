@@ -289,10 +289,10 @@
                     <label class="form-label">爬梯機</label>
                     <select name="stair_machine" class="form-select form-control-custom">
                         <option value="否" {{ old('stair_machine', isset($order) ? $order->stair_machine : '否') == '否' ? 'selected' : '' }}>否</option>
-                        <option value="是" {{ old('stair_machine', isset($order) ? $order->stair_machine : '是') == '是' ? 'selected' : '' }}>是</option>
+                        <option value="是" {{ old('stair_machine', isset($order) ? $order->stair_machine : '否') == '是' ? 'selected' : '' }}>是</option>
                         <option value="未知" {{ old('stair_machine', isset($order) ? $order->stair_machine : '否') == '未知' ? 'selected' : '' }}>未知</option>
                     </select>
-                        @if($customer->stair_climbing_machine === '是')
+                        @if(isset($customer) && $customer->stair_climbing_machine === '是')
                             @php
                                 $note = $customer->note;
                                 $keyword = '開發';
