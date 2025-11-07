@@ -144,10 +144,8 @@
            <div class="form-group">
                 <label>特殊狀態（如黑名單）</label>
                 <select name="special_status" class="form-control" required>
-                    <option value="一般" {{ old('special_status') == '一般' ? 'selected' : '' }}>一般</option>
-                    <option value="黑名單" {{ old('special_status') == '黑名單' ? 'selected' : '' }}>黑名單</option>
-                    <option value="個管單" {{ old('special_status') == '個管單' ? 'selected' : '' }}>個管單</option>
-                    <option value="VIP" {{ old('special_status') == 'VIP' ? 'selected' : '' }}>VIP</option>
+                    <option value="一般" {{ old('special_status', $customer->special_status) == '一般' ? 'selected' : '' }}>一般</option>
+                    <option value="黑名單" {{ old('special_status', $customer->special_status) == '黑名單' ? 'selected' : '' }}>黑名單</option>
                 </select>
             </div>
 

@@ -288,9 +288,20 @@
                 <div class="col-md-2">
                     <label class="form-label">爬梯機</label>
                     <select name="stair_machine" class="form-select form-control-custom">
-                        <option value="否" {{ old('stair_machine', isset($order) ? $order->stair_machine : '否') == '否' ? 'selected' : '' }}>否</option>
-                        <option value="是" {{ old('stair_machine', isset($order) ? $order->stair_machine : '否') == '是' ? 'selected' : '' }}>是</option>
-                        <option value="未知" {{ old('stair_machine', isset($order) ? $order->stair_machine : '否') == '未知' ? 'selected' : '' }}>未知</option>
+                        @php
+                            // 決定爬梯機預設值的優先順序：
+                            // 1. old() - 表單驗證失敗時保留使用者輸入
+                            // 2. 編輯訂單時使用訂單的值
+                            // 3. 新增訂單時使用客戶的預設值
+                            // 4. 最後預設為「否」
+                            $defaultStairMachine = old('stair_machine',
+                                isset($order) ? $order->stair_machine :
+                                    (isset($customer) && $customer->stair_climbing_machine ? $customer->stair_climbing_machine : '否')
+                            );
+                        @endphp
+                        <option value="否" {{ $defaultStairMachine == '否' ? 'selected' : '' }}>否</option>
+                        <option value="是" {{ $defaultStairMachine == '是' ? 'selected' : '' }}>是</option>
+                        <option value="未知" {{ $defaultStairMachine == '未知' ? 'selected' : '' }}>未知</option>
                     </select>
                         @if(isset($customer) && $customer->stair_climbing_machine === '是')
                             @php
@@ -420,13 +431,24 @@
             <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">特殊狀態</label>
+                    @php
+                        // 決定特殊狀態預設值的優先順序：
+                        // 1. old() - 表單驗證失敗時保留使用者輸入
+                        // 2. 編輯訂單時使用訂單的值
+                        // 3. 新增訂單時使用客戶的預設值
+                        // 4. 最後預設為「一般」
+                        $defaultSpecialStatus = old('special_status',
+                            isset($order) ? $order->special_status :
+                                (isset($customer) && $customer->special_status ? $customer->special_status : '一般')
+                        );
+                    @endphp
                     <select name="special_status" class="form-select form-control-custom">
-                        <option value="一般" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '一般' ? 'selected' : '' }}>一般</option>
-                        <option value="網頁單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '網頁單' ? 'selected' : '' }}>網頁單</option>
-                        <option value="Line" {{ old('special_status', isset($order) ? $order->special_status : '一般') == 'Line' ? 'selected' : '' }}>Line</option>
-                        <option value="個管單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '個管單' ? 'selected' : '' }}>個管單</option>
-                        <option value="黑名單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '黑名單' ? 'selected' : '' }}>黑名單</option>
-                        <option value="共乘單" {{ old('special_status', isset($order) ? $order->special_status : '一般') == '共乘單' ? 'selected' : '' }}>共乘單</option>
+                        <option value="一般" {{ $defaultSpecialStatus == '一般' ? 'selected' : '' }}>一般</option>
+                        <option value="網頁單" {{ $defaultSpecialStatus == '網頁單' ? 'selected' : '' }}>網頁單</option>
+                        <option value="Line" {{ $defaultSpecialStatus == 'Line' ? 'selected' : '' }}>Line</option>
+                        <option value="個管單" {{ $defaultSpecialStatus == '個管單' ? 'selected' : '' }}>個管單</option>
+                        <option value="黑名單" {{ $defaultSpecialStatus == '黑名單' ? 'selected' : '' }}>黑名單</option>
+                        <option value="共乘單" {{ $defaultSpecialStatus == '共乘單' ? 'selected' : '' }}>共乘單</option>
                     </select>
                 </div>
                 <div class="col-md-4">
