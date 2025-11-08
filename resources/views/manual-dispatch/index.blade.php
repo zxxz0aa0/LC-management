@@ -193,6 +193,7 @@
                             <th class="text-center" style="width:4%">下車區</th>
                             <th class="text-center" style="width:12%">下車地點</th>
                             <th class="text-center" style="width:6%">訂單類型</th>
+                            <th class="text-center" style="width:6%">輪椅</th>
                             <th class="text-center" style="width:6%">特殊狀態</th>
                             <th class="text-center" style="width:8%">操作</th>
                         </tr>
@@ -208,6 +209,7 @@
                                 <td class="text-center">{{ $order->dropoff_district }}</td>
                                 <td>{{ $order->dropoff_address }}</td>
                                 <td class="text-center">{{ $order->order_type }}</td>
+                                <td class="text-center">{{ $order->wheelchair }}</td>
                                 <td class="text-center">
                                     @if($order->special_status)
                                         <span class="badge bg-danger">{{ $order->special_status }}</span>

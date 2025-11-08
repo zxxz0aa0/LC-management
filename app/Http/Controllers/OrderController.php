@@ -177,11 +177,11 @@ class OrderController extends Controller
         $pickupAddress = $validated['pickup_address'];
         $dropoffAddress = $validated['dropoff_address'];
 
-        preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $pickupAddress, $pickupMatches);
+        preg_match('/(.+?市|.+?縣)(.+?區|.+?鄉|.+?鎮)/u', $pickupAddress, $pickupMatches);
         $validated['pickup_county'] = $pickupMatches[1] ?? null;
         $validated['pickup_district'] = $pickupMatches[2] ?? null;
 
-        preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $dropoffAddress, $dropoffMatches);
+        preg_match('/(.+?市|.+?縣)(.+?區|.+?鄉|.+?鎮)/u', $dropoffAddress, $dropoffMatches);
         $validated['dropoff_county'] = $dropoffMatches[1] ?? null;
         $validated['dropoff_district'] = $dropoffMatches[2] ?? null;
 
@@ -413,12 +413,12 @@ class OrderController extends Controller
             $dropoffAddress = $validated['dropoff_address'];
 
             // 拆出 pickup 地點
-            preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $pickupAddress, $pickupMatches);
+            preg_match('/(.+?市|.+?縣)(.+?區|.+?鄉|.+?鎮)/u', $pickupAddress, $pickupMatches);
             $validated['pickup_county'] = $pickupMatches[1] ?? null;
             $validated['pickup_district'] = $pickupMatches[2] ?? null;
 
             // 拆出 dropoff 地點
-            preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $dropoffAddress, $dropoffMatches);
+            preg_match('/(.+?市|.+?縣)(.+?區|.+?鄉|.+?鎮)/u', $dropoffAddress, $dropoffMatches);
             $validated['dropoff_county'] = $dropoffMatches[1] ?? null;
             $validated['dropoff_district'] = $dropoffMatches[2] ?? null;
 
@@ -1092,13 +1092,13 @@ class OrderController extends Controller
     {
         // 拆解上車地址資訊
         $pickupAddress = $validated['pickup_address'];
-        preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $pickupAddress, $pickupMatches);
+        preg_match('/(.+?市|.+?縣)(.+?區|.+?鄉|.+?鎮)/u', $pickupAddress, $pickupMatches);
         $validated['pickup_county'] = $pickupMatches[1] ?? null;
         $validated['pickup_district'] = $pickupMatches[2] ?? null;
 
         // 拆解下車地址資訊
         $dropoffAddress = $validated['dropoff_address'];
-        preg_match('/(.+市|.+縣)(.+區|.+鄉|.+鎮)/u', $dropoffAddress, $dropoffMatches);
+        preg_match('/(.+?市|.+?縣)(.+?區|.+?鄉|.+?鎮)/u', $dropoffAddress, $dropoffMatches);
         $validated['dropoff_county'] = $dropoffMatches[1] ?? null;
         $validated['dropoff_district'] = $dropoffMatches[2] ?? null;
 
