@@ -91,6 +91,13 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a href="{{ route('dispatch-records.index') }}"
+                        class="nav-link {{ request()->routeIs('dispatch-records.*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-calendar-check"></i>
+                            <p>排趟記錄</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a href="{{ route('carpool-groups.index') }}" class="nav-link {{ request()->is('carpool-groups*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-users"></i>
                             <p>共乘群組管理</p>

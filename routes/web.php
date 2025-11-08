@@ -3,6 +3,7 @@
 use App\Http\Controllers\CarpoolGroupController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerEventController;
+use App\Http\Controllers\DispatchRecordController;
 use App\Http\Controllers\LandmarkController;
 use App\Http\Controllers\ManualDispatchController;
 use App\Http\Controllers\OrderController;
@@ -103,6 +104,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/manual-dispatch/remove', [ManualDispatchController::class, 'removeFromDispatch'])->name('manual-dispatch.remove');
     Route::post('/manual-dispatch/clear', [ManualDispatchController::class, 'clearDispatch'])->name('manual-dispatch.clear');
     Route::post('/manual-dispatch/batch-assign', [ManualDispatchController::class, 'batchAssign'])->name('manual-dispatch.batch-assign');
+
+    // 排趟記錄管理路由
+    Route::get('/dispatch-records', [DispatchRecordController::class, 'index'])->name('dispatch-records.index');
+    Route::get('/dispatch-records/{id}', [DispatchRecordController::class, 'show'])->name('dispatch-records.show');
 });
 
 require __DIR__.'/auth.php';

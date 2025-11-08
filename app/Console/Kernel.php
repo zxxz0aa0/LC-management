@@ -12,7 +12,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // 每天凌晨 2 點清理超過 2 個月的排趟記錄
+        $schedule->command('dispatch:clean --months=2 --quiet')->dailyAt('02:00');
     }
 
     /**

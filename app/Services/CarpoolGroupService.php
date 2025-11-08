@@ -283,16 +283,16 @@ class CarpoolGroupService
     /**
      * 指派司機給群組
      */
-    public function assignDriverToGroup($groupId, $driverId)
+    public function assignDriverToGroup($groupId, $driverId, $additionalData = [])
     {
         $driver = Driver::findOrFail($driverId);
 
-        $this->syncGroupStatus($groupId, 'assigned', [
+        $this->syncGroupStatus($groupId, 'assigned', array_merge([
             'driver_id' => $driverId,
             'driver_name' => $driver->name,
             'driver_fleet_number' => $driver->fleet_number ?? null,
             'driver_plate_number' => $driver->plate_number ?? null,
-        ]);
+        ], $additionalData));
 
         return [
             'success' => true,

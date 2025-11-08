@@ -36,6 +36,9 @@ class Order extends Model
         'dissolved_at',
         'dissolved_by',
         'original_group_id',
+
+        // 排趟記錄關聯
+        'dispatch_record_id',
     ];
 
     // 資料類型轉換
@@ -72,6 +75,12 @@ class Order extends Model
     public function updatedBy()
     {
         return $this->belongsTo(\App\Models\User::class, 'updated_by');
+    }
+
+    // 關聯：排趟記錄
+    public function dispatchRecord()
+    {
+        return $this->belongsTo(DispatchRecord::class);
     }
 
     /**

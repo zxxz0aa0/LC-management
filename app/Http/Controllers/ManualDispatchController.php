@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DispatchRecord;
 use App\Models\Driver;
 use App\Models\Order;
 use App\Services\CarpoolGroupService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ManualDispatchController extends Controller
 {
@@ -243,7 +245,9 @@ class ManualDispatchController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($dispatchOrders, $driver) {
+            $dispatchRecord = null;
+
+            DB::transaction(function () use ($dispatchOrders, $driver, &$dispatchRecord) {
                 $orderIds = $dispatchOrders->pluck('id')->toArray();
 
                 // 只取得待指派的訂單（status='open'）
@@ -252,13 +256,54 @@ class ManualDispatchController extends Controller
                     ->where('is_main_order', true)
                     ->get();
 
+                // === 建立排趟記錄 ===
+                $batchId = (string) Str::uuid();
+                $now = now();
+                $userName = auth()->user()->name ?? '系統';
+
+                // 產生排趟名稱：日期 時間 車隊編號 使用者名稱
+                $dispatchName = sprintf(
+                    '%s %s %s %s',
+                    $now->format('Y-m-d'),
+                    $now->format('H:i'),
+                    $driver->fleet_number ?? 'N/A',
+                    $userName
+                );
+
+                $dispatchRecord = DispatchRecord::create([
+                    'batch_id' => $batchId,
+                    'dispatch_name' => $dispatchName,
+                    'driver_id' => $driver->id,
+                    'driver_name' => $driver->name,
+                    'driver_fleet_number' => $driver->fleet_number,
+                    'order_ids' => $orderIds,
+                    'order_count' => count($orderIds),
+                    'order_details' => $orders->map(function ($order) {
+                        return [
+                            'id' => $order->id,
+                            'order_number' => $order->order_number,
+                            'customer_name' => $order->customer_name,
+                            'ride_date' => $order->ride_date->format('Y-m-d'),
+                            'ride_time' => $order->ride_time,
+                            'pickup_address' => $order->pickup_address,
+                            'dropoff_address' => $order->dropoff_address,
+                            'order_type' => $order->order_type,
+                        ];
+                    })->toArray(),
+                    'dispatch_date' => $orders->min('ride_date'),
+                    'performed_by' => auth()->id(),
+                    'performed_at' => $now,
+                ]);
+
+                // === 指派訂單並記錄 dispatch_record_id ===
                 foreach ($orders as $order) {
                     // 檢查是否為共乘訂單
                     if ($order->carpool_group_id) {
                         // 使用 CarpoolGroupService 批量指派
                         $this->carpoolService->assignDriverToGroup(
                             $order->carpool_group_id,
-                            $driver->id
+                            $driver->id,
+                            ['dispatch_record_id' => $dispatchRecord->id]
                         );
                     } else {
                         // 單筆訂單指派
@@ -269,6 +314,7 @@ class ManualDispatchController extends Controller
                             'driver_plate_number' => $driver->plate_number ?? null,
                             'status' => 'assigned',
                             'updated_by' => auth()->id(),
+                            'dispatch_record_id' => $dispatchRecord->id,
                         ]);
                     }
                 }
@@ -280,6 +326,7 @@ class ManualDispatchController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => "✓ 排趟成功！已指派 {$dispatchOrders->count()} 筆訂單給隊員 {$driver->name} ({$request->fleet_number})",
+                'dispatch_record_id' => $dispatchRecord->id,
             ]);
 
         } catch (\Exception $e) {
