@@ -82,7 +82,7 @@
                                class="form-control form-control-custom"
                                required
                                min="{{ \Carbon\Carbon::today()->toDateString() }}"
-                               value="{{ old('ride_date', isset($order) ? $order->ride_date?->format('Y-m-d') : now()->format('Y-m-d')) }}">
+                               value="{{ old('ride_date', isset($order) ? $order->ride_date?->format('Y-m-d') : '') }}">
                     </div>
                 </div>
             </div>
