@@ -14,7 +14,7 @@ class DispatchRecordController extends Controller
      */
     public function index(Request $request)
     {
-        $query = DispatchRecord::with(['driver', 'performer'])
+        $query = DispatchRecord::with(['driver', 'performer', 'entryStatusUpdater'])
             ->recent(2); // 只顯示最近 2 個月的記錄
 
         // 日期範圍篩選
@@ -59,5 +59,38 @@ class DispatchRecordController extends Controller
             ->get();
 
         return view('dispatch-records.show', compact('record', 'orders'));
+    }
+
+    /**
+     * 更新登打處理狀態
+     */
+    public function updateEntryStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:pending,processing,completed',
+        ]);
+
+        $record = DispatchRecord::findOrFail($id);
+
+        $record->update([
+            'entry_status' => $request->status,
+            'entry_status_updated_by' => auth()->id(),
+            'entry_status_updated_at' => now(),
+        ]);
+
+        // 重新載入關聯以取得更新者資訊
+        $record->load('entryStatusUpdater');
+
+        return response()->json([
+            'success' => true,
+            'message' => '登打處理狀態已更新',
+            'data' => [
+                'status' => $record->entry_status,
+                'status_label' => $record->entry_status_label,
+                'badge_class' => $record->entry_status_badge_class,
+                'updated_by' => $record->entryStatusUpdater?->name,
+                'updated_at' => $record->entry_status_updated_at?->format('Y-m-d H:i'),
+            ],
+        ]);
     }
 }

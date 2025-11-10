@@ -1703,6 +1703,9 @@ class OrderForm {
         this.initializeFlatpickr();
         this.bindRecurringEvents();
         this.bindBatchPreviewEvents();
+
+        // 恢復週期性模式的 old() 資料
+        this.restoreRecurringDates();
     }
 
     /**
@@ -1753,6 +1756,64 @@ class OrderForm {
                     instance.calendarContainer.style.position = 'absolute';
                 }
             });
+
+            // 恢復 old() 資料（表單驗證錯誤返回時）
+            this.restoreOldSelectedDates();
+        }
+    }
+
+    /**
+     * 恢復表單驗證錯誤時的已選擇日期
+     */
+    restoreOldSelectedDates() {
+        const oldDatesInput = document.getElementById('old-selected-dates');
+        if (oldDatesInput && oldDatesInput.value) {
+            try {
+                const oldDates = JSON.parse(oldDatesInput.value);
+                if (Array.isArray(oldDates) && oldDates.length > 0) {
+                    // 轉換日期字串為 Date 物件
+                    const dateObjects = oldDates.map(dateStr => new Date(dateStr));
+
+                    // 設定到 Flatpickr
+                    if (this.datePicker) {
+                        this.datePicker.setDate(dateObjects, false); // false 表示不觸發 onChange
+                    }
+
+                    // 更新內部狀態
+                    this.selectedDates = oldDates;
+                    this.updateSelectedDatesList();
+
+                    console.log('Restored selected dates from old():', this.selectedDates);
+
+                    // 恢復完成後，自動生成批量預覽
+                    setTimeout(() => {
+                        this.generateBatchPreview();
+                    }, 100);
+                }
+            } catch (e) {
+                console.error('Failed to restore old selected dates:', e);
+            }
+        }
+    }
+
+    /**
+     * 恢復週期性模式的 old() 資料
+     */
+    restoreRecurringDates() {
+        // 檢查是否有週期性欄位的 old() 資料
+        const startDate = $('#recurring-dates-section input[name="start_date"]').val();
+        const endDate = $('#recurring-dates-section input[name="end_date"]').val();
+        const checkedWeekdays = $('input[name="weekdays[]"]:checked').length;
+
+        // 如果有週期性資料，自動產生日期並顯示預覽
+        if (startDate && endDate && checkedWeekdays > 0) {
+            console.log('Restoring recurring dates from old()');
+
+            // 延遲執行，確保頁面完全載入
+            setTimeout(() => {
+                // 觸發產生日期
+                this.handleGenerateRecurringDates();
+            }, 200);
         }
     }
 
@@ -1821,6 +1882,14 @@ class OrderForm {
         $('#manual-dates-section').toggle(selectedMode === 'manual');
         $('#recurring-dates-section').toggle(selectedMode === 'recurring');
         $('#batch-preview-section').hide();
+
+        // 動態調整 ride_date 的 required 屬性
+        const rideDateField = $('input[name="ride_date"]');
+        if (selectedMode === 'single') {
+            rideDateField.prop('required', true);
+        } else {
+            rideDateField.prop('required', false);
+        }
 
         // 控制單日訂單按鈕顯示/隱藏
         $('#singleOrderActions').toggle(selectedMode === 'single');

@@ -153,6 +153,7 @@ class OrderController extends Controller
                 'carpoolSearchInput' => 'nullable|string',
                 'carpool_id_number' => 'nullable|string',
             ], [
+                'customer_phone.required' => '客戶電話為必填欄位',
                 'pickup_address.regex' => '上車地址必須包含「市/縣」與「區/鄉/鎮」',
                 'dropoff_address.regex' => '下車地址必須包含「市/縣」與「區/鄉/鎮」',
                 'back_time.date_format' => '回程時間格式錯誤，請使用 HH:MM 格式',
@@ -302,7 +303,14 @@ class OrderController extends Controller
                 'selected_dates_count' => is_array($request->input('selected_dates')) ? count($request->input('selected_dates')) : 0,
             ]);
 
-            $validated = $request->validate($rules);
+            // 自訂驗證訊息
+            $messages = [
+                'customer_phone.required' => '客戶電話為必填欄位',
+                'pickup_address.regex' => '上車地址必須包含「市/縣」與「區/鄉/鎮」',
+                'dropoff_address.regex' => '下車地址必須包含「市/縣」與「區/鄉/鎮」',
+            ];
+
+            $validated = $request->validate($rules, $messages);
 
             if ($validated['date_mode'] === 'single') {
                 // 使用現有的單日建立邏輯

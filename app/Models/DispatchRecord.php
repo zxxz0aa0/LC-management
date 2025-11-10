@@ -22,6 +22,9 @@ class DispatchRecord extends Model
         'performed_by',
         'performed_at',
         'notes',
+        'entry_status',
+        'entry_status_updated_by',
+        'entry_status_updated_at',
     ];
 
     protected $casts = [
@@ -29,6 +32,7 @@ class DispatchRecord extends Model
         'order_details' => 'array',
         'performed_at' => 'datetime',
         'dispatch_date' => 'date',
+        'entry_status_updated_at' => 'datetime',
     ];
 
     /**
@@ -45,6 +49,14 @@ class DispatchRecord extends Model
     public function performer()
     {
         return $this->belongsTo(User::class, 'performed_by');
+    }
+
+    /**
+     * 關聯：登打狀態最後更新者
+     */
+    public function entryStatusUpdater()
+    {
+        return $this->belongsTo(User::class, 'entry_status_updated_by');
     }
 
     /**
@@ -84,5 +96,31 @@ class DispatchRecord extends Model
         }
 
         return $query;
+    }
+
+    /**
+     * Accessor: 取得登打狀態中文名稱
+     */
+    public function getEntryStatusLabelAttribute()
+    {
+        return match ($this->entry_status) {
+            'pending' => '未處理',
+            'processing' => '處理中',
+            'completed' => '處理完畢',
+            default => '未知',
+        };
+    }
+
+    /**
+     * Accessor: 取得登打狀態 Badge 樣式
+     */
+    public function getEntryStatusBadgeClassAttribute()
+    {
+        return match ($this->entry_status) {
+            'pending' => 'badge-secondary',
+            'processing' => 'badge-info',
+            'completed' => 'badge-success',
+            default => 'badge-secondary',
+        };
     }
 }

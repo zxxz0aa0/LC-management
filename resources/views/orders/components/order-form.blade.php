@@ -49,20 +49,23 @@
         <div class="card-body">
             {{-- 建立模式選擇（僅在新增訂單時顯示） --}}
             @if(!isset($order))
+            @php
+                $dateMode = old('date_mode', 'single');
+            @endphp
             <div class="row mb-3">
                 <div class="col-12">
                     <label class="form-label">建立模式</label>
                     <div class="date-mode-selector">
                         <div class="btn-group" role="group">
-                            <input type="radio" class="btn-check" name="date_mode" id="single_day" value="single" checked>
+                            <input type="radio" class="btn-check" name="date_mode" id="single_day" value="single" {{ $dateMode === 'single' ? 'checked' : '' }}>
                             <label class="btn btn-outline-primary" for="single_day">單日訂單</label>
 
-                            <input type="radio" class="btn-check" name="date_mode" id="manual_multiple" value="manual">
+                            <input type="radio" class="btn-check" name="date_mode" id="manual_multiple" value="manual" {{ $dateMode === 'manual' ? 'checked' : '' }}>
                             <label class="btn btn-outline-primary" for="manual_multiple">手動多日</label>
 
                             {{-- 週期性選項：台北長照時不顯示（14天限制不適合週期訂單） --}}
                             @if(!isset($customer) || $customer->county_care !== '台北長照')
-                            <input type="radio" class="btn-check" name="date_mode" id="recurring" value="recurring">
+                            <input type="radio" class="btn-check" name="date_mode" id="recurring" value="recurring" {{ $dateMode === 'recurring' ? 'checked' : '' }}>
                             <label class="btn btn-outline-primary" for="recurring">週期性</label>
                             @endif
                         </div>
@@ -90,6 +93,11 @@
             {{-- 手動多日選擇區域 --}}
             @if(!isset($order))
             <div id="manual-dates-section" style="display: none;" class="mt-4">
+                {{-- 隱藏欄位：保存 old() 資料供 JavaScript 恢復 --}}
+                @if(old('selected_dates'))
+                    <input type="hidden" id="old-selected-dates" value="{{ json_encode(old('selected_dates')) }}">
+                @endif
+
                 <div class="row">
                     <div class="col-md-6">
                         <label class="form-label">選擇日期</label>
@@ -117,18 +125,18 @@
                 <div class="row g-3 mb-3">
                     <div class="col-md-4">
                         <label class="form-label">開始日期</label>
-                        <input type="date" name="start_date" class="form-control form-control-custom">
+                        <input type="date" name="start_date" class="form-control form-control-custom" value="{{ old('start_date') }}">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">結束日期</label>
-                        <input type="date" name="end_date" class="form-control form-control-custom">
+                        <input type="date" name="end_date" class="form-control form-control-custom" value="{{ old('end_date') }}">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">重複週期</label>
                         <select name="recurrence_type" class="form-select">
-                            <option value="weekly" >每週</option>
-                            <option value="biweekly">每兩週</option>
-                            <option value="monthly">每月</option>
+                            <option value="weekly" {{ old('recurrence_type') === 'weekly' ? 'selected' : '' }}>每週</option>
+                            <option value="biweekly" {{ old('recurrence_type') === 'biweekly' ? 'selected' : '' }}>每兩週</option>
+                            <option value="monthly" {{ old('recurrence_type') === 'monthly' ? 'selected' : '' }}>每月</option>
                         </select>
                     </div>
                 </div>
@@ -139,25 +147,28 @@
                         <label class="form-label">選擇星期幾（可複選）</label>
                         <div class="weekday-selection">
                             <div class="btn-group flex-wrap" role="group">
-                                <input type="checkbox" class="btn-check" id="weekday-1" name="weekdays[]" value="1">
+                                @php
+                                    $oldWeekdays = old('weekdays', []);
+                                @endphp
+                                <input type="checkbox" class="btn-check" id="weekday-1" name="weekdays[]" value="1" {{ in_array('1', $oldWeekdays) ? 'checked' : '' }}>
                                 <label class="btn btn-outline-primary" for="weekday-1">一</label>
 
-                                <input type="checkbox" class="btn-check" id="weekday-2" name="weekdays[]" value="2">
+                                <input type="checkbox" class="btn-check" id="weekday-2" name="weekdays[]" value="2" {{ in_array('2', $oldWeekdays) ? 'checked' : '' }}>
                                 <label class="btn btn-outline-primary" for="weekday-2">二</label>
 
-                                <input type="checkbox" class="btn-check" id="weekday-3" name="weekdays[]" value="3">
+                                <input type="checkbox" class="btn-check" id="weekday-3" name="weekdays[]" value="3" {{ in_array('3', $oldWeekdays) ? 'checked' : '' }}>
                                 <label class="btn btn-outline-primary" for="weekday-3">三</label>
 
-                                <input type="checkbox" class="btn-check" id="weekday-4" name="weekdays[]" value="4">
+                                <input type="checkbox" class="btn-check" id="weekday-4" name="weekdays[]" value="4" {{ in_array('4', $oldWeekdays) ? 'checked' : '' }}>
                                 <label class="btn btn-outline-primary" for="weekday-4">四</label>
 
-                                <input type="checkbox" class="btn-check" id="weekday-5" name="weekdays[]" value="5">
+                                <input type="checkbox" class="btn-check" id="weekday-5" name="weekdays[]" value="5" {{ in_array('5', $oldWeekdays) ? 'checked' : '' }}>
                                 <label class="btn btn-outline-primary" for="weekday-5">五</label>
 
-                                <input type="checkbox" class="btn-check" id="weekday-6" name="weekdays[]" value="6">
+                                <input type="checkbox" class="btn-check" id="weekday-6" name="weekdays[]" value="6" {{ in_array('6', $oldWeekdays) ? 'checked' : '' }}>
                                 <label class="btn btn-outline-primary" for="weekday-6">六</label>
 
-                                <input type="checkbox" class="btn-check" id="weekday-0" name="weekdays[]" value="0">
+                                <input type="checkbox" class="btn-check" id="weekday-0" name="weekdays[]" value="0" {{ in_array('0', $oldWeekdays) ? 'checked' : '' }}>
                                 <label class="btn btn-outline-primary" for="weekday-0">日</label>
                             </div>
                         </div>
@@ -456,7 +467,8 @@
                     <select name="status" class="form-select form-control-custom">
                         <option value="open" {{ old('status', isset($order) ? $order->status : 'open') == 'open' ? 'selected' : '' }}>可派遣</option>
                         <option value="assigned" {{ old('status', isset($order) ? $order->status : 'open') == 'assigned' ? 'selected' : '' }}>已指派</option>
-                        <option value="bkorder" {{ old('status', isset($order) ? $order->status : 'open') == 'bkorder' ? 'selected' : '' }}>已候補</option>                      
+                        <option value="bkorder" {{ old('status', isset($order) ? $order->status : 'open') == 'bkorder' ? 'selected' : '' }}>已候補</option>
+                        <option value="blocked" {{ old('status', isset($order) ? $order->status : 'open') == 'blocked' ? 'selected' : '' }}>無人承接</option>                      
                     </select>
                 </div>
                 <div class="col-md-4">

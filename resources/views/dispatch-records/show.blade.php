@@ -166,6 +166,9 @@
                                             @case('cancelledCOTD')
                                                 <span class="badge bg-danger">取消 X</span>
                                                 @break
+                                            @case('blocked')
+                                                <span class="badge bg-info">無人承接</span>
+                                                @break
                                             @default
                                                 <span class="badge bg-secondary">未知</span>
                                         @endswitch

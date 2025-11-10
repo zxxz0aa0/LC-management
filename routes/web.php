@@ -108,6 +108,7 @@ Route::middleware('auth')->group(function () {
     // 排趟記錄管理路由
     Route::get('/dispatch-records', [DispatchRecordController::class, 'index'])->name('dispatch-records.index');
     Route::get('/dispatch-records/{id}', [DispatchRecordController::class, 'show'])->name('dispatch-records.show');
+    Route::patch('/dispatch-records/{id}/entry-status', [DispatchRecordController::class, 'updateEntryStatus'])->name('dispatch-records.update-entry-status');
 });
 
 require __DIR__.'/auth.php';
