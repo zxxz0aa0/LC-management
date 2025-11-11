@@ -110,7 +110,9 @@ class Order extends Model
                 $q->where('customer_name', 'like', "%{$keyword}%")
                     ->orWhere('customer_id_number', 'like', "%{$keyword}%")
                     ->orWhere('customer_phone', 'like', "%{$keyword}%")
-                    ->orWhere('order_number', 'like', "%{$keyword}%");
+                    ->orWhere('order_number', 'like', "%{$keyword}%")
+                    ->orWhere('pickup_address', 'like', "%{$keyword}%")
+                    ->orWhere('dropoff_address', 'like', "%{$keyword}%");
 
                 // 搜尋群組相關訂單
                 $q->orWhereHas('groupMembers', function ($subQ) use ($keyword) {

@@ -23,7 +23,7 @@
                             <i class="fas fa-file-excel me-2"></i>完整格式 (28欄位)
                         </a></li>
                         <li><a class="dropdown-item" href="{{ route('orders.export.simple') }}{{ request()->getQueryString() ? '?' . request()->getQueryString() : '' }}">
-                            <i class="fas fa-file-csv me-2"></i>簡化格式 (14欄位)
+                            <i class="fas fa-file-csv me-2"></i>簡化格式 (16欄位)
                         </a></li>
                         <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#exportDateModal">
                             <i class="fas fa-calendar-alt me-2"></i>簡化格式 (依建立時間)

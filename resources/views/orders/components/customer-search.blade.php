@@ -14,7 +14,7 @@
             <div class="col-md-2">
                 <label for="keyword" class="form-label">搜尋關鍵字</label>
                 <input type="text" name="keyword" id="keyword" class="form-control"
-                       placeholder="輸入姓名、電話或身分證字號"
+                       placeholder="輸入姓名、電話、ID或地址"
                        value="{{ request('keyword') }}">
             </div>
             <div class="col-md-2">
@@ -76,9 +76,9 @@
             <hr class="my-3">
 
 
-            @if(isset($customers) && $customers->isEmpty())
+            @if(isset($customers) && $customers->isEmpty() && $orders->isEmpty())
                 <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle me-2"></i>查無符合的客戶資料
+                    <i class="fas fa-exclamation-triangle me-2"></i>查無符合的資料（客戶或訂單）
                 </div>
 
             @elseif(isset($customers) && $customers->count() > 1)

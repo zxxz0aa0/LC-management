@@ -97,6 +97,8 @@ class SimpleOrdersExport implements FromCollection, WithHeadings
                     'remark' => $order->remark ?: '',
                     'assigned_user_id' => $order->driver_fleet_number ?: '',
                     'special_status' => $this->mapSpecialStatus($order->special_status),
+                    'wheelchair' => $order->wheelchair,
+                    'stair_machine' => $order->stair_machine,
                 ];
             });
     }
@@ -118,6 +120,8 @@ class SimpleOrdersExport implements FromCollection, WithHeadings
             '備註',
             '隊員編號',
             '特殊狀態',
+            '輪椅',
+            '爬梯機',
         ];
     }
 
