@@ -550,6 +550,42 @@ class OrderController extends Controller
         }
     }
 
+    // 更新搓合時間
+    public function updateMatchTime(Order $order, Request $request)
+    {
+        try {
+            // 驗證輸入
+            $validated = $request->validate([
+                'match_time' => 'nullable|date_format:Y-m-d H:i:s',
+            ]);
+
+            // 更新 match_time
+            $order->update([
+                'match_time' => $validated['match_time'],
+                'updated_by' => auth()->id(), // 記錄修改人員
+            ]);
+
+            $message = $validated['match_time'] ? '搓合時間更新成功' : '搓合時間已清除';
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'new_match_time' => $order->match_time ? $order->match_time->format('Y-m-d H:i') : null,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => '時間格式錯誤',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => '更新失敗：'.$e->getMessage(),
+            ], 500);
+        }
+    }
+
     // 刪除訂單（預留）
     public function destroy(Order $order)
     {

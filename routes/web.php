@@ -69,6 +69,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/orders/template', [OrderController::class, 'downloadTemplate'])->name('orders.template');
     Route::get('/orders/template-simple', [OrderController::class, 'downloadSimpleTemplate'])->name('orders.template.simple');
     Route::patch('/orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+    Route::patch('/orders/{order}/update-match-time', [OrderController::class, 'updateMatchTime'])->name('orders.updateMatchTime');
     Route::resource('orders', OrderController::class);
     Route::post('/orders/batch', [OrderController::class, 'storeBatch'])->name('orders.storeBatch');
     Route::get('/carpool-search', [CustomerController::class, 'carpoolSearch']);

@@ -82,7 +82,12 @@
                         <td>
                             @if($order->match_time)
                                 <div class="d-flex align-items-center gap-1">
-                                    <span>{{ $order->match_time->format('H:i') }}</span>
+                                    <span class="text-primary text-decoration-underline"
+                                          onclick="showMatchTimeModal({{ $order->id }}, '{{ $order->match_time->format('H:i') }}')"
+                                          title="點擊修改搓合時間"
+                                          style="cursor: pointer;">
+                                        {{ $order->match_time->format('H:i') }}
+                                    </span>
                                     <span class="badge bg-dark">搓合</span>
                                 </div>
                             @else
@@ -195,6 +200,46 @@
             </table>
         </div>
 
+    </div>
+</div>
+
+{{-- 修改搓合時間 Modal --}}
+<div class="modal fade" id="matchTimeModal" tabindex="-1" aria-labelledby="matchTimeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="matchTimeModalLabel">
+                    <i class="fas fa-clock me-2"></i>修改搓合時間
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="matchTimeInput" class="form-label">
+                        <i class="fas fa-clock me-2"></i>搓合時間
+                    </label>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="matchTimeInput"
+                        placeholder="請輸入時間（例：0830 或 08:30）"
+                        maxlength="5"
+                    >
+                    <small class="text-muted">提示：可直接輸入 HHMM（如 0830），系統會自動格式化為 HH:MM</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" onclick="clearMatchTime()">
+                    <i class="fas fa-trash me-2"></i>取消搓合時間
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>關閉
+                </button>
+                <button type="button" class="btn btn-primary" onclick="updateMatchTime()">
+                    <i class="fas fa-save me-2"></i>儲存
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -550,6 +595,141 @@ function cancelOrderWithReason(reason) {
     })
     .finally(() => {
         currentOrderId = null; // 清除當前訂單 ID
+    });
+}
+
+// ===== 修改搓合時間功能 =====
+let currentMatchTimeOrderId = null;
+
+// 顯示修改搓合時間 Modal
+function showMatchTimeModal(orderId, currentTime) {
+    currentMatchTimeOrderId = orderId;
+
+    // 填入當前時間
+    document.getElementById('matchTimeInput').value = currentTime || '';
+
+    // 開啟 Modal
+    const matchTimeModal = new bootstrap.Modal(document.getElementById('matchTimeModal'));
+    matchTimeModal.show();
+
+    // 設定焦點到輸入框
+    setTimeout(() => {
+        document.getElementById('matchTimeInput').focus();
+    }, 500);
+}
+
+// 格式化時間輸入（HHMM → HH:MM）
+document.getElementById('matchTimeInput')?.addEventListener('input', function(e) {
+    let value = e.target.value.replace(/[^0-9]/g, ''); // 只保留數字
+
+    // 如果輸入了 4 位數字，自動插入冒號
+    if (value.length === 4) {
+        const hours = value.substring(0, 2);
+        const minutes = value.substring(2, 4);
+        e.target.value = `${hours}:${minutes}`;
+    }
+});
+
+// 儲存修改搓合時間
+function updateMatchTime() {
+    if (!currentMatchTimeOrderId) {
+        alert('錯誤：無法取得訂單 ID');
+        return;
+    }
+
+    const timeInput = document.getElementById('matchTimeInput').value.trim();
+
+    // 驗證時間格式
+    if (!timeInput) {
+        alert('請輸入時間');
+        return;
+    }
+
+    const timePattern = /^([0-1][0-9]|2[0-3]):([0-5][0-9])$/;
+    if (!timePattern.test(timeInput)) {
+        alert('時間格式錯誤，請使用 HH:MM 格式（例：08:30）');
+        return;
+    }
+
+    // 關閉 Modal
+    const matchTimeModal = bootstrap.Modal.getInstance(document.getElementById('matchTimeModal'));
+    matchTimeModal.hide();
+
+    // 取得當前日期（用於組合完整的 datetime）
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+    const fullDateTime = `${dateStr} ${timeInput}:00`; // YYYY-MM-DD HH:MM:SS
+
+    // 發送 AJAX 請求
+    fetch(`/orders/${currentMatchTimeOrderId}/update-match-time`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            match_time: fullDateTime
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            location.reload();
+        } else {
+            alert('❌ ' + (data.message || '更新失敗'));
+        }
+    })
+    .catch(error => {
+        console.error('更新搓合時間失敗:', error);
+        alert('❌ 更新失敗，請稍後再試');
+    })
+    .finally(() => {
+        currentMatchTimeOrderId = null;
+    });
+}
+
+// 清除搓合時間
+function clearMatchTime() {
+    if (!currentMatchTimeOrderId) {
+        alert('錯誤：無法取得訂單 ID');
+        return;
+    }
+
+    if (!confirm('確定要取消搓合時間嗎？\n取消後將顯示原本的用車時間。')) {
+        return;
+    }
+
+    // 關閉 Modal
+    const matchTimeModal = bootstrap.Modal.getInstance(document.getElementById('matchTimeModal'));
+    matchTimeModal.hide();
+
+    // 發送 AJAX 請求（match_time 設為 null）
+    fetch(`/orders/${currentMatchTimeOrderId}/update-match-time`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            match_time: null
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ 搓合時間已清除');
+            location.reload();
+        } else {
+            alert('❌ ' + (data.message || '清除失敗'));
+        }
+    })
+    .catch(error => {
+        console.error('清除搓合時間失敗:', error);
+        alert('❌ 清除失敗，請稍後再試');
+    })
+    .finally(() => {
+        currentMatchTimeOrderId = null;
     });
 }
 

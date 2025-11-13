@@ -20,6 +20,16 @@
                             {{ $order->ride_time ? \Carbon\Carbon::parse($order->ride_time)->format('H:i') : 'N/A' }}
                         </td>
                     </tr>
+                    @if($order->match_time !== 'NULL')
+                    <tr>
+                        <td><strong>搓合日期：</strong></td>
+                        <td>{{ $order->match_time ? (is_string($order->match_time) ? $order->match_time : $order->match_time->format('Y-m-d')) : '-' }}
+
+                            {{ $order->match_time ? \Carbon\Carbon::parse($order->match_time)->format('H:i') : '-' }}
+                        </td>
+                    </tr>
+                    @else
+                    @endif
                     <tr>
                         <td><strong>上車地址：</strong></td>
                         <td>{{ $order->pickup_address }}</td>
@@ -58,7 +68,7 @@
                     </tr>
                     <tr>
                         <td><strong>共乘對象：</strong></td>
-                        <td>{{ $order->carpool_name }} / {{ $order->carpool_id }}</td>
+                        <td>{{ $order->carpool_name }} - {{ $order->carpool_id }}</td>
                     </tr>
                     <tr>
                         <td><strong>特殊狀態：</strong></td>
