@@ -79,9 +79,15 @@ class OrderController extends Controller
     public function create(Request $request)
     {
         $customer = null;
+        $defaultStatus = 'open'; // 預設訂單狀態
 
         if ($request->filled('customer_id')) {
             $customer = Customer::find($request->input('customer_id'));
+
+            // 如果客戶的特殊狀態為「黑名單」，自動將訂單狀態預設為 blacklist
+            if ($customer && $customer->special_status === '黑名單') {
+                $defaultStatus = 'blacklist';
+            }
         }
 
         $user = auth()->user(); // 🔹目前登入的使用者
@@ -90,10 +96,10 @@ class OrderController extends Controller
         $searchParams = $request->only(['keyword', 'start_date', 'end_date', 'customer_id', 'order_type', 'stair_machine']);
 
         if ($request->ajax()) {
-            return view('orders.create', compact('customer', 'user', 'searchParams'));
+            return view('orders.create', compact('customer', 'user', 'searchParams', 'defaultStatus'));
         }
 
-        return view('orders.create', compact('customer', 'user', 'searchParams'));
+        return view('orders.create', compact('customer', 'user', 'searchParams', 'defaultStatus'));
     }
 
     // 儲存新訂單資料（之後會補功能）
@@ -123,7 +129,7 @@ class OrderController extends Controller
                     'string',
                     'regex:/^(.+市|.+縣)(.+區|.+鄉|.+鎮).+$/u',
                 ],
-                'status' => 'required|in:open,assigned,bkorder,blocked,cancelled',
+                'status' => 'required|in:open,assigned,bkorder,blocked,cancelled,cancelledOOC,cancelledNOC,cancelledCOTD,blacklist,no_send',
                 'companions' => 'required|integer|min:0',
                 'order_type' => 'required|string',
                 'service_company' => 'required|string',

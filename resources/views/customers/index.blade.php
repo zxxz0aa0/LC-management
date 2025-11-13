@@ -61,9 +61,9 @@
                             <a href="{{ route('customers.create') }}" class="btn btn-primary">
                                 <i class="fas fa-plus me-1"></i>新增個案
                             </a>
-                            <a href="{{ route('customers.export') }}" class="btn btn-outline-success">
+                            <!--<a href="{{ route('customers.export') }}" class="btn btn-outline-success">
                                 <i class="fas fa-download me-1"></i>匯出 Excel
-                            </a>
+                            </a>-->
                             <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#importModal">
                                 <i class="fas fa-upload me-1"></i>匯入 Excel
                             </button>

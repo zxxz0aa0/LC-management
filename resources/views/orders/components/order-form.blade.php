@@ -464,11 +464,23 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">訂單狀態</label>
+                    @php
+                        // 決定訂單狀態預設值的優先順序：
+                        // 1. old() - 表單驗證失敗時保留使用者輸入
+                        // 2. 編輯訂單時使用訂單的值
+                        // 3. 新增訂單時使用 controller 傳來的預設值（可能因客戶黑名單而設為 blacklist）
+                        // 4. 最後預設為 'open'
+                        $defaultOrderStatus = old('status',
+                            isset($order) ? $order->status : ($defaultStatus ?? 'open')
+                        );
+                    @endphp
                     <select name="status" class="form-select form-control-custom">
-                        <option value="open" {{ old('status', isset($order) ? $order->status : 'open') == 'open' ? 'selected' : '' }}>可派遣</option>
-                        <option value="assigned" {{ old('status', isset($order) ? $order->status : 'open') == 'assigned' ? 'selected' : '' }}>已指派</option>
-                        <option value="bkorder" {{ old('status', isset($order) ? $order->status : 'open') == 'bkorder' ? 'selected' : '' }}>已候補</option>
-                        <option value="blocked" {{ old('status', isset($order) ? $order->status : 'open') == 'blocked' ? 'selected' : '' }}>無人承接</option>                      
+                        <option value="open" {{ $defaultOrderStatus == 'open' ? 'selected' : '' }}>可派遣</option>
+                        <option value="assigned" {{ $defaultOrderStatus == 'assigned' ? 'selected' : '' }}>已指派</option>
+                        <option value="bkorder" {{ $defaultOrderStatus == 'bkorder' ? 'selected' : '' }}>已候補</option>
+                        <option value="blocked" {{ $defaultOrderStatus == 'blocked' ? 'selected' : '' }}>無人承接</option>
+                        <option value="no_send" {{ $defaultOrderStatus == 'no_send' ? 'selected' : '' }}>不派遣</option>
+                        <option value="blacklist" {{ $defaultOrderStatus == 'blacklist' ? 'selected' : '' }}>黑名單</option>
                     </select>
                 </div>
                 <div class="col-md-4">
