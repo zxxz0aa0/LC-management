@@ -99,7 +99,8 @@ class Order extends Model
                        $request->filled('start_date') ||
                        $request->filled('end_date') ||
                        $request->filled('order_type') ||
-                       $request->filled('stair_machine');
+                       $request->filled('stair_machine') ||
+                       $request->filled('driver_fleet_number');
 
         // 關鍵字篩選
         if ($request->filled('keyword')) {
@@ -126,6 +127,11 @@ class Order extends Model
                         ->orWhere('customer_id_number', 'like', "%{$keyword}%");
                 });
             });
+        }
+
+        // 司機隊編篩選
+        if ($request->filled('driver_fleet_number')) {
+            $query->where('driver_fleet_number', 'like', '%'.$request->driver_fleet_number.'%');
         }
 
         // 訂單來源篩選

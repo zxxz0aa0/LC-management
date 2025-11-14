@@ -4,7 +4,7 @@
             <h5 class="mb-0 pe-3">
                 <i class="fas fa-search me-2"></i>個案搜尋
             </h5>
-            <a href="{{ route('customers.create', array_merge(['return_to' => 'orders'], request()->only(['keyword', 'start_date', 'end_date', 'customer_id', 'order_type', 'stair_machine']))) }}" class="btn btn-outline-dark">
+            <a href="{{ route('customers.create', array_merge(['return_to' => 'orders'], request()->only(['keyword', 'driver_fleet_number', 'start_date', 'end_date', 'customer_id', 'order_type', 'stair_machine']))) }}" class="btn btn-outline-dark">
                 <i class="fas fa-user-plus me-2"></i>新增個案
             </a>
         </div>
@@ -16,6 +16,12 @@
                 <input type="text" name="keyword" id="keyword" class="form-control"
                        placeholder="輸入姓名、電話、ID或地址"
                        value="{{ request('keyword') }}">
+            </div>
+            <div class="col-md-2">
+                <label for="driver_fleet_number" class="form-label">司機隊編</label>
+                <input type="text" name="driver_fleet_number" id="driver_fleet_number" class="form-control"
+                       placeholder="輸入司機隊編"
+                       value="{{ request('driver_fleet_number') }}">
             </div>
             <div class="col-md-2">
                 <label for="order_type" class="form-label">訂單來源</label>
@@ -34,17 +40,17 @@
                     <!--<option value="未知" {{ request('stair_machine') == '未知' ? 'selected' : '' }}>未知</option>-->
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="start_date" class="form-label">開始日期</label>
                 <input type="date" name="start_date" id="start_date" class="form-control"
                        value="{{ request('start_date') ?? \Carbon\Carbon::today()->toDateString() }}">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="end_date" class="form-label">結束日期</label>
                 <input type="date" name="end_date" id="end_date" class="form-control"
                        value="{{ request('end_date') ?? \Carbon\Carbon::now()->addMonth()->endOfMonth()->toDateString() }}">
             </div>
-            <div class="col-6">
+            <div class="col-8">
                 <button type="submit" class="btn btn-success">
                     <i class="fas fa-search me-2"></i>搜尋
                 </button>
@@ -52,7 +58,7 @@
                     <i class="fas fa-undo me-2"></i>清除
                 </a>
             </div>
-            <div class="col-6">
+            <div class="col-4">
                 <button type="submit" class="btn btn-success">
                     <i class="fas fa-search me-2"></i>搜尋
                 </button>

@@ -187,6 +187,7 @@ class ExcelFieldMapper
             'order_number' => '訂單編號',
             'customer_name' => '客戶姓名',
             'customer_phone' => '客戶電話',
+            'customer_id_number' => '客戶身分證字號',
             'ride_date' => '用車日期',
             'ride_time' => '用車時間',
             'pickup_address' => '上車地址',

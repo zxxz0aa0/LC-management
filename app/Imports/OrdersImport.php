@@ -180,8 +180,8 @@ class OrdersImport implements ToCollection, WithChunkReading
             return false;
         }
 
-        // 查找或創建客戶
-        $customer = $this->findExistingCustomer($customerData['name'], $customerData['phone']);
+        // 查找現有客戶（使用身分證字號）
+        $customer = $this->findExistingCustomer($customerData['customer_id_number']);
 
         // 建立基礎訂單資料
         $baseOrderData = $this->buildBaseOrderData($row, $customerData, $customer);
@@ -210,8 +210,8 @@ class OrdersImport implements ToCollection, WithChunkReading
             return false;
         }
 
-        // 查找或創建客戶
-        $customer = $this->findExistingCustomer($customerData['name'], $customerData['phone']);
+        // 查找現有客戶（使用身分證字號）
+        $customer = $this->findExistingCustomer($customerData['customer_id_number']);
 
         // 建立基礎訂單資料
         $baseOrderData = $this->buildBaseOrderData($row, $customerData, $customer);
@@ -647,6 +647,7 @@ class OrdersImport implements ToCollection, WithChunkReading
             'order_number' => '訂單編號',
             'customer_name' => '客戶姓名',
             'customer_phone' => '客戶電話',
+            'customer_id_number' => '客戶身分證字號',
             'ride_date' => '用車日期',
             'ride_time' => '用車時間',
             'pickup_address' => '上車地址',
@@ -661,7 +662,7 @@ class OrdersImport implements ToCollection, WithChunkReading
 
         // 9. 驗證客戶ID是否存在(資料庫必填欄位)
         if (empty($data['customer_id'])) {
-            $errors[] = "訂單 {$orderNumber} → 客戶記錄: 無法找到匹配的客戶資料 (姓名: {$data['customer_name']}, 電話: {$data['customer_phone']}) - 請確認客戶資料已存在於系統中";
+            $errors[] = "訂單 {$orderNumber} → 客戶記錄: 無法找到匹配的客戶資料 (身分證字號: {$data['customer_id_number']}) - 請確認客戶資料已存在於系統中";
         }
 
         return $errors;
@@ -970,15 +971,16 @@ class OrdersImport implements ToCollection, WithChunkReading
 
     /**
      * 查找現有客戶（帶快取功能）
+     * 使用身分證字號精確匹配
      */
-    private function findExistingCustomer($name, $phone)
+    private function findExistingCustomer($idNumber)
     {
-        if (empty($name) && empty($phone)) {
+        if (empty($idNumber)) {
             return null;
         }
 
         // 建立快取鍵
-        $cacheKey = md5($name.'|'.$phone);
+        $cacheKey = md5($idNumber);
 
         // 檢查快取
         if (isset($this->customerCache[$cacheKey])) {
@@ -986,14 +988,7 @@ class OrdersImport implements ToCollection, WithChunkReading
         }
 
         try {
-            $customer = Customer::where(function ($query) use ($name, $phone) {
-                if (! empty($name)) {
-                    $query->where('name', $name);
-                }
-                if (! empty($phone)) {
-                    $query->orWhere('phone_number', 'like', '%'.$phone.'%');
-                }
-            })->first();
+            $customer = Customer::where('id_number', $idNumber)->first();
 
             // 快取結果（包括 null）
             $this->customerCache[$cacheKey] = $customer;
@@ -1008,8 +1003,7 @@ class OrdersImport implements ToCollection, WithChunkReading
 
         } catch (\Exception $e) {
             Log::channel('import')->warning('客戶查找失敗', [
-                'name' => $name,
-                'phone' => $phone,
+                'id_number' => $idNumber,
                 'error' => $e->getMessage(),
             ]);
 
