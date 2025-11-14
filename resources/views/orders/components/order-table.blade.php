@@ -67,7 +67,7 @@
                         <th>上車地址/下車地址</th>
                         <th>共乘姓名</th>
                         <th>特殊狀態</th>
-                        <th>駕駛</th>
+                        <th class="text-center">駕駛</th>
                         <th>訂單狀態</th>
                         <th>操作</th>
                     </tr>
@@ -130,7 +130,44 @@
                                     <span class="badge bg-secondary">未知</span>
                             @endswitch
                         </td>
-                        <td>{{ $order->driver_fleet_number ?: '-' }}</td>
+                        <td style="min-width: 120px; max-width: 120px;">
+                            @if(in_array($order->status, ['open', 'assigned']))
+                                <div class="driver-assign-container">
+                                    <div class="input-group input-group-sm">
+                                        <input type="text"
+                                               class="form-control driver-fleet-input"
+                                               data-order-id="{{ $order->id }}"
+                                               value="{{ $order->driver_fleet_number }}"
+                                               placeholder="隊編"
+                                               style="font-size: 0.875rem;">
+                                        <button type="button"
+                                                class="btn btn-success btn-sm search-driver-btn"
+                                                data-order-id="{{ $order->id }}"
+                                                title="搜尋駕駛">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                        @if($order->driver_id)
+                                            <button type="button"
+                                                    class="btn btn-danger btn-sm clear-driver-btn"
+                                                    data-order-id="{{ $order->id }}"
+                                                    title="清除駕駛">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        @endif
+                                    </div>
+                                    <small class="text-muted text-muted d-block mt-1" id="driver-name-{{ $order->id }}" style="font-size: 0.75rem;">
+                                        {{ $order->driver_name ?? '' }}  {{ $order->driver_plate_number ?? '' }}
+                                    </small>
+                                </div>
+                            @else
+                                <div>
+                                    {{ $order->driver_fleet_number ?: '-' }}
+                                    @if($order->driver_name)
+                                        <br><small class="text-muted">{{ $order->driver_name }}</small>
+                                    @endif
+                                </div>
+                            @endif
+                        </td>
                         <td>
                             @switch($order->status)
                                 @case('open')
@@ -953,3 +990,5 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     </script>
 @endif
+
+{{-- 駕駛快速指派功能將在頁面底部的 @push('scripts') 區塊載入 --}}

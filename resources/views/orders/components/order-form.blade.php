@@ -290,10 +290,21 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">輪椅</label>
+                    @php
+                        // 決定輪椅預設值的優先順序：
+                        // 1. old() - 表單驗證失敗時保留使用者輸入
+                        // 2. 編輯訂單時使用訂單的值
+                        // 3. 新增訂單時使用客戶的預設值
+                        // 4. 最後預設為「否」
+                        $defaultWheelchair = old('wheelchair',
+                            isset($order) ? $order->wheelchair :
+                                (isset($customer) && $customer->wheelchair ? $customer->wheelchair : '否')
+                        );
+                    @endphp
                     <select name="wheelchair" class="form-select form-control-custom">
-                        <option value="否" {{ old('wheelchair', isset($order) ? $order->wheelchair : '否') == '否' ? 'selected' : '' }}>否</option>
-                        <option value="是" {{ old('wheelchair', isset($order) ? $order->wheelchair : '否') == '是' ? 'selected' : '' }}>是</option>
-                        <option value="未知" {{ old('wheelchair', isset($order) ? $order->wheelchair : '否') == '未知' ? 'selected' : '' }}>未知</option>
+                        <option value="否" {{ $defaultWheelchair == '否' ? 'selected' : '' }}>否</option>
+                        <option value="是" {{ $defaultWheelchair == '是' ? 'selected' : '' }}>是</option>
+                        <option value="未知" {{ $defaultWheelchair == '未知' ? 'selected' : '' }}>未知</option>
                     </select>
                 </div>
                 <div class="col-md-2">

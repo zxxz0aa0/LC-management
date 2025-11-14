@@ -44,7 +44,8 @@
         <div class="mb-3">
             <label>狀態</label>
             <div class="form-check">
-                <input type="checkbox" name="is_active" class="form-check-input" 
+                <input type="hidden" name="is_active" value="0">
+                <input type="checkbox" name="is_active" class="form-check-input" value="1"
                        {{ old('is_active', $landmark->is_active ?? true) ? 'checked' : '' }}>
                 <label class="form-check-label">啟用</label>
             </div>

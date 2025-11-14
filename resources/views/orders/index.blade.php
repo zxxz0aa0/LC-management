@@ -64,4 +64,163 @@
         });
     });
     </script>
+
+    {{-- 駕駛快速指派功能 JavaScript --}}
+    <script>
+    $(document).ready(function() {
+        // 駕駛搜尋
+        $(document).on('click', '.search-driver-btn', function() {
+            const $btn = $(this);
+            const orderId = $btn.data('order-id');
+            const $input = $(`.driver-fleet-input[data-order-id="${orderId}"]`);
+            const fleetNumber = $input.val().trim();
+
+            if (!fleetNumber) {
+                alert('請輸入駕駛隊編');
+                $input.focus();
+                return;
+            }
+
+            // 禁用按鈕避免重複點擊
+            $btn.prop('disabled', true);
+            const originalHtml = $btn.html();
+            $btn.html('<i class="fas fa-spinner fa-spin"></i>');
+
+            // 查詢駕駛資訊
+            fetch(`/drivers/fleet-search?fleet_number=${encodeURIComponent(fleetNumber)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                        $btn.prop('disabled', false);
+                        $btn.html(originalHtml);
+                        return;
+                    }
+
+                    // 更新訂單駕駛
+                    updateOrderDriver(orderId, {
+                        id: data.id,
+                        name: data.name,
+                        plate_number: data.plate_number,
+                        fleet_number: fleetNumber
+                    }, $btn, originalHtml);
+                })
+                .catch(error => {
+                    alert('查詢失敗，請稍後再試');
+                    console.error('駕駛搜尋錯誤:', error);
+                    $btn.prop('disabled', false);
+                    $btn.html(originalHtml);
+                });
+        });
+
+        // 清除駕駛
+        $(document).on('click', '.clear-driver-btn', function() {
+            const $btn = $(this);
+            const orderId = $btn.data('order-id');
+
+            if (!confirm('確定要清除駕駛資訊嗎？訂單狀態將恢復為「可派遣」。')) {
+                return;
+            }
+
+            // 禁用按鈕
+            $btn.prop('disabled', true);
+            const originalHtml = $btn.html();
+            $btn.html('<i class="fas fa-spinner fa-spin"></i>');
+
+            updateOrderDriver(orderId, {
+                id: null,
+                name: null,
+                plate_number: null,
+                fleet_number: null
+            }, $btn, originalHtml);
+        });
+
+        // 更新訂單駕駛（AJAX）
+        function updateOrderDriver(orderId, driverData, $btn, originalBtnHtml) {
+            fetch(`/orders/${orderId}/assign-driver`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    driver_id: driverData.id,
+                    driver_name: driverData.name,
+                    driver_plate_number: driverData.plate_number,
+                    driver_fleet_number: driverData.fleet_number
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // 更新頁面顯示
+                    const $input = $(`.driver-fleet-input[data-order-id="${orderId}"]`);
+                    const $nameDisplay = $(`#driver-name-${orderId}`);
+
+                    $input.val(data.driver_fleet_number || '');
+                    $nameDisplay.text(data.driver_name || '');
+
+                    // 更新清除按鈕顯示
+                    const $clearBtn = $(`.clear-driver-btn[data-order-id="${orderId}"]`);
+                    if (data.driver_id) {
+                        // 有駕駛 - 顯示清除按鈕
+                        if ($clearBtn.length === 0) {
+                            const $searchBtn = $(`.search-driver-btn[data-order-id="${orderId}"]`);
+                            $searchBtn.after(`
+                                <button type="button"
+                                        class="btn btn-danger btn-sm clear-driver-btn"
+                                        data-order-id="${orderId}"
+                                        title="清除駕駛">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            `);
+                        }
+                    } else {
+                        // 無駕駛 - 移除清除按鈕
+                        $clearBtn.remove();
+                    }
+
+                    // 顯示成功訊息並重新整理頁面
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert(data.message || '更新失敗');
+                    // 恢復按鈕狀態
+                    if ($btn) {
+                        $btn.prop('disabled', false);
+                        if (originalBtnHtml) {
+                            $btn.html(originalBtnHtml);
+                        }
+                    }
+                }
+            })
+            .catch(error => {
+                alert('更新失敗，請稍後再試');
+                console.error('駕駛指派錯誤:', error);
+                // 恢復按鈕狀態
+                if ($btn) {
+                    $btn.prop('disabled', false);
+                    if (originalBtnHtml) {
+                        $btn.html(originalBtnHtml);
+                    }
+                }
+            });
+        }
+
+        // Enter 鍵觸發搜尋
+        $(document).on('keypress', '.driver-fleet-input', function(e) {
+            if (e.which === 13) { // Enter 鍵
+                e.preventDefault();
+                const orderId = $(this).data('order-id');
+                $(`.search-driver-btn[data-order-id="${orderId}"]`).click();
+            }
+        });
+    });
+    </script>
 @endpush

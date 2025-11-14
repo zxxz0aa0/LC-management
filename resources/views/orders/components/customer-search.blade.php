@@ -206,6 +206,7 @@
                                 </div>
                             </div>
                             <div class="col-md-2">
+                                <strong>服務單位：</strong>{{ $customer->service_company }}<br>
                                 <strong>訂單來源：</strong>{{ $customer->county_care }}<br>
                                 <strong>照會日期：</strong>{{ $customer->referral_date ? $customer->referral_date->format('Y-m-d') : 'N/A' }}
                             </div>

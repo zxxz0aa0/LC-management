@@ -69,7 +69,7 @@ class LandmarkController extends Controller
             'district' => 'required|string|max:50',
             'category' => 'required|string|max:50',
             'description' => 'nullable|string',
-            'is_active' => 'boolean',
+            'is_active' => 'nullable|boolean',
         ]);
 
         // 檢查地址格式（需包含"市"與"區"）
@@ -114,6 +114,7 @@ class LandmarkController extends Controller
             'district' => 'required|string|max:50',
             'category' => 'required|string|max:50',
             'description' => 'nullable|string',
+            'is_active' => 'nullable|boolean',
         ]);
 
         // 檢查地址格式（需包含"市"與"區"）

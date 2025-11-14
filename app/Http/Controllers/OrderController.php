@@ -1096,6 +1096,125 @@ class OrderController extends Controller
     }
 
     /**
+     * 快速指派駕駛給訂單（列表頁使用）
+     */
+    public function assignDriver(Request $request, Order $order)
+    {
+        try {
+            // 驗證駕駛資訊
+            $validated = $request->validate([
+                'driver_id' => 'nullable|exists:drivers,id',
+                'driver_name' => 'nullable|string|max:255',
+                'driver_plate_number' => 'nullable|string|max:255',
+                'driver_fleet_number' => 'nullable|string|max:255',
+            ]);
+
+            // 記錄原始駕駛資訊（用於日誌和共乘群組同步）
+            $originalDriverId = $order->driver_id;
+            $originalDriverName = $order->driver_name;
+            $newDriverId = $validated['driver_id'];
+            $newDriverName = $validated['driver_name'];
+
+            // 更新訂單駕駛資訊
+            $order->update([
+                'driver_id' => $validated['driver_id'],
+                'driver_name' => $validated['driver_name'],
+                'driver_plate_number' => $validated['driver_plate_number'],
+                'driver_fleet_number' => $validated['driver_fleet_number'],
+                'status' => $validated['driver_id'] ? 'assigned' : 'open', // 有駕駛=已指派，無駕駛=可派遣
+                'updated_by' => auth()->id(),
+            ]);
+
+            // 如果是共乘訂單，同步群組駕駛
+            if ($order->carpool_group_id) {
+                $this->syncCarpoolGroupDriverChanges(
+                    $order->carpool_group_id,
+                    $originalDriverId,
+                    $newDriverId
+                );
+            }
+
+            // 記錄操作日誌
+            $action = $this->determineDriverAction($originalDriverId, $newDriverId);
+            Log::info('訂單駕駛快速指派', [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'action' => $action,
+                'original_driver_id' => $originalDriverId,
+                'original_driver_name' => $originalDriverName,
+                'new_driver_id' => $newDriverId,
+                'new_driver_name' => $newDriverName,
+                'carpool_group_id' => $order->carpool_group_id,
+                'operated_by' => auth()->user()->name ?? 'Unknown',
+                'operated_at' => now()->toDateTimeString(),
+            ]);
+
+            // 產生成功訊息
+            $message = $this->generateDriverActionMessage($action, $newDriverName);
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'driver_id' => $order->driver_id,
+                'driver_name' => $order->driver_name,
+                'driver_plate_number' => $order->driver_plate_number,
+                'driver_fleet_number' => $order->driver_fleet_number,
+                'status' => $order->status,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => '驗證失敗：'.$e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('駕駛快速指派失敗', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => '指派失敗：'.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * 判斷駕駛操作類型
+     */
+    private function determineDriverAction($originalDriverId, $newDriverId)
+    {
+        if (empty($originalDriverId) && ! empty($newDriverId)) {
+            return 'assign'; // 指派駕駛
+        } elseif (! empty($originalDriverId) && empty($newDriverId)) {
+            return 'clear'; // 清除駕駛
+        } elseif (! empty($originalDriverId) && ! empty($newDriverId) && $originalDriverId != $newDriverId) {
+            return 'replace'; // 更換駕駛
+        } else {
+            return 'no_change'; // 無變更
+        }
+    }
+
+    /**
+     * 產生駕駛操作訊息
+     */
+    private function generateDriverActionMessage($action, $driverName)
+    {
+        switch ($action) {
+            case 'assign':
+                return "已成功指派駕駛：{$driverName}";
+            case 'clear':
+                return '已清除駕駛資訊，訂單狀態恢復為「可派遣」';
+            case 'replace':
+                return "已更換駕駛為：{$driverName}";
+            default:
+                return '操作完成';
+        }
+    }
+
+    /**
      * 同步共乘群組駕駛變更
      */
     private function syncCarpoolGroupDriverChanges($groupId, $originalDriverId, $newDriverId)
