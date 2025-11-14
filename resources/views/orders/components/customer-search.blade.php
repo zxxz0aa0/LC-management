@@ -131,10 +131,8 @@
                     <div class="card-body" style="font-size: 19px">
                         <div class="row">
                             <div class="col-md-2">
-                                <strong>姓名：</strong><br>{{ $customer->name }}
-                            </div>
-                            <div class="col-md-2">
-                                <strong>身分證字號：</strong><br>{{ $customer->id_number }}
+                                <strong>姓名：</strong>{{ $customer->name }}<br>
+                                <strong>ID：</strong>{{ $customer->id_number }}
                             </div>
                             <div class="col-md-2">
                                 <strong>電話：</strong>{{ collect($customer->phone_number)->filter()->implode(' / ') ?: '無電話' }}
@@ -153,6 +151,9 @@
                                 </span>
                                 <br>
                                 <strong>爬梯機：</strong>{{ $customer->stair_climbing_machine }}
+                            </div>
+                            <div class="col-md-2">
+                                <strong>個管師：</strong>{{ $customer->a_manager }}
                             </div>
                             <div class="col-md-2">
                                 <strong>特殊狀態：</strong>
