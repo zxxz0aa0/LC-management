@@ -145,6 +145,39 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh-tw.js"></script>
 
+<!-- Flatpickr 全域繁體中文設定 -->
+<script>
+(function() {
+    // 等待腳本完全載入
+    if (typeof flatpickr !== 'undefined') {
+        // 檢查語言包是否已載入
+        if (flatpickr.l10ns && flatpickr.l10ns['zh-tw']) {
+            console.log('Flatpickr 繁體中文語言包已載入');
+
+            // 自訂繁體中文翻譯（台灣用語）
+            flatpickr.l10ns['zh-tw'].weekdays = {
+                shorthand: ["日", "一", "二", "三", "四", "五", "六"],
+                longhand: ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"]
+            };
+
+            flatpickr.l10ns['zh-tw'].months = {
+                shorthand: ["一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"],
+                longhand: ["一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"]
+            };
+
+            // 設定全域預設選項
+            flatpickr.setDefaults({
+                locale: flatpickr.l10ns['zh-tw'],
+                dateFormat: "Y-m-d",
+                time_24hr: true
+            });
+        } else {
+            console.warn('Flatpickr 繁體中文語言包未載入');
+        }
+    }
+})();
+</script>
+
 <!-- 你的自訂 jQuery 行為（例如更新事件） -->
 <script>
 $(document).ready(function () {

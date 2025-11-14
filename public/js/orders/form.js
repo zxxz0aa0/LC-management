@@ -1738,9 +1738,9 @@ class OrderForm {
                 maxDate = new Date().fp_incr(365);
             }
 
-            this.datePicker = flatpickr(multipleDatePicker, {
+            // 準備日曆選項
+            const flatpickrOptions = {
                 mode: 'multiple',
-                locale: 'zh-tw',
                 dateFormat: 'Y-m-d',
                 minDate: 'today',
                 maxDate: maxDate,
@@ -1755,7 +1755,26 @@ class OrderForm {
                     // 防止開啟時自動滾動
                     instance.calendarContainer.style.position = 'absolute';
                 }
-            });
+            };
+
+            // 如果繁體中文語言包已載入，則使用繁體中文
+            console.log('可用的語言包:', Object.keys(flatpickr.l10ns));
+            console.log('檢查 flatpickr.l10ns:', typeof flatpickr.l10ns);
+            console.log('檢查 zh-tw:', flatpickr.l10ns ? flatpickr.l10ns['zh-tw'] : 'undefined');
+            console.log('檢查 zh_tw:', flatpickr.l10ns ? flatpickr.l10ns['zh_tw'] : 'undefined');
+            console.log('檢查 zh:', flatpickr.l10ns ? flatpickr.l10ns['zh'] : 'undefined');
+
+            // 嘗試各種可能的鍵名
+            const locale = flatpickr.l10ns['zh-tw'] || flatpickr.l10ns['zh_tw'] || flatpickr.l10ns['zh'] || flatpickr.l10ns['mandarin'];
+
+            if (locale) {
+                flatpickrOptions.locale = locale;
+                console.log('已設定繁體中文 locale:', locale);
+            } else {
+                console.warn('繁體中文語言包未找到，使用預設語言');
+            }
+
+            this.datePicker = flatpickr(multipleDatePicker, flatpickrOptions);
 
             // 恢復 old() 資料（表單驗證錯誤返回時）
             this.restoreOldSelectedDates();
