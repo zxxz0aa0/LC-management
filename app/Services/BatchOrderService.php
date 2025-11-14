@@ -264,6 +264,25 @@ class BatchOrderService
      */
     private function createSingleOrder($orderData)
     {
+        // 【新增】地址驗證（批量建立時，驗證失敗則拋出異常，全部拒絕）
+        $addressValidationService = app(\App\Services\AddressValidationService::class);
+        $addressValidation = $addressValidationService->validateOrderAddresses(
+            $orderData['order_type'],
+            $orderData['pickup_address'],
+            $orderData['dropoff_address']
+        );
+
+        if (! $addressValidation['valid']) {
+            $errors = [];
+            if (! empty($addressValidation['errors']['pickup'])) {
+                $errors = array_merge($errors, $addressValidation['errors']['pickup']);
+            }
+            if (! empty($addressValidation['errors']['dropoff'])) {
+                $errors = array_merge($errors, $addressValidation['errors']['dropoff']);
+            }
+            throw new \Exception('地址驗證失敗：'.implode('；', $errors));
+        }
+
         // 生成訂單編號
         $customer = Customer::findOrFail($orderData['customer_id']);
         $orderNumber = $this->orderNumberService->generateOrderNumber(
@@ -274,6 +293,11 @@ class BatchOrderService
         $preparedData = array_merge($this->prepareOrderData($orderData), [
             'order_number' => $orderNumber,
         ]);
+
+        // 【新增】自動設定「不派遣」狀態（新北長照特定區域）
+        if ($addressValidation['auto_no_send']) {
+            $preparedData['status'] = 'no_send';
+        }
 
         return Order::create($preparedData);
     }

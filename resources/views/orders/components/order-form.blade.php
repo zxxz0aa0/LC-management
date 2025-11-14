@@ -39,6 +39,23 @@
         </div>
     @endif
 
+    {{-- 【新增】地址驗證警告訊息（編輯訂單時） --}}
+    @if (session('address_warning'))
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle"></i>
+            {{ session('address_warning') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    @if (session('no_send_suggestion'))
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <i class="fas fa-info-circle"></i>
+            {{ session('no_send_suggestion') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     {{-- 日期資訊區塊 --}}
     <div class="card mb-4">
         <div class="card-header bg-info text-white">

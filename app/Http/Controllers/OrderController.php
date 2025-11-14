@@ -20,7 +20,6 @@ use App\Services\CarpoolGroupService;
 use App\Services\OrderNumberService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -191,6 +190,32 @@ class OrderController extends Controller
         preg_match('/(.+?市|.+?縣)(.+?區|.+?鄉|.+?鎮)/u', $dropoffAddress, $dropoffMatches);
         $validated['dropoff_county'] = $dropoffMatches[1] ?? null;
         $validated['dropoff_district'] = $dropoffMatches[2] ?? null;
+
+        // 【新增】地址驗證（台北長照、新北長照）
+        $addressValidationService = app(\App\Services\AddressValidationService::class);
+        $addressValidation = $addressValidationService->validateOrderAddresses(
+            $validated['order_type'],
+            $pickupAddress,
+            $dropoffAddress
+        );
+
+        // 驗證失敗則返回錯誤
+        if (! $addressValidation['valid']) {
+            $errors = [];
+            if (! empty($addressValidation['errors']['pickup'])) {
+                $errors['pickup_address'] = $addressValidation['errors']['pickup'];
+            }
+            if (! empty($addressValidation['errors']['dropoff'])) {
+                $errors['dropoff_address'] = $addressValidation['errors']['dropoff'];
+            }
+
+            return back()->withErrors($errors)->withInput();
+        }
+
+        // 自動設定「不派遣」狀態（新北長照特定區域）
+        if ($addressValidation['auto_no_send']) {
+            $validated['status'] = 'no_send';
+        }
 
         // 檢查是否為共乘訂單
         $isCarpool = ! empty($validated['carpool_customer_id']);
@@ -435,6 +460,32 @@ class OrderController extends Controller
             preg_match('/(.+?市|.+?縣)(.+?區|.+?鄉|.+?鎮)/u', $dropoffAddress, $dropoffMatches);
             $validated['dropoff_county'] = $dropoffMatches[1] ?? null;
             $validated['dropoff_district'] = $dropoffMatches[2] ?? null;
+
+            // 【新增】地址驗證（編輯時顯示警告但允許儲存）
+            $addressValidationService = app(\App\Services\AddressValidationService::class);
+            $addressValidation = $addressValidationService->validateOrderAddresses(
+                $validated['order_type'],
+                $pickupAddress,
+                $dropoffAddress
+            );
+
+            // 驗證失敗則顯示警告訊息（但不阻止更新）
+            if (! $addressValidation['valid']) {
+                $warningMessages = [];
+                if (! empty($addressValidation['errors']['pickup'])) {
+                    $warningMessages = array_merge($warningMessages, $addressValidation['errors']['pickup']);
+                }
+                if (! empty($addressValidation['errors']['dropoff'])) {
+                    $warningMessages = array_merge($warningMessages, $addressValidation['errors']['dropoff']);
+                }
+                session()->flash('address_warning', '⚠️ 警告：'.implode('；', $warningMessages));
+            }
+
+            // 如果是新北長照特定區域，提示將設為不派遣（但不強制）
+            if ($addressValidation['auto_no_send'] && $validated['status'] !== 'no_send') {
+                $districtName = $addressValidationService->getNoSendDistrictName($pickupAddress);
+                session()->flash('no_send_suggestion', "ℹ️ 提示：上車地址位於 {$districtName}，建議將訂單狀態設為「不派遣」");
+            }
 
             unset($validated['carpoolSearchInput'], $validated['carpool_id_number'], $validated['carpool_with']);
 
@@ -1302,13 +1353,13 @@ class OrderController extends Controller
 
         // 根據篩選模式驗證必要欄位
         if ($filterMode === 'created_at' || $filterMode === 'both') {
-            if (!$request->has('created_start_date') || !$request->has('created_end_date')) {
+            if (! $request->has('created_start_date') || ! $request->has('created_end_date')) {
                 return back()->withErrors(['created_date' => '請選擇建立時間範圍']);
             }
         }
 
         if ($filterMode === 'ride_date' || $filterMode === 'both') {
-            if (!$request->has('ride_date')) {
+            if (! $request->has('ride_date')) {
                 return back()->withErrors(['ride_date' => '請選擇用車日期']);
             }
         }
@@ -1340,7 +1391,7 @@ class OrderController extends Controller
         }
 
         // 生成檔名
-        $filename = implode('_', $filenameComponents) . '.xlsx';
+        $filename = implode('_', $filenameComponents).'.xlsx';
 
         // 創建一個臨時的 Request 物件來傳遞篩選條件
         $tempRequestData = [
@@ -1499,7 +1550,7 @@ class OrderController extends Controller
                     gc_enable();
 
                     // 建立匯入處理實例
-                    $importer = new OrdersImport();
+                    $importer = new OrdersImport;
 
                     // 執行匯入
                     Excel::import($importer, storage_path('app/'.$filePath));

@@ -207,6 +207,9 @@ class OrderForm {
                 this.setSelectionRange(cursorPos, cursorPos); // 恢復游標位置
             }
         });
+
+        // 【新增】地址變更時進行地址驗證
+        $('#pickup_address, #dropoff_address').on('change blur', this.validateAddressByOrderType.bind(this));
     }
 
     /**
@@ -3085,6 +3088,153 @@ class OrderForm {
             console.log('使用後備複製方案（非安全環境或不支援 Clipboard API）');
             this.fallbackCopyToClipboard(text, buttonSelector, originalClass, successText);
         }
+    }
+
+    /**
+     * 【新增】從地址中提取縣市
+     */
+    extractCounty(address) {
+        if (!address) return '';
+        const match = address.match(/(.+?市|.+?縣)/);
+        return match ? match[1] : '';
+    }
+
+    /**
+     * 【新增】從地址中提取區域
+     */
+    extractDistrict(address) {
+        if (!address) return '';
+        const match = address.match(/(?:市|縣)(.+?區|.+?鄉|.+?鎮)/);
+        return match ? match[1] : '';
+    }
+
+    /**
+     * 【新增】根據訂單類型驗證地址
+     */
+    validateAddressByOrderType() {
+        const orderType = $('input[name="order_type"]').val();
+        const pickupAddress = $('#pickup_address').val();
+        const dropoffAddress = $('#dropoff_address').val();
+
+        // 如果地址未填寫完整，不進行驗證
+        if (!orderType || !pickupAddress || !dropoffAddress) {
+            return;
+        }
+
+        // 清除之前的警告訊息
+        this.clearAddressWarnings();
+
+        const pickupCounty = this.extractCounty(pickupAddress);
+        const pickupDistrict = this.extractDistrict(pickupAddress);
+        const dropoffCounty = this.extractCounty(dropoffAddress);
+
+        let hasError = false;
+        const errors = [];
+
+        // 台北長照驗證
+        if (orderType === '台北長照') {
+            const allowedCounties = ['新北市', '台北市'];
+
+            if (!allowedCounties.includes(pickupCounty)) {
+                hasError = true;
+                errors.push('上車地址必須在新北市或台北市');
+                $('#pickup_address').addClass('is-invalid');
+            }
+
+            if (!allowedCounties.includes(dropoffCounty)) {
+                hasError = true;
+                errors.push('下車地址必須在新北市或台北市');
+                $('#dropoff_address').addClass('is-invalid');
+            }
+        }
+
+        // 新北長照驗證
+        if (orderType === '新北長照') {
+            const allowedCounties = ['新北市', '台北市', '桃園市', '基隆市'];
+
+            if (!allowedCounties.includes(pickupCounty)) {
+                hasError = true;
+                errors.push('上車地址必須在新北市、台北市、桃園市或基隆市');
+                $('#pickup_address').addClass('is-invalid');
+            }
+
+            if (!allowedCounties.includes(dropoffCounty)) {
+                hasError = true;
+                errors.push('下車地址必須在新北市、台北市、桃園市或基隆市');
+                $('#dropoff_address').addClass('is-invalid');
+            }
+
+            // 新北長照特定區域自動設為不派遣
+            const noSendDistricts = ['金山區', '鶯歌區', '三峽區', '淡水區', '五股區', '瑞芳區', '萬里區'];
+            if (noSendDistricts.includes(pickupDistrict)) {
+                this.showNoSendWarning(pickupDistrict);
+                this.autoSetStatusToNoSend();
+            }
+        }
+
+        // 顯示錯誤訊息
+        if (hasError) {
+            this.showAddressErrors(errors);
+        }
+    }
+
+    /**
+     * 【新增】顯示地址錯誤訊息
+     */
+    showAddressErrors(errors) {
+        const errorHtml = `
+            <div class="alert alert-danger alert-dismissible fade show mt-2" id="address-error-alert" role="alert">
+                <i class="fas fa-exclamation-circle"></i>
+                <strong>地址驗證失敗：</strong>
+                <ul class="mb-0 mt-1">
+                    ${errors.map(err => `<li>${err}</li>`).join('')}
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+
+        // 在下車地址欄位後顯示錯誤
+        $('#dropoff_address').closest('.row').after(errorHtml);
+    }
+
+    /**
+     * 【新增】顯示「不派遣」警告提示
+     */
+    showNoSendWarning(district) {
+        const warningHtml = `
+            <div class="alert alert-warning alert-dismissible fade show mt-2" id="no-send-warning-alert" role="alert">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>注意：</strong>此客戶地址位於服務範圍外（${district}），訂單將自動設為「不派遣」狀態
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+
+        // 在上車地址欄位後顯示警告
+        $('#pickup_address').closest('.row').after(warningHtml);
+    }
+
+    /**
+     * 【新增】自動將訂單狀態設為「不派遣」
+     */
+    autoSetStatusToNoSend() {
+        const statusSelect = $('select[name="status"]');
+        if (statusSelect.length > 0) {
+            statusSelect.val('no_send');
+            // 視覺提示狀態已變更
+            statusSelect.addClass('border-warning').addClass('border-2');
+            setTimeout(() => {
+                statusSelect.removeClass('border-warning').removeClass('border-2');
+            }, 2000);
+        }
+    }
+
+    /**
+     * 【新增】清除地址警告訊息
+     */
+    clearAddressWarnings() {
+        $('#address-error-alert').remove();
+        $('#no-send-warning-alert').remove();
+        $('#pickup_address, #dropoff_address').removeClass('is-invalid');
     }
 }
 

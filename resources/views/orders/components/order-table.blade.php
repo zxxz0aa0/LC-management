@@ -55,29 +55,28 @@
             </div>
         @endif
 
-        <div class="table-responsive" style="font-size: 18px" >
+        <div class="table-responsive" style="width:100% font-size: 18px" >
             <table class="table table-hover" id="ordersTable">
                 <thead class="table-success">
                     <tr>
-                        <th>訂單來源</th>
-                        <th>客戶姓名</th>
-                        <th>電話</th>
-                        <th>用車日期</th>
-                        <th>用車時間</th>
-                        <th>上車地址/下車地址</th>
-                        <th>共乘姓名</th>
-                        <th>特殊狀態</th>
-                        <th class="text-center">駕駛</th>
-                        <th>訂單狀態</th>
-                        <th>操作</th>
+                        <th style="width:7%">訂單來源</th>
+                        <th style="width:9%">客戶姓名/電話</th>
+                        <th style="width:7%">用車日期</th>
+                        <th style="width:7%">用車時間</th>
+                        <th style="width:28%">上車地址/下車地址</th>
+                        <th style="width:7%">共乘姓名</th>
+                        <th style="width:8%">特殊狀態</th>
+                        <th style="width:10%" class="text-center">駕駛</th>
+                        <th style="width:7%">訂單狀態</th>
+                        <th style="">操作</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($orders as $order)
                     <tr>
                         <td>{{ $order->order_type }}</td>
-                        <td>{{ $order->customer_name }}</td>
-                        <td>{{ $order->customer_phone }}</td>
+                        <td>{{ $order->customer_name }}<br>{{ $order->customer_phone }}</td>
+
                         <td>{{ $order->ride_date ? (is_string($order->ride_date) ? $order->ride_date : $order->ride_date->format('Y-m-d')) : 'N/A' }}</td>
                         <td>
                             @if($order->match_time)
@@ -155,7 +154,7 @@
                                             </button>
                                         @endif
                                     </div>
-                                    <small class="text-muted text-muted d-block mt-1" id="driver-name-{{ $order->id }}" style="font-size: 0.75rem;">
+                                    <small class="text-muted text-muted d-block mt-1" id="driver-name-{{ $order->id }}" style="font-size: 0.9rem;">
                                         {{ $order->driver_name ?? '' }}  {{ $order->driver_plate_number ?? '' }}
                                     </small>
                                 </div>
@@ -168,7 +167,7 @@
                                 </div>
                             @endif
                         </td>
-                        <td>
+                        <td class="ps-4">
                             @switch($order->status)
                                 @case('open')
                                     <span class="badge bg-success">可派遣</span>
@@ -217,9 +216,9 @@
                                         <i class="fas fa-ban"></i>
                                     </button>
                                 @endif
-                                <!--<button type="button" class="btn btn-danger btn-sm" onclick="deleteOrder({{ $order->id }})" title="刪除">
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteOrder({{ $order->id }})" title="刪除">
                                     <i class="fas fa-trash"></i>
-                                </button>-->
+                                </button>
                             </div>
                         </td>
                     </tr>
