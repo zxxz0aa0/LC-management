@@ -304,19 +304,17 @@ const fieldConfig = {
     }
 };
 
-// 初始化可編輯欄位事件監聽
-document.addEventListener('DOMContentLoaded', function() {
-    // 綁定編輯欄位的點擊事件
-    document.querySelectorAll('.editable-field').forEach(element => {
-        element.addEventListener('click', function(e) {
-            e.preventDefault();
-            const fieldName = this.dataset.field;
-            const customerId = this.dataset.customerId;
-            const currentValue = this.textContent.trim();
+// 使用事件代理綁定編輯欄位的點擊事件
+document.addEventListener('click', function(e) {
+    const editableField = e.target.closest('.editable-field');
+    if (editableField) {
+        e.preventDefault();
+        const fieldName = editableField.dataset.field;
+        const customerId = editableField.dataset.customerId;
+        const currentValue = editableField.textContent.trim();
 
-            openEditFieldModal(customerId, fieldName, currentValue);
-        });
-    });
+        openEditFieldModal(customerId, fieldName, currentValue);
+    }
 });
 
 /**
@@ -359,11 +357,12 @@ function openEditFieldModal(customerId, fieldName, currentValue) {
 /**
  * 保存編輯的欄位
  */
-document.getElementById('editFieldSaveBtn').addEventListener('click', function() {
+function saveEditField() {
     const modal = document.getElementById('editFieldModal');
     const customerId = modal.dataset.customerId;
     const fieldName = document.getElementById('editFieldName').value;
     const config = fieldConfig[fieldName];
+    const saveBtn = document.getElementById('editFieldSaveBtn');
 
     // 根據欄位類型取得值
     let fieldValue;
@@ -374,9 +373,9 @@ document.getElementById('editFieldSaveBtn').addEventListener('click', function()
     }
 
     // 顯示載入狀態
-    const originalText = this.innerHTML;
-    this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>儲存中...';
-    this.disabled = true;
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>儲存中...';
+    saveBtn.disabled = true;
 
     // 發送 AJAX 請求
     fetch(`/customers/${customerId}/field`, {
@@ -428,10 +427,18 @@ document.getElementById('editFieldSaveBtn').addEventListener('click', function()
     })
     .finally(() => {
         // 恢復按鈕狀態
-        this.innerHTML = originalText;
-        this.disabled = false;
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
     });
 }
+
+// 綁定保存按鈕事件（使用事件代理，等待頁面加載完成）
+document.addEventListener('click', function(e) {
+    if (e.target.id === 'editFieldSaveBtn') {
+        e.preventDefault();
+        saveEditField();
+    }
+});
 
 function setQuickDate(period) {
     // 使用伺服器端的今天日期作為基準，確保跨日時的一致性

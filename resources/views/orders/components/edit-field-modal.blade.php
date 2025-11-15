@@ -36,7 +36,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" id="editFieldSaveBtn">
+                <button type="button" class="btn btn-primary" id="editFieldSaveBtn" onclick="saveEditField()">
                     <span class="spinner-border spinner-border-sm d-none me-2"></span>
                     儲存
                 </button>
