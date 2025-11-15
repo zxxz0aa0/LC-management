@@ -21,7 +21,7 @@
 
         <form id="create-customer-form" method="POST" action="{{ route('customers.store') }}">
             @csrf
-            
+
             {{-- 隱藏欄位保存返回參數 --}}
             @if(isset($return_to))
                 <input type="hidden" name="return_to" value="{{ $return_to }}">
@@ -66,7 +66,7 @@
                 </div>
 
                 <div class="col-md-2 form-group">
-                    <label>聯絡電話（多筆用逗號分隔） *</label>
+                    <label>聯絡電話（多筆用逗號分隔）*</label>
                     <input type="text" name="phone_number" class="form-control" required placeholder="例如：0912xxxxxx, 02-xxxxxxx" value="{{ old('phone_number') }}">
                 </div>
 

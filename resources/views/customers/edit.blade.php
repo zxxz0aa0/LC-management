@@ -22,7 +22,7 @@
         <form id="edit-customer-form" method="POST" action="{{ route('customers.update', $customer) }}">
             @csrf
             @method('PUT')
-            
+
             {{-- 隱藏欄位保存返回參數 --}}
             @if(isset($return_to))
                 <input type="hidden" name="return_to" value="{{ $return_to }}">
@@ -32,40 +32,51 @@
                     <input type="hidden" name="{{ $key }}" value="{{ $value }}">
                 @endforeach
             @endif
-
-            <div class="form-group">
-                <label>個案姓名 *</label>
-                <input type="text" name="name" class="form-control" value="{{ old('name', $customer->name) }}" required>
-            </div>
-
-            <div class="form-group">
-                <label>身分證字號 *</label>
-                <input type="text" name="id_number" class="form-control" value="{{ old('id_number', $customer->id_number) }}" required pattern="^[A-Z][1289]\d{8}$" placeholder="請輸入正確的身分證字號格式（如：A123456789）">
-            </div>
-
-            <div class="form-group">
-                <label>生日</label>
-                <div class="input-group">
-                    <input type="text" id="birthday-input" class="form-control" placeholder="可輸入民國年：077/07/07 或西元年：1988/07/07" value="{{ old('birthday', $customer->birthday ? \Carbon\Carbon::parse($customer->birthday)->format('Y/m/d') : '') }}">
-                    <input type="hidden" name="birthday" id="birthday-hidden" value="{{ old('birthday', $customer->birthday) }}">
+            <div class="row">
+                <div class="col-md-2 form-group">
+                    <label>個案姓名 *</label>
+                    <input type="text" name="name" class="form-control" value="{{ old('name', $customer->name) }}" required>
                 </div>
-                <small class="form-text text-muted">支援民國年格式（如：077/07/07）或西元年格式（如：1988/07/07）</small>
-            </div>
 
-            <div class="form-group">
-                <label>性別</label>
-                <select name="gender" class="form-control">
-                    <option value="">請選擇</option>
-                    <option value="男" {{ old('gender', $customer->gender) == '男' ? 'selected' : '' }}>男</option>
-                    <option value="女" {{ old('gender', $customer->gender) == '女' ? 'selected' : '' }}>女</option>
-                </select>
-            </div>
+                <div class="col-md-2 form-group">
+                    <label>身分證字號 *</label>
+                    <input type="text" name="id_number" class="form-control" value="{{ old('id_number', $customer->id_number) }}" required pattern="^[A-Z][1289]\d{8}$" placeholder="請輸入正確的身分證字號格式（如：A123456789）">
+                </div>
 
-            <div class="form-group">
-                <label>聯絡電話（逗號分隔） *</label>
-                <input type="text" name="phone_number" class="form-control"
-                    value="{{ old('phone_number', is_array($customer->phone_number) ? implode(',', $customer->phone_number) : '') }}"
-                    required>
+                <div class="col-md-2 form-group">
+                    <label>生日</label>
+                    <div class="input-group">
+                        <input type="text" id="birthday-input" class="form-control" placeholder="可輸入民國年：077/07/07 或西元年：1988/07/07" value="{{ old('birthday', $customer->birthday ? \Carbon\Carbon::parse($customer->birthday)->format('Y/m/d') : '') }}">
+                        <input type="hidden" name="birthday" id="birthday-hidden" value="{{ old('birthday', $customer->birthday) }}">
+                    </div>
+                    <!--<small class="form-text text-muted">支援民國年格式（如：077/07/07）或西元年格式（如：1988/07/07）</small>-->
+                </div>
+
+                <div class="col-md-2 form-group">
+                    <label>性別</label>
+                    <select name="gender" class="form-control">
+                        <option value="">請選擇</option>
+                        <option value="男" {{ old('gender', $customer->gender) == '男' ? 'selected' : '' }}>男</option>
+                        <option value="女" {{ old('gender', $customer->gender) == '女' ? 'selected' : '' }}>女</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2 form-group">
+                    <label>聯絡電話（逗號分隔） *</label>
+                    <input type="text" name="phone_number" class="form-control"
+                        value="{{ old('phone_number', is_array($customer->phone_number) ? implode(',', $customer->phone_number) : '') }}"
+                        required>
+                </div>
+
+                <div class="col-md-2 form-group">
+                <label>身份別</label>
+                    <select name="identity" class="form-control">
+                        <option value="">請選擇</option>
+                        @foreach(['市區-一般','市區-中低收','市區-低收','偏區-一般','偏區-中低收','偏區-低收'] as $option)
+                            <option value="{{ $option }}" {{ old('identity', $customer->identity) == $option ? 'selected' : '' }}>{{ $option }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
 
             <div class="form-group">
@@ -73,80 +84,45 @@
                 <textarea name="addresses" class="form-control" required rows="2">{{ old('addresses', is_array($customer->addresses) ? implode(',', $customer->addresses) : '') }}</textarea>
             </div>
 
-            <div class="form-group">
-                <label>聯絡人</label>
-                <input type="text" name="contact_person" class="form-control" value="{{ old('contact_person', $customer->contact_person) }}">
-            </div>
+            <div class="row">
+                <div class="col-md-2 form-group">
+                    <label>聯絡人</label>
+                    <input type="text" name="contact_person" class="form-control" value="{{ old('contact_person', $customer->contact_person) }}">
+                </div>
 
-            <div class="form-group">
-                <label>聯絡電話</label>
-                <input type="text" name="contact_phone" class="form-control" value="{{ old('contact_phone', $customer->contact_phone) }}">
-            </div>
+                <div class="col-md-2 form-group">
+                    <label>聯絡電話</label>
+                    <input type="text" name="contact_phone" class="form-control" value="{{ old('contact_phone', $customer->contact_phone) }}">
+                </div>
 
-            <div class="form-group">
-                <label>關係</label>
-                <input type="text" name="contact_relationship" class="form-control" value="{{ old('contact_relationship', $customer->contact_relationship) }}">
-            </div>
+                <div class="col-md-2 form-group">
+                    <label>關係</label>
+                    <input type="text" name="contact_relationship" class="form-control" value="{{ old('contact_relationship', $customer->contact_relationship) }}">
+                </div>
 
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" name="email" class="form-control" value="{{ old('email', $customer->email) }}">
-            </div>
+                <div class="col-md-2 form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" class="form-control" value="{{ old('email', $customer->email) }}">
+                </div>
 
-            <div class="form-group">
-                <label>輪椅</label>
-                <select name="wheelchair" class="form-control">
-                    
-                    <option value="未知" {{ old('wheelchair') == '未知' ? 'selected' : '' }}>未知</option>
-                    <option value="是" {{ old('wheelchair', $customer->wheelchair) == '是' ? 'selected' : '' }}>是</option>
-                    <option value="否" {{ old('wheelchair', $customer->wheelchair) == '否' ? 'selected' : '' }}>否</option>
-                </select>
-            </div>
+                <div class="col-md-2 form-group">
+                    <label>輪椅</label>
+                    <select name="wheelchair" class="form-control">
 
-            <div class="form-group">
-                <label>爬梯機</label>
-                <select name="stair_climbing_machine" class="form-control">
-                    <option value="">請選擇</option>
-                    <option value="是" {{ old('stair_climbing_machine', $customer->stair_climbing_machine) == '是' ? 'selected' : '' }}>是</option>
-                    <option value="否" {{ old('stair_climbing_machine', $customer->stair_climbing_machine) == '否' ? 'selected' : '' }}>否</option>
-                </select>
-            </div>
+                        <option value="未知" {{ old('wheelchair') == '未知' ? 'selected' : '' }}>未知</option>
+                        <option value="是" {{ old('wheelchair', $customer->wheelchair) == '是' ? 'selected' : '' }}>是</option>
+                        <option value="否" {{ old('wheelchair', $customer->wheelchair) == '否' ? 'selected' : '' }}>否</option>
+                    </select>
+                </div>
 
-            <div class="form-group">
-                <label>共乘</label>
-                <select name="ride_sharing" class="form-control">
-                    <option value="">請選擇</option>
-                    <option value="是" {{ old('ride_sharing', $customer->ride_sharing) == '是' ? 'selected' : '' }}>是</option>
-                    <option value="否" {{ old('ride_sharing', $customer->ride_sharing) == '否' ? 'selected' : '' }}>否</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>身份別</label>
-                <select name="identity" class="form-control">
-                    <option value="">請選擇</option>
-                    @foreach(['市區-一般','市區-中低收','市區-低收','偏區-一般','偏區-中低收','偏區-低收'] as $option)
-                        <option value="{{ $option }}" {{ old('identity', $customer->identity) == $option ? 'selected' : '' }}>{{ $option }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>A單位</label>
-                <input type="text" name="a_mechanism" class="form-control" value="{{ old('a_mechanism', $customer->a_mechanism) }}">
-            </div>
-
-            <div class="form-group">
-                <label>個管師</label>
-                <input type="text" name="a_manager" class="form-control" value="{{ old('a_manager', $customer->a_manager) }}">
-            </div>
-
-           <div class="form-group">
-                <label>特殊狀態（如黑名單）</label>
-                <select name="special_status" class="form-control" required>
-                    <option value="一般" {{ old('special_status', $customer->special_status) == '一般' ? 'selected' : '' }}>一般</option>
-                    <option value="黑名單" {{ old('special_status', $customer->special_status) == '黑名單' ? 'selected' : '' }}>黑名單</option>
-                </select>
+                <div class="col-md-2 form-group">
+                    <label>爬梯機</label>
+                    <select name="stair_climbing_machine" class="form-control">
+                        <option value="">請選擇</option>
+                        <option value="是" {{ old('stair_climbing_machine', $customer->stair_climbing_machine) == '是' ? 'selected' : '' }}>是</option>
+                        <option value="否" {{ old('stair_climbing_machine', $customer->stair_climbing_machine) == '否' ? 'selected' : '' }}>否</option>
+                    </select>
+                </div>
             </div>
 
             <div class="form-group">
@@ -154,25 +130,53 @@
                 <textarea name="note" class="form-control">{{ old('note', $customer->note) }}</textarea>
             </div>
 
-            <div class="form-group">
-                <label>個案來源</label>
-                <select name="county_care" class="form-control">
-                    @foreach(['新北長照','台北長照','愛接送','新北復康','一般乘客'] as $option)
-                        <option value="{{ $option }}" {{ old('county_care',$customer->county_care) == $option ? 'selected' : '' }}>{{ $option }}</option>
-                    @endforeach
-                </select>
-            </div>
+            <div class="row">
+                <div class="col-md-2 form-group">
+                    <label>共乘</label>
+                    <select name="ride_sharing" class="form-control">
+                        <option value="">請選擇</option>
+                        <option value="是" {{ old('ride_sharing', $customer->ride_sharing) == '是' ? 'selected' : '' }}>是</option>
+                        <option value="否" {{ old('ride_sharing', $customer->ride_sharing) == '否' ? 'selected' : '' }}>否</option>
+                    </select>
+                </div>
 
-            <div class="form-group">
-                <label>可服務交通公司</label>
-                <select name="service_company" class="form-control">
-                    <option value="" disabled selected>請選擇</option>
-                    <option value="太豐" {{ old('service_company', $customer->service_company) == '太豐' ? 'selected' : '' }}>太豐</option>
-                    <option value="大立亨" {{ old('service_company', $customer->service_company) == '大立亨' ? 'selected' : '' }}>大立亨</option>
-                    <option value="太豐與大立亨" {{ old('service_company', $customer->service_company) == '太豐與大立亨' ? 'selected' : '' }}>太豐與大立亨</option>
-                </select>
-            </div>
+                <div class="col-md-2 form-group">
+                    <label>A單位</label>
+                    <input type="text" name="a_mechanism" class="form-control" value="{{ old('a_mechanism', $customer->a_mechanism) }}">
+                </div>
 
+                <div class="col-md-2 form-group">
+                    <label>個管師</label>
+                    <input type="text" name="a_manager" class="form-control" value="{{ old('a_manager', $customer->a_manager) }}">
+                </div>
+
+                 <div class="col-md-2 form-group">
+                    <label>特殊狀態（如黑名單）</label>
+                    <select name="special_status" class="form-control" required>
+                        <option value="一般" {{ old('special_status', $customer->special_status) == '一般' ? 'selected' : '' }}>一般</option>
+                        <option value="黑名單" {{ old('special_status', $customer->special_status) == '黑名單' ? 'selected' : '' }}>黑名單</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2 form-group">
+                    <label>個案來源</label>
+                    <select name="county_care" class="form-control">
+                        @foreach(['新北長照','台北長照','愛接送','新北復康','一般乘客'] as $option)
+                            <option value="{{ $option }}" {{ old('county_care',$customer->county_care) == $option ? 'selected' : '' }}>{{ $option }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="col-md-2 form-group">
+                    <label>可服務交通公司</label>
+                    <select name="service_company" class="form-control">
+                        <option value="" disabled selected>請選擇</option>
+                        <option value="太豐" {{ old('service_company', $customer->service_company) == '太豐' ? 'selected' : '' }}>太豐</option>
+                        <option value="大立亨" {{ old('service_company', $customer->service_company) == '大立亨' ? 'selected' : '' }}>大立亨</option>
+                        <option value="太豐與大立亨" {{ old('service_company', $customer->service_company) == '太豐與大立亨' ? 'selected' : '' }}>太豐與大立亨</option>
+                    </select>
+                </div>
+            </div>
 
             <div class="form-group">
                 <label>狀態 *</label>
