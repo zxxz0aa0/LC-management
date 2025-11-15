@@ -78,7 +78,7 @@
                         <td>{{ $order->customer_name }}<br>{{ $order->customer_phone }}</td>
 
                         <td>{{ $order->ride_date ? (is_string($order->ride_date) ? $order->ride_date : $order->ride_date->format('Y-m-d')) : 'N/A' }}</td>
-                        <td>
+                        <td data-order="{{ $order->match_time ? $order->match_time->format('H:i') : ($order->ride_time ? \Illuminate\Support\Carbon::parse($order->ride_time)->format('H:i') : '99:99') }}">
                             @if($order->match_time)
                                 <div class="d-flex align-items-center gap-1">
                                     <span class="text-primary text-decoration-underline"
