@@ -44,6 +44,7 @@ Route::middleware('auth')->group(function () {
     Route::post('api/customers/start-import/{sessionId}', [CustomerController::class, 'startImportProcess'])->name('api.customers.start.import');
     Route::get('customers/template', [CustomerController::class, 'downloadTemplate'])->name('customers.template');
     Route::patch('customers/{customer}/note', [CustomerController::class, 'updateNote'])->name('customers.updateNote');
+    Route::patch('customers/{customer}/field', [CustomerController::class, 'updateField'])->name('customers.updateField');
     Route::resource('customers', CustomerController::class)->except(['show']);
 
     // 客戶事件

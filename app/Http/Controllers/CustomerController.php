@@ -636,6 +636,58 @@ class CustomerController extends Controller
         ]);
     }
 
+    // 通用欄位更新方法
+    public function updateField(Request $request, Customer $customer)
+    {
+        $fieldName = $request->input('field_name');
+        $value = $request->input('value');
+
+        // 允許更新的欄位清單
+        $allowedFields = [
+            'note',
+            'a_manager',
+            'wheelchair',
+            'stair_climbing_machine',
+            'service_company',
+        ];
+
+        // 驗證欄位是否允許更新
+        if (!in_array($fieldName, $allowedFields)) {
+            return response()->json([
+                'success' => false,
+                'message' => '不允許更新該欄位',
+            ], 422);
+        }
+
+        // 根據欄位進行驗證
+        $rules = [
+            'note' => 'nullable|string|max:1000',
+            'a_manager' => 'nullable|string|max:255',
+            'wheelchair' => 'nullable|in:是,否,未知',
+            'stair_climbing_machine' => 'nullable|in:是,否,未知',
+            'service_company' => 'nullable|string|max:255',
+        ];
+
+        $messages = [
+            'wheelchair.in' => '輪椅欄位只能是「是」、「否」或「未知」',
+            'stair_climbing_machine.in' => '爬梯機欄位只能是「是」、「否」或「未知」',
+        ];
+
+        $request->validate([$fieldName => $rules[$fieldName]], $messages);
+
+        // 更新欄位
+        $customer->update([
+            $fieldName => $value,
+            'updated_by' => auth()->user()->name ?? 'system',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => '欄位已更新',
+            'value' => $customer->getAttribute($fieldName),
+        ]);
+    }
+
     // 共乘對象查詢
     public function carpoolSearch(Request $request)
     {

@@ -146,14 +146,32 @@
                             </div>
                             <div class="col-md-2">
                                 <strong>輪椅：</strong>
-                                <span class="{{ $customer->wheelchair === '未知' ? 'text-danger' : '' }}">
+                                <span class="editable-field {{ $customer->wheelchair === '未知' ? 'text-danger' : '' }}"
+                                      data-field="wheelchair"
+                                      data-customer-id="{{ $customer->id }}"
+                                      style="cursor: pointer; text-decoration: underline;"
+                                      title="點擊編輯">
                                     {{ $customer->wheelchair }}
                                 </span>
                                 <br>
-                                <strong>爬梯機：</strong>{{ $customer->stair_climbing_machine }}
+                                <strong>爬梯機：</strong>
+                                <span class="editable-field"
+                                      data-field="stair_climbing_machine"
+                                      data-customer-id="{{ $customer->id }}"
+                                      style="cursor: pointer; text-decoration: underline;"
+                                      title="點擊編輯">
+                                    {{ $customer->stair_climbing_machine }}
+                                </span>
                             </div>
                             <div class="col-md-2">
-                                <strong>個管師：</strong>{{ $customer->a_manager }}
+                                <strong>個管師：</strong>
+                                <span class="editable-field"
+                                      data-field="a_manager"
+                                      data-customer-id="{{ $customer->id }}"
+                                      style="cursor: pointer; text-decoration: underline;"
+                                      title="點擊編輯">
+                                    {{ $customer->a_manager ?: '無' }}
+                                </span>
                             </div>
                             <div class="col-md-2">
                                 <strong>特殊狀態：</strong>
@@ -199,21 +217,26 @@
                                 <strong>住址：</strong><br>{{ collect($customer->addresses)->filter()->implode(' / ') ?: '無地址' }}
                             </div>
                             <div class="col-md-4">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <button type="button" class="btn btn-outline-secondary btn-sm ms-2"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#noteModal{{ $customer->id }}"
-                                            title="編輯備註">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <div class="flex-grow-1 ms-2">
-                                        <strong>乘客備註：</strong><br>
-                                        <span style="color: red" id="customer-note-{{ $customer->id }}">{{ $customer->note ?: '無備註' }}</span>
-                                    </div>
-                                </div>
+                                <strong>乘客備註：</strong><br>
+                                <span class="editable-field"
+                                      data-field="note"
+                                      data-customer-id="{{ $customer->id }}"
+                                      style="color: red; cursor: pointer; text-decoration: underline;"
+                                      title="點擊編輯"
+                                      id="customer-note-{{ $customer->id }}">
+                                    {{ $customer->note ?: '無備註' }}
+                                </span>
                             </div>
                             <div class="col-md-2">
-                                <strong>服務單位：</strong>{{ $customer->service_company }}<br>
+                                <strong>服務單位：</strong>
+                                <span class="editable-field"
+                                      data-field="service_company"
+                                      data-customer-id="{{ $customer->id }}"
+                                      style="cursor: pointer; text-decoration: underline;"
+                                      title="點擊編輯">
+                                    {{ $customer->service_company ?: '無' }}
+                                </span>
+                                <br>
                                 <strong>訂單來源：</strong>{{ $customer->county_care }}<br>
                                 <strong>照會日期：</strong>{{ $customer->referral_date ? $customer->referral_date->format('Y-m-d') : 'N/A' }}
                             </div>
@@ -248,42 +271,168 @@
                     </div>
                 </div>
 
-                {{-- 備註編輯 Modal --}}
-                <div class="modal fade" id="noteModal{{ $customer->id }}" tabindex="-1">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">編輯備註：{{ $customer->name }}</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <form id="noteForm{{ $customer->id }}">
-                                    @csrf
-                                    <div class="mb-3">
-                                        <label for="note{{ $customer->id }}" class="form-label">客戶備註</label>
-                                        <textarea class="form-control"
-                                                  id="note{{ $customer->id }}"
-                                                  name="note"
-                                                  rows="4"
-                                                  placeholder="請輸入客戶備註..."
-                                                  maxlength="1000">{{ $customer->note }}</textarea>
-                                        <div class="form-text">最多1000字</div>
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                                <button type="button" class="btn btn-primary" onclick="updateCustomerNote({{ $customer->id }})">儲存</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             @endif
         @endif
     </div>
 </div>
 
+{{-- 包含通用編輯欄位 Modal --}}
+@include('orders.components.edit-field-modal')
+
 <script>
+// 編輯欄位的配置
+const fieldConfig = {
+    'note': {
+        label: '乘客備註',
+        type: 'textarea'
+    },
+    'a_manager': {
+        label: '個管師',
+        type: 'textarea'
+    },
+    'wheelchair': {
+        label: '輪椅',
+        type: 'select'
+    },
+    'stair_climbing_machine': {
+        label: '爬梯機',
+        type: 'select'
+    },
+    'service_company': {
+        label: '服務單位',
+        type: 'textarea'
+    }
+};
+
+// 初始化可編輯欄位事件監聽
+document.addEventListener('DOMContentLoaded', function() {
+    // 綁定編輯欄位的點擊事件
+    document.querySelectorAll('.editable-field').forEach(element => {
+        element.addEventListener('click', function(e) {
+            e.preventDefault();
+            const fieldName = this.dataset.field;
+            const customerId = this.dataset.customerId;
+            const currentValue = this.textContent.trim();
+
+            openEditFieldModal(customerId, fieldName, currentValue);
+        });
+    });
+});
+
+/**
+ * 打開編輯欄位 Modal
+ */
+function openEditFieldModal(customerId, fieldName, currentValue) {
+    const config = fieldConfig[fieldName];
+    if (!config) {
+        console.error('未知的欄位:', fieldName);
+        return;
+    }
+
+    // 設定 Modal 標題和欄位信息
+    const modal = new bootstrap.Modal(document.getElementById('editFieldModal'));
+    document.getElementById('editFieldTitle').textContent = `編輯${config.label}`;
+    document.getElementById('editFieldName').value = fieldName;
+
+    // 根據欄位類型顯示相應的輸入控件
+    const textContainer = document.getElementById('textFieldContainer');
+    const selectContainer = document.getElementById('selectFieldContainer');
+
+    if (config.type === 'textarea') {
+        textContainer.style.display = 'block';
+        selectContainer.style.display = 'none';
+        document.getElementById('editFieldLabel').textContent = config.label;
+        document.getElementById('editFieldValue').value = currentValue === '無備註' || currentValue === '無' ? '' : currentValue;
+    } else if (config.type === 'select') {
+        textContainer.style.display = 'none';
+        selectContainer.style.display = 'block';
+        document.getElementById('editSelectLabel').textContent = config.label;
+        document.getElementById('editFieldSelect').value = currentValue;
+    }
+
+    // 儲存客戶 ID 供保存時使用
+    document.getElementById('editFieldModal').dataset.customerId = customerId;
+
+    modal.show();
+}
+
+/**
+ * 保存編輯的欄位
+ */
+document.getElementById('editFieldSaveBtn').addEventListener('click', function() {
+    const modal = document.getElementById('editFieldModal');
+    const customerId = modal.dataset.customerId;
+    const fieldName = document.getElementById('editFieldName').value;
+    const config = fieldConfig[fieldName];
+
+    // 根據欄位類型取得值
+    let fieldValue;
+    if (config.type === 'textarea') {
+        fieldValue = document.getElementById('editFieldValue').value;
+    } else if (config.type === 'select') {
+        fieldValue = document.getElementById('editFieldSelect').value;
+    }
+
+    // 顯示載入狀態
+    const originalText = this.innerHTML;
+    this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>儲存中...';
+    this.disabled = true;
+
+    // 發送 AJAX 請求
+    fetch(`/customers/${customerId}/field`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+            field_name: fieldName,
+            value: fieldValue
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // 更新頁面上的欄位顯示
+            const fieldElement = document.querySelector(`.editable-field[data-customer-id="${customerId}"][data-field="${fieldName}"]`);
+            if (fieldElement) {
+                // 處理特殊情況：如果值為空，顯示「無」
+                let displayValue = fieldValue;
+                if (!displayValue || displayValue.trim() === '') {
+                    if (fieldName === 'note') {
+                        displayValue = '無備註';
+                    } else {
+                        displayValue = '無';
+                    }
+                }
+                fieldElement.textContent = displayValue;
+            }
+
+            // 關閉 Modal
+            bootstrap.Modal.getInstance(modal).hide();
+
+            // 顯示成功訊息
+            showSuccessMessage(`${config.label}已更新`);
+        } else {
+            showErrorMessage(data.message || '更新失敗');
+        }
+    })
+    .catch(error => {
+        console.error('更新失敗:', error);
+        showErrorMessage('更新失敗，請稍後再試');
+    })
+    .finally(() => {
+        // 恢復按鈕狀態
+        this.innerHTML = originalText;
+        this.disabled = false;
+    });
+}
+
 function setQuickDate(period) {
     // 使用伺服器端的今天日期作為基準，確保跨日時的一致性
     const serverToday = '{{ \Carbon\Carbon::today()->toDateString() }}';
