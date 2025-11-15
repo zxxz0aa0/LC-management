@@ -22,25 +22,36 @@ class CustomerController extends Controller
         $hasSearched = false;
         $searchError = null;
 
-        if ($request->filled('keyword')) {
+        // 檢查是否有任何搜尋條件
+        if ($request->filled('keyword') || $request->filled('referral_date')) {
             $hasSearched = true;
-            $keyword = trim($request->keyword); // 去除前後空格
+            $query = Customer::query();
 
-            if (strlen($keyword) >= 1) {
-                // 關鍵字有效，執行搜尋
-                $query = Customer::query();
-                $query->where(function ($q) use ($keyword) {
-                    $q->where('name', 'like', "%{$keyword}%")
-                        ->orWhere('id_number', 'like', "%{$keyword}%")
-                        ->orWhereJsonContains('phone_number', $keyword);
-                });
+            // 關鍵字搜尋
+            if ($request->filled('keyword')) {
+                $keyword = trim($request->keyword); // 去除前後空格
 
-                $customers = $query->latest()->get();
-            } else {
-                // 只有空格或空字串
-                $searchError = '請輸入至少一個有效字元進行搜尋';
-                $customers = collect(); // 確保為空結果
+                if (strlen($keyword) >= 1) {
+                    // 關鍵字有效，執行搜尋
+                    $query->where(function ($q) use ($keyword) {
+                        $q->where('name', 'like', "%{$keyword}%")
+                            ->orWhere('id_number', 'like', "%{$keyword}%")
+                            ->orWhereJsonContains('phone_number', $keyword);
+                    });
+                } else {
+                    // 只有空格或空字串
+                    $searchError = '請輸入至少一個有效字元進行搜尋';
+                    $customers = collect(); // 確保為空結果
+                    return view('customers.index', compact('customers', 'hasSearched', 'searchError'));
+                }
             }
+
+            // 照會日期搜尋
+            if ($request->filled('referral_date')) {
+                $query->whereDate('referral_date', $request->referral_date);
+            }
+
+            $customers = $query->latest()->get();
         }
 
         return view('customers.index', compact('customers', 'hasSearched', 'searchError'));

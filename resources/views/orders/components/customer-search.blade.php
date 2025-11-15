@@ -43,7 +43,7 @@
             <div class="col-md-2">
                 <label for="start_date" class="form-label">開始日期</label>
                 <input type="date" name="start_date" id="start_date" class="form-control"
-                       value="{{ request('start_date') ?? \Carbon\Carbon::today()->toDateString() }}">
+                       value="{{ request('start_date') ?? \Carbon\Carbon::today()->startOfMonth()->toDateString() }}">
             </div>
             <div class="col-md-2">
                 <label for="end_date" class="form-label">結束日期</label>

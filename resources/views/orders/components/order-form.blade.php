@@ -2,6 +2,16 @@
 .form-control-custom {
     font-size: 19px !important;
 }
+
+/* 日期欄位更新時的高亮效果 */
+.highlight-change {
+    animation: highlightPulse 0.6s ease;
+}
+
+@keyframes highlightPulse {
+    0%, 100% { background-color: transparent; }
+    50% { background-color: #e3f2fd; }
+}
 </style>
 
 <form method="POST" action="{{ isset($order) ? route('orders.update', $order) : route('orders.store') }}"
@@ -96,13 +106,18 @@
                 <div class="row g-3" >
                     <div class="col-md-3">
                         <label class="form-label">用車日期</label>
-                        <input type="date"
-                               name="ride_date"
-                               id="ride_date"
-                               class="form-control form-control-custom"
-                               required
-                               min="{{ \Carbon\Carbon::today()->toDateString() }}"
-                               value="{{ old('ride_date', isset($order) ? $order->ride_date?->format('Y-m-d') : '') }}">
+                        <div class="input-group">
+                            <input type="date"
+                                   name="ride_date"
+                                   id="ride_date"
+                                   class="form-control form-control-custom"
+                                   required
+                                   min="{{ \Carbon\Carbon::today()->toDateString() }}"
+                                   value="{{ old('ride_date', isset($order) ? $order->ride_date?->format('Y-m-d') : '') }}">
+                            <button type="button" class="btn btn-outline-secondary" id="setTodayBtn" title="設定為今天">
+                                <i class="fas fa-calendar-day me-1"></i>今日
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

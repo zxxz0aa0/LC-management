@@ -23,6 +23,7 @@ class OrderForm {
         this.datePicker = null;
         this.previewUpdateTimer = null;
         this.currentCategory = 'all'; // 地標分類篩選狀態
+        this.datePickupWarningConfirmed = false; // 日期地點重複警告已確認標記
         this.init();
     }
 
@@ -125,6 +126,9 @@ class OrderForm {
             console.log('複製完整資訊按鈕被點擊');
             this.copyAllToClipboard();
         });
+
+        // 今日按鈕功能
+        $('#setTodayBtn').on('click', this.setTodayDate.bind(this));
     }
 
     /**
@@ -245,6 +249,21 @@ class OrderForm {
      * 處理表單提交
      */
     handleFormSubmit(e) {
+        // 先檢查是否有日期地點重複警告（只檢查警告類型，不包含成功提示）
+        const hasDatePickupWarning = $('.date-pickup-warning.alert-warning').length > 0;
+
+        if (hasDatePickupWarning && !this.datePickupWarningConfirmed) {
+            e.preventDefault();
+
+            // 彈出確認對話框
+            if (confirm('系統偵測到可能的重複訂單（相同日期與上車地點），確定要繼續建立訂單嗎？')) {
+                // 使用者確認後，設定標記並重新提交
+                this.datePickupWarningConfirmed = true;
+                $(e.target).submit();
+            }
+            return false;
+        }
+
         if (!this.validateForm()) {
             e.preventDefault();
             return false;
@@ -621,6 +640,25 @@ class OrderForm {
     }
 
     /**
+     * 設定用車日期為今天
+     */
+    setTodayDate() {
+        const today = new Date().toISOString().split('T')[0]; // 格式：YYYY-MM-DD
+        const rideDateInput = $('#ride_date');
+
+        rideDateInput.val(today);
+
+        // 觸發 change 事件，執行相關驗證
+        rideDateInput.trigger('change');
+
+        // 視覺回饋
+        rideDateInput.addClass('highlight-change');
+        setTimeout(() => {
+            rideDateInput.removeClass('highlight-change');
+        }, 600);
+    }
+
+    /**
      * 處理地標輸入
      */
     handleLandmarkInput(e) {
@@ -823,6 +861,9 @@ class OrderForm {
         const fullAddress = `${address}(${landmarkName})`;
         targetInput.val(fullAddress);
         targetInput.attr('data-landmark-id', landmarkId);
+
+        // 手動觸發 change 事件，以執行地址驗證
+        targetInput.trigger('change');
 
         // 關閉 Modal
         this.landmarkModal.hide();
@@ -1403,7 +1444,12 @@ class OrderForm {
             'open': '可派遣',
             'assigned': '已指派',
             'replacement': '候補',
-            'cancelled': '已取消'
+            'cancelled': '已取消',
+            'no_send': '不派遣',
+            'cancelledOOC': '9999',
+            'cancelledNOC': '取消！',
+            'cancelledCOTD': '取消 X',
+            'blacklist': '黑名單'
         };
         return statusMap[status] || status;
     }
@@ -1666,6 +1712,7 @@ class OrderForm {
     clearDatePickupWarning() {
         $('.date-pickup-warning').remove();
         $('input[name="pickup_address"]').removeClass('is-invalid is-valid');
+        this.datePickupWarningConfirmed = false; // 重置確認標記
     }
 
     /**

@@ -41,36 +41,46 @@
         @endif
 
         <form method="GET" action="{{ route('customers.index') }}" class="mb-3">
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="input-group">
-                        <input type="text" name="keyword" value="{{ request('keyword') }}" class="form-control" placeholder="輸入姓名、電話或身分證查詢" required minlength="1">
-                        <button type="submit" class="btn btn-primary me-0">搜尋</button>
-                    </div>
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label for="keyword" class="form-label">關鍵字搜尋</label>
+                    <input type="text" name="keyword" id="keyword" value="{{ request('keyword') }}" class="form-control" placeholder="輸入姓名、電話或身分證查詢">
                     @if(isset($searchError))
                         <small class="text-danger mt-1 d-block">{{ $searchError }}</small>
                     @endif
                 </div>
                 <div class="col-md-2">
-                    <a href="{{ route('customers.index') }}" class="btn btn-outline-secondary">清除</a>
+                    <label for="referral_date" class="form-label">照會日期</label>
+                    <input type="date" name="referral_date" id="referral_date" value="{{ request('referral_date') }}" class="form-control">
                 </div>
-                <div class="col-md-6 text-end">
-
-                        <!-- 匯入匯出功能 -->
-                        <div class="btn-group me-2">
-                            <a href="{{ route('customers.create') }}" class="btn btn-primary">
-                                <i class="fas fa-plus me-1"></i>新增個案
-                            </a>
-                            <!--<a href="{{ route('customers.export') }}" class="btn btn-outline-success">
-                                <i class="fas fa-download me-1"></i>匯出 Excel
-                            </a>-->
-                            <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#importModal">
-                                <i class="fas fa-upload me-1"></i>匯入 Excel
-                            </button>
-                            <a href="{{ route('customers.template') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-file-excel me-1"></i>下載範例
-                            </a>
-                        </div>
+                <div class="col-md-8 d-flex align-items-end">
+                    <div class="btn-group me-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-1"></i>搜尋
+                        </button>
+                        <a href="{{ route('customers.index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-undo me-1"></i>清除
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-12 text-end">
+                    <!-- 匯入匯出功能 -->
+                    <div class="btn-group">
+                        <a href="{{ route('customers.create') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>新增個案
+                        </a>
+                        <!--<a href="{{ route('customers.export') }}" class="btn btn-outline-success">
+                            <i class="fas fa-download me-1"></i>匯出 Excel
+                        </a>-->
+                        <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#importModal">
+                            <i class="fas fa-upload me-1"></i>匯入 Excel
+                        </button>
+                        <a href="{{ route('customers.template') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-file-excel me-1"></i>下載範例
+                        </a>
+                    </div>
                 </div>
             </div>
         </form>

@@ -401,7 +401,7 @@
                             <li><strong>A欄（訂單編號）</strong>：用於查詢要更新的訂單，必填</li>
                             <li><strong>E欄（隊員編號）</strong>：更新駕駛資訊，對應 drivers 表的 fleet_number</li>
                             <li><strong>H欄（媒合時間）</strong>：更新媒合時間，格式：YYYY-MM-DD HH:MM:SS</li>
-                            <li><strong>M欄（狀態）</strong>：更新訂單狀態（待搶單/已指派/已取消/已候補/已完成）</li>
+                            <li><strong>O欄（狀態）</strong>：更新訂單狀態（待搶單/已指派/已取消/已候補/已完成）</li>
                             <li>系統會根據訂單編號查詢現有訂單並更新相應欄位</li>
                             <li>找不到的訂單編號會被跳過</li>
                             <li>駕駛資訊會根據隊員編號自動填入駕駛姓名、車牌等</li>
@@ -422,7 +422,7 @@
                                         <th>G欄</th>
                                         <th>H欄</th>
                                         <th>...</th>
-                                        <th>M欄</th>
+                                        <th>O欄</th>
                                     </tr>
                                 </thead>
                                 <tbody>

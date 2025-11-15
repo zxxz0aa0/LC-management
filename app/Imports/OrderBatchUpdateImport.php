@@ -74,12 +74,12 @@ class OrderBatchUpdateImport implements ToCollection, WithChunkReading
         // A欄：訂單編號 (order_number)
         // E欄：隊員編號 (fleet_number)
         // H欄：媒合時間 (match_time)
-        // M欄：狀態 (status)
+        // O欄：狀態 (status)
 
         $orderNumber = trim($row[0] ?? ''); // A欄
         $fleetNumber = trim($row[4] ?? ''); // E欄 (index 4 = 第5欄)
         $matchTime = trim($row[7] ?? '');   // H欄 (index 7 = 第8欄)
-        $status = trim($row[12] ?? '');     // M欄 (index 12 = 第13欄)
+        $status = trim($row[14] ?? '');     // O欄 (index 14 = 第15欄)
 
         // 驗證必要欄位
         if (empty($orderNumber)) {

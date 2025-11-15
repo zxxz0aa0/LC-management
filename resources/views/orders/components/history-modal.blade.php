@@ -94,4 +94,9 @@
 .status-assigned { background-color: #cce5ff; color: #004085; }
 .status-replacement { background-color: #fff3cd; color: #856404; }
 .status-cancelled { background-color: #f8d7da; color: #721c24; }
+.status-no_send { background-color: #f8d7da; color: #721c24; }
+.status-cancelledOOC { background-color: #f8d7da; color: #721c24; }
+.status-cancelledNOC { background-color: #f8d7da; color: #721c24; }
+.status-cancelledCOTD { background-color: #f8d7da; color: #721c24; }
+.status-blacklist { background-color: #f8d7da; color: #000000ff; }
 </style>
