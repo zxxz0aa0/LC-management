@@ -206,8 +206,16 @@
                                     </a>
                                 </div>
                             @else
-                                <div class="col-md-2">
-                                    <span class="badge bg-danger fs-6">結案或暫停中</span>
+                                <div class="col-md-1 d-flex align-items-center">
+                                    <span class="badge bg-danger fs-6">禁止建檔</span>
+                                </div>
+                                    <div class="col-md-1 d-flex align-items-center">
+                                    <a href="{{ route('customers.edit', array_merge(['customer' => $customer->id, 'return_to' => 'orders'], request()->only(['keyword', 'start_date', 'end_date', 'customer_id', 'order_type', 'stair_machine']))) }}"
+                                    class="btn btn-outline-secondary btn-sm fs-6"
+                                    style="width: 100%;"
+                                    >
+                                        <i class="fas fa-user-edit me-1"></i>編輯個案
+                                    </a>
                                 </div>
                             @endif
                         </div>

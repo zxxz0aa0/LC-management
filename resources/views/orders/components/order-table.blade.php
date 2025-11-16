@@ -20,7 +20,7 @@
                     </button>
                     <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="{{ route('orders.export') }}{{ request()->getQueryString() ? '?' . request()->getQueryString() : '' }}">
-                            <i class="fas fa-file-excel me-2"></i>完整格式 (28欄位)
+                            <i class="fas fa-file-excel me-2"></i>完整格式 (29欄位)
                         </a></li>
                         <li><a class="dropdown-item" href="{{ route('orders.export.simple') }}{{ request()->getQueryString() ? '?' . request()->getQueryString() : '' }}">
                             <i class="fas fa-file-csv me-2"></i>簡化格式 (16欄位)
