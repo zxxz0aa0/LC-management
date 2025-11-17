@@ -552,24 +552,29 @@
         </div>
         <div class="collapse class" id="carpoolInfoCollapse">
             <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label">共乘對象搜尋</label>
-                        <div class="input-group">
-                            <input type="text" id="carpoolSearchInput" class="form-control form-control-custom"
-                                placeholder="輸入姓名、ID或電話" value="{{ old('carpool_with') }}">
-                            <button type="button" class="btn btn-success" id="searchCarpoolBtn">
-                                <i class="fas fa-search"></i>
-                            </button>
-                            <button type="button" class="btn btn-outline-danger" id="clearCarpoolBtn">
-                                <i class="fas fa-times"></i>
-                            </button>
+                @if(!isset($order))
+                    {{-- 新增模式：顯示共乘搜尋功能 --}}
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">共乘對象搜尋</label>
+                            <div class="input-group">
+                                <input type="text" id="carpoolSearchInput" class="form-control form-control-custom"
+                                    placeholder="輸入姓名、ID或電話" value="{{ old('carpool_with') }}">
+                                <button type="button" class="btn btn-success" id="searchCarpoolBtn">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" id="clearCarpoolBtn">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <div id="carpoolResults"></div>
                         </div>
                     </div>
-                    <div class="col-md-9">
-                        <div id="carpoolResults"></div>
-                    </div>
-                </div>
+                @endif
+
+                {{-- 共乘資訊欄位（新增和編輯模式都顯示） --}}
                 <div class="row g-3 mt-2">
                     <div class="col-md-3">
                         <label class="form-label">共乘姓名</label>
