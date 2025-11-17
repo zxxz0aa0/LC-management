@@ -636,6 +636,10 @@ class OrderForm {
         $('#pickup_address').attr('data-landmark-id', dropoffLandmarkId || '');
         $('#dropoff_address').attr('data-landmark-id', pickupLandmarkId || '');
 
+        // 觸發驗證邏輯
+        $('#pickup_address').trigger('change');
+        $('#dropoff_address').trigger('change');
+
         /**this.showSuccessMessage('已交換上下車地址'); 目前是關掉成功提示**/
     }
 
@@ -643,7 +647,7 @@ class OrderForm {
      * 設定用車日期為今天
      */
     setTodayDate() {
-        const today = new Date().toISOString().split('T')[0]; // 格式：YYYY-MM-DD
+        const today = new Date().toLocaleDateString('en-CA'); // 格式：YYYY-MM-DD（本地時區）
         const rideDateInput = $('#ride_date');
 
         rideDateInput.val(today);
