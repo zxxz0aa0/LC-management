@@ -296,9 +296,16 @@ class OrderForm {
             }
         });
 
-        // 日期驗證
+        // 日期驗證（檢查「允許過去日期」開關狀態）
         const rideDate = $('#ride_date').val();
-        if (rideDate && new Date(rideDate) < new Date().setHours(0,0,0,0)) {
+        const allowPastDatesCheckbox = $('#allow_past_dates');
+
+        // 只有在以下情況才檢查過去日期：
+        // 1. 開關元素存在（新增模式）
+        // 2. 且未勾選開關
+        const shouldCheckPastDate = allowPastDatesCheckbox.length > 0 && !allowPastDatesCheckbox.is(':checked');
+
+        if (rideDate && shouldCheckPastDate && new Date(rideDate) < new Date().setHours(0,0,0,0)) {
             isValid = false;
             errors.push('用車日期不能早於今天');
             $('#ride_date').addClass('is-invalid');

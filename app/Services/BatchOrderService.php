@@ -209,13 +209,10 @@ class BatchOrderService
         foreach ($dates as $date) {
             $parsedDate = Carbon::parse($date);
 
-            // 檢查日期不能是過去
-            if ($parsedDate->isPast()) {
-                throw new \Exception("日期 {$date} 不能是過去的日期");
-            }
+            // 移除過去日期檢查，允許補建歷史訂單
 
-            // 檢查日期不能超過 6 個月
-            if ($parsedDate->diffInMonths(Carbon::now()) > 6) {
+            // 檢查日期不能超過 6 個月（未來）
+            if ($parsedDate->isFuture() && $parsedDate->diffInMonths(Carbon::now()) > 6) {
                 throw new \Exception("日期 {$date} 超過 6 個月限制");
             }
         }

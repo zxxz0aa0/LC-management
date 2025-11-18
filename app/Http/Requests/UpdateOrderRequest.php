@@ -42,12 +42,12 @@ class UpdateOrderRequest extends FormRequest
             'pickup_address' => [
                 'required',
                 'string',
-                'regex:/^(.+市|.+縣)(.+區|.+鄉|.+鎮).+$/u',
+                'regex:/^(.+?市|.+?縣)(.+?區|.+?鄉|.+?鎮).+$/u',
             ],
             'dropoff_address' => [
                 'required',
                 'string',
-                'regex:/^(.+市|.+縣)(.+區|.+鄉|.+鎮).+$/u',
+                'regex:/^(.+?市|.+?縣)(.+?區|.+?鄉|.+?鎮).+$/u',
             ],
             'status' => 'required|in:open,assigned,bkorder,blocked,cancelled,cancelledOOC,cancelledNOC,cancelledCOTD,blacklist,no_send',
             'companions' => 'required|integer|min:0',

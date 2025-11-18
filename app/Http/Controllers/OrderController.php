@@ -121,12 +121,12 @@ class OrderController extends Controller
                 'pickup_address' => [
                     'required',
                     'string',
-                    'regex:/^(.+市|.+縣)(.+區|.+鄉|.+鎮).+$/u',
+                    'regex:/^(.+?市|.+?縣)(.+?區|.+?鄉|.+?鎮).+$/u',
                 ],
                 'dropoff_address' => [
                     'required',
                     'string',
-                    'regex:/^(.+市|.+縣)(.+區|.+鄉|.+鎮).+$/u',
+                    'regex:/^(.+?市|.+?縣)(.+?區|.+?鄉|.+?鎮).+$/u',
                 ],
                 'status' => 'required|in:open,assigned,bkorder,blocked,cancelled,cancelledOOC,cancelledNOC,cancelledCOTD,blacklist,no_send',
                 'companions' => 'required|integer|min:0',
@@ -290,12 +290,12 @@ class OrderController extends Controller
                 'pickup_address' => [
                     'required',
                     'string',
-                    'regex:/^(.+市|.+縣)(.+區|.+鄉|.+鎮).+$/u',
+                    'regex:/^(.+?市|.+?縣)(.+?區|.+?鄉|.+?鎮).+$/u',
                 ],
                 'dropoff_address' => [
                     'required',
                     'string',
-                    'regex:/^(.+市|.+縣)(.+區|.+鄉|.+鎮).+$/u',
+                    'regex:/^(.+?市|.+?縣)(.+?區|.+?鄉|.+?鎮).+$/u',
                 ],
                 'companions' => 'required|integer|min:0',
                 'wheelchair' => 'required|in:是,否,未知',
@@ -317,9 +317,11 @@ class OrderController extends Controller
                     'min:1',
                     'max:50',
                 ];
-                $rules['selected_dates.*'] = 'date|after:today';
+                // 移除 after:today 限制，允許選擇過去日期（用於補建訂單）
+                $rules['selected_dates.*'] = 'date';
             } elseif ($request->input('date_mode') === 'recurring') {
-                $rules['start_date'] = 'required|date|after:today';
+                // 移除 after:today 限制，允許選擇過去日期（用於補建訂單）
+                $rules['start_date'] = 'required|date';
                 $rules['end_date'] = 'required|date|after:start_date';
                 $rules['weekdays'] = 'required|array|min:1|max:7';
                 $rules['weekdays.*'] = 'integer|between:0,6';

@@ -82,8 +82,8 @@
             <div class="row mb-3">
                 <div class="col-12">
                     <label class="form-label">建立模式</label>
-                    <div class="date-mode-selector">
-                        <div class="btn-group" role="group">
+                    <div class="date-mode-selector d-flex align-items-center">
+                        <div class="btn-group me-3" role="group">
                             <input type="radio" class="btn-check" name="date_mode" id="single_day" value="single" {{ $dateMode === 'single' ? 'checked' : '' }}>
                             <label class="btn btn-outline-primary" for="single_day">單日訂單</label>
 
@@ -96,7 +96,18 @@
                             <label class="btn btn-outline-primary" for="recurring">週期性</label>
                             @endif
                         </div>
+
+                        {{-- 允許過去日期開關 --}}
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="allow_past_dates" onchange="togglePastDateRestriction()">
+                            <label class="custom-control-label" for="allow_past_dates">
+                                <i class="fas fa-history"></i> 允許過去日期
+                            </label>
+                        </div>
                     </div>
+                    <small class="form-text text-muted">
+                        勾選「允許過去日期」可選擇過去的用車日期，用於補建遺漏的訂單
+                    </small>
                 </div>
             </div>
             @endif
@@ -112,7 +123,9 @@
                                    id="ride_date"
                                    class="form-control form-control-custom"
                                    required
+                                   @if(!isset($order))
                                    min="{{ \Carbon\Carbon::today()->toDateString() }}"
+                                   @endif
                                    value="{{ old('ride_date', isset($order) ? $order->ride_date?->format('Y-m-d') : '') }}">
                             <button type="button" class="btn btn-outline-secondary" id="setTodayBtn" title="設定為今天">
                                 <i class="fas fa-calendar-day me-1"></i>今日
@@ -777,3 +790,21 @@
         </div>
     </div>
 </div>
+
+<script>
+// 控制「允許過去日期」開關
+function togglePastDateRestriction() {
+    const checkbox = document.getElementById('allow_past_dates');
+    const dateInput = document.getElementById('ride_date');
+
+    if (!checkbox || !dateInput) return;
+
+    if (checkbox.checked) {
+        // 勾選：移除 min 限制，允許選擇任何過去日期
+        dateInput.removeAttribute('min');
+    } else {
+        // 未勾選：恢復限制只能選今天或未來
+        dateInput.setAttribute('min', '{{ \Carbon\Carbon::today()->toDateString() }}');
+    }
+}
+</script>
