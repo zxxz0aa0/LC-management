@@ -80,8 +80,8 @@
             </div>
 
             <div class="form-group">
-                <label>地址（逗號分隔） *</label>
-                <textarea name="addresses" class="form-control" required rows="2">{{ old('addresses', is_array($customer->addresses) ? implode(',', $customer->addresses) : '') }}</textarea>
+                <label>地址（需包含「市」與「區」，多筆用逗號分隔） *</label>
+                <textarea name="addresses" class="form-control" required rows="2" placeholder="例如：台北市信義區市府路45號(24.922544,121.7028291), 新北市板橋區文化路">{{ old('addresses', is_array($customer->addresses) ? implode(', ', $customer->addresses) : '') }}</textarea>
             </div>
 
             <div class="row">

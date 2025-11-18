@@ -78,8 +78,10 @@ class CustomerController extends Controller
             'status' => 'required|in:開案中,暫停中,已結案',
         ]);
 
-        // 檢查地址格式（每一筆都需包含“市”與“區”）
-        $addressArray = array_map('trim', explode(',', $validated['addresses']));
+        // 檢查地址格式（每一筆都需包含"市"與"區"）
+        // 使用智能分割：忽略括號內的逗號（如經緯度座標）
+        $addressArray = array_map('trim', preg_split('/,(?![^()]*\))/', $validated['addresses']));
+        $addressArray = array_filter($addressArray); // 過濾空字串
         foreach ($addressArray as $address) {
             if (! preg_match('/市.+區/', $address)) {
                 return back()->withErrors(['addresses' => '每筆地址必須包含「市」與「區」'])->withInput();
@@ -144,7 +146,9 @@ class CustomerController extends Controller
             'status' => 'required|in:開案中,暫停中,已結案',
         ]);
 
-        $addressArray = array_map('trim', explode(',', $validated['addresses']));
+        // 使用智能分割：忽略括號內的逗號（如經緯度座標）
+        $addressArray = array_map('trim', preg_split('/,(?![^()]*\))/', $validated['addresses']));
+        $addressArray = array_filter($addressArray); // 過濾空字串
         foreach ($addressArray as $address) {
             if (! preg_match('/市.+區/', $address)) {
                 return back()->withErrors(['addresses' => '每筆地址必須包含「市」與「區」'])->withInput();

@@ -414,8 +414,8 @@ class CustomerImportService
             return is_array($decoded) ? array_filter(array_map('trim', $decoded)) : [];
         }
 
-        // 逗號分隔
-        return array_filter(array_map('trim', explode(',', (string) $value)));
+        // 逗號分隔（忽略括號內的逗號，如經緯度座標）
+        return array_filter(array_map('trim', preg_split('/,(?![^()]*\))/', (string) $value)));
     }
 
     /**
