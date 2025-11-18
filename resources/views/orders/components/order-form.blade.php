@@ -101,12 +101,12 @@
                         <div class="custom-control custom-switch">
                             <input type="checkbox" class="custom-control-input" id="allow_past_dates" onchange="togglePastDateRestriction()">
                             <label class="custom-control-label" for="allow_past_dates">
-                                <i class="fas fa-history"></i> 允許過去日期
+                                <i class="fas fa-history"></i> 補建過去訂單
                             </label>
                         </div>
                     </div>
                     <small class="form-text text-muted">
-                        勾選「允許過去日期」可選擇過去的用車日期，用於補建遺漏的訂單
+                        勾選「補建過去訂單」可選擇過去的用車日期，用於補建遺漏的訂單
                     </small>
                 </div>
             </div>
