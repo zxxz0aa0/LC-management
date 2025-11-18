@@ -234,7 +234,7 @@
         </div>
 
         <!-- 分頁資訊與連結 -->
-        @if($customers->total() > 0)
+        @if(method_exists($customers, 'total') && $customers->total() > 0)
             <div class="mt-3 d-flex justify-content-between align-items-center">
                 <div class="text-muted">
                     顯示第 {{ $customers->firstItem() }} 到 {{ $customers->lastItem() }} 筆，共 {{ number_format($customers->total()) }} 筆資料
@@ -355,9 +355,10 @@ function submitImport(type) {
 @push('styles')
 <style>
     /* 隱藏 Laravel 分頁的英文提示 */
+    nav[role="navigation"] p.text-sm,
+    nav[role="navigation"] .text-sm,
     .pagination-wrapper .help-block,
-    .pagination + .help-block,
-    nav[role="navigation"] + .help-block {
+    .pagination + .help-block {
         display: none !important;
     }
 </style>
