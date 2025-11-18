@@ -3,38 +3,80 @@
 namespace App\Exports;
 
 use App\Models\Customer;
-use Maatwebsite\Excel\Concerns\FromCollection;
+use Illuminate\Http\Request;
+use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
 
-class CustomersExport implements FromCollection, WithHeadings
+class CustomersExport implements FromQuery, WithHeadings, WithMapping
 {
-    public function collection()
+    protected $request;
+
+    public function __construct(Request $request)
     {
-        return Customer::all()->map(function ($customer) {
-            return [
-                'name' => $customer->name,
-                'id_number' => $customer->id_number,
-                'birthday' => $customer->birthday,
-                'gender' => $customer->gender,
-                'phone_number' => implode(',', $customer->phone_number ?? []),
-                'addresses' => implode(',', $customer->addresses ?? []),
-                'contact_person' => $customer->contact_person,
-                'contact_phone' => $customer->contact_phone,
-                'contact_relationship' => $customer->contact_relationship,
-                'email' => $customer->email,
-                'wheelchair' => $customer->wheelchair,
-                'stair_climbing_machine' => $customer->stair_climbing_machine,
-                'ride_sharing' => $customer->ride_sharing,
-                'identity' => $customer->identity,
-                'note' => $customer->note,
-                'a_mechanism' => $customer->a_mechanism,
-                'a_manager' => $customer->a_manager,
-                'special_status' => $customer->special_status,
-                'county_care' => $customer->county_care,
-                'service_company' => $customer->service_company,
-                'status' => $customer->status,
-            ];
-        });
+        $this->request = $request;
+    }
+
+    public function query()
+    {
+        $query = Customer::query();
+
+        // 關鍵字搜尋
+        if ($this->request->filled('keyword')) {
+            $keyword = trim($this->request->keyword);
+            if (strlen($keyword) >= 1) {
+                $query->where(function ($q) use ($keyword) {
+                    $q->where('name', 'like', "%{$keyword}%")
+                        ->orWhere('id_number', 'like', "%{$keyword}%")
+                        ->orWhereJsonContains('phone_number', $keyword);
+                });
+            }
+        }
+
+        // 照會日期搜尋
+        if ($this->request->filled('referral_date')) {
+            $query->whereDate('referral_date', $this->request->referral_date);
+        }
+
+        // 個案來源搜尋
+        if ($this->request->filled('county_care')) {
+            $query->where('county_care', $this->request->county_care);
+        }
+
+        // 個案狀態搜尋（只有在提交表單時才套用預設值）
+        if ($this->request->has('status')) {
+            $status = $this->request->input('status') ?: '開案中';
+            $query->where('status', $status);
+        }
+
+        return $query->latest();
+    }
+
+    public function map($customer): array
+    {
+        return [
+            $customer->name,
+            $customer->id_number,
+            /*$customer->birthday,
+            $customer->gender,
+            implode(',', $customer->phone_number ?? []),
+            implode(',', $customer->addresses ?? []),
+            $customer->contact_person,
+            $customer->contact_phone,
+            $customer->contact_relationship,
+            $customer->email,
+            $customer->wheelchair,
+            $customer->stair_climbing_machine,
+            $customer->ride_sharing,
+            $customer->identity,
+            $customer->note,
+            $customer->a_mechanism,*/
+            $customer->a_manager,
+            $customer->special_status,
+            $customer->county_care,
+            $customer->service_company,
+            $customer->status,
+        ];
     }
 
     public function headings(): array
@@ -42,7 +84,7 @@ class CustomersExport implements FromCollection, WithHeadings
         return [
             'name',
             'id_number',
-            'birthday',
+            /*'birthday',
             'gender',
             'phone_number',
             'addresses',
@@ -55,7 +97,7 @@ class CustomersExport implements FromCollection, WithHeadings
             'ride_sharing',
             'identity',
             'note',
-            'a_mechanism',
+            'a_mechanism',*/
             'a_manager',
             'special_status',
             'county_care',

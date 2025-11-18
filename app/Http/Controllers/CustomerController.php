@@ -23,7 +23,7 @@ class CustomerController extends Controller
         $searchError = null;
 
         // 檢查是否有任何搜尋條件
-        if ($request->filled('keyword') || $request->filled('referral_date')) {
+        if ($request->filled('keyword') || $request->filled('referral_date') || $request->filled('county_care') || $request->has('status')) {
             $hasSearched = true;
             $query = Customer::query();
 
@@ -51,7 +51,18 @@ class CustomerController extends Controller
                 $query->whereDate('referral_date', $request->referral_date);
             }
 
-            $customers = $query->latest()->get();
+            // 個案來源搜尋
+            if ($request->filled('county_care')) {
+                $query->where('county_care', $request->county_care);
+            }
+
+            // 個案狀態搜尋（只有在提交表單時才套用預設值）
+            if ($request->has('status')) {
+                $status = $request->input('status') ?: '開案中'; // 空字串時使用預設值
+                $query->where('status', $status);
+            }
+
+            $customers = $query->latest()->paginate(15)->appends($request->except('page'));
         }
 
         return view('customers.index', compact('customers', 'hasSearched', 'searchError'));
@@ -206,9 +217,9 @@ class CustomerController extends Controller
     }
 
     // 匯出 Excel
-    public function export()
+    public function export(Request $request)
     {
-        return Excel::download(new CustomersExport, 'customers.xlsx');
+        return Excel::download(new CustomersExport($request), 'customers.xlsx');
     }
 
     /**

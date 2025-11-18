@@ -53,7 +53,25 @@
                     <label for="referral_date" class="form-label">照會日期</label>
                     <input type="date" name="referral_date" id="referral_date" value="{{ request('referral_date') }}" class="form-control">
                 </div>
-                <div class="col-md-8 d-flex align-items-end">
+                <div class="col-md-2">
+                    <label for="county_care" class="form-label">個案來源</label>
+                    <select name="county_care" id="county_care" class="form-control">
+                        <option value="">-- 全部 --</option>
+                        <option value="新北長照" {{ request('county_care') == '新北長照' ? 'selected' : '' }}>新北長照</option>
+                        <option value="台北長照" {{ request('county_care') == '台北長照' ? 'selected' : '' }}>台北長照</option>
+                        <option value="一般乘客" {{ request('county_care') == '一般乘客' ? 'selected' : '' }}>一般乘客</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="status" class="form-label">個案狀態</label>
+                    <select name="status" id="status" class="form-control">
+                        <option value="">-- 全部 --</option>
+                        <option value="開案中" {{ (request('status') ?? '開案中') == '開案中' ? 'selected' : '' }}>開案中</option>
+                        <option value="暫停中" {{ request('status') == '暫停中' ? 'selected' : '' }}>暫停中</option>
+                        <option value="已結案" {{ request('status') == '已結案' ? 'selected' : '' }}>已結案</option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
                     <div class="btn-group me-2">
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-search me-1"></i>搜尋
@@ -71,9 +89,9 @@
                         <a href="{{ route('customers.create') }}" class="btn btn-primary">
                             <i class="fas fa-plus me-1"></i>新增個案
                         </a>
-                        <!--<a href="{{ route('customers.export') }}" class="btn btn-outline-success">
+                        <button type="submit" formaction="{{ route('customers.export') }}" formmethod="GET" class="btn btn-outline-success">
                             <i class="fas fa-download me-1"></i>匯出 Excel
-                        </a>-->
+                        </button>
                         <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#importModal">
                             <i class="fas fa-upload me-1"></i>匯入 Excel
                         </button>
@@ -214,7 +232,19 @@
                         </button>
                     </form>-->
         </div>
-        
+
+        <!-- 分頁資訊與連結 -->
+        @if($customers->total() > 0)
+            <div class="mt-3 d-flex justify-content-between align-items-center">
+                <div class="text-muted">
+                    顯示第 {{ $customers->firstItem() }} 到 {{ $customers->lastItem() }} 筆，共 {{ number_format($customers->total()) }} 筆資料
+                </div>
+                <div>
+                    {{ $customers->links() }}
+                </div>
+            </div>
+        @endif
+
     </div>
 </div>
 
@@ -322,11 +352,25 @@ function submitImport(type) {
 
 @endsection
 
+@push('styles')
+<style>
+    /* 隱藏 Laravel 分頁的英文提示 */
+    .pagination-wrapper .help-block,
+    .pagination + .help-block,
+    nav[role="navigation"] + .help-block {
+        display: none !important;
+    }
+</style>
+@endpush
+
 @push('scripts')
 <!-- DataTables 初始腳本 -->
 <script>
     $(document).ready(function () {
         $('#customers-table').DataTable({
+            paging: false,      // 停用 DataTables 分頁
+            searching: false,   // 停用 DataTables 搜尋
+            info: false,        // 停用 DataTables 資訊顯示
             language: {
                 lengthMenu: "每頁顯示 _MENU_ 筆資料",
                 zeroRecords: "查無資料",
