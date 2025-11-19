@@ -23,7 +23,7 @@ class CustomerController extends Controller
         $searchError = null;
 
         // 檢查是否有任何搜尋條件
-        if ($request->filled('keyword') || $request->filled('referral_date') || $request->filled('county_care') || $request->has('status')) {
+        if ($request->filled('keyword') || $request->filled('referral_date') || $request->filled('county_care') || $request->has('status') || $request->filled('created_start') || $request->filled('created_end')) {
             $hasSearched = true;
             $query = Customer::query();
 
@@ -42,6 +42,7 @@ class CustomerController extends Controller
                     // 只有空格或空字串
                     $searchError = '請輸入至少一個有效字元進行搜尋';
                     $customers = collect(); // 確保為空結果
+
                     return view('customers.index', compact('customers', 'hasSearched', 'searchError'));
                 }
             }
@@ -49,6 +50,22 @@ class CustomerController extends Controller
             // 照會日期搜尋
             if ($request->filled('referral_date')) {
                 $query->whereDate('referral_date', $request->referral_date);
+            }
+
+            // 建立時間區間搜尋
+            if ($request->filled('created_start') && $request->filled('created_end')) {
+                $startDate = \Carbon\Carbon::parse($request->created_start);
+                $endDate = \Carbon\Carbon::parse($request->created_end);
+
+                // 驗證時間範圍合理性
+                if ($endDate->lt($startDate)) {
+                    $searchError = '結束時間必須大於或等於開始時間';
+                    $customers = collect();
+
+                    return view('customers.index', compact('customers', 'hasSearched', 'searchError'));
+                }
+
+                $query->whereBetween('created_at', [$startDate, $endDate]);
             }
 
             // 個案來源搜尋
@@ -667,7 +684,7 @@ class CustomerController extends Controller
         ];
 
         // 驗證欄位是否允許更新
-        if (!in_array($fieldName, $allowedFields)) {
+        if (! in_array($fieldName, $allowedFields)) {
             return response()->json([
                 'success' => false,
                 'message' => '不允許更新該欄位',

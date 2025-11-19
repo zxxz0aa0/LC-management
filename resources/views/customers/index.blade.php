@@ -54,6 +54,14 @@
                     <input type="date" name="referral_date" id="referral_date" value="{{ request('referral_date') }}" class="form-control">
                 </div>
                 <div class="col-md-2">
+                    <label for="created_start" class="form-label">建檔-開始時間</label>
+                    <input type="datetime-local" name="created_start" id="created_start" value="{{ request('created_start') }}" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    <label for="created_end" class="form-label">建檔-結束時間</label>
+                    <input type="datetime-local" name="created_end" id="created_end" value="{{ request('created_end') }}" class="form-control">
+                </div>
+                <div class="col-md-2">
                     <label for="county_care" class="form-label">個案來源</label>
                     <select name="county_care" id="county_care" class="form-control">
                         <option value="">-- 全部 --</option>
@@ -71,7 +79,9 @@
                         <option value="已結案" {{ request('status') == '已結案' ? 'selected' : '' }}>已結案</option>
                     </select>
                 </div>
-                <div class="col-md-4 d-flex align-items-end">
+            </div>
+            <div class="row mt-2">
+                <div class="col-6 d-flex align-items-end">
                     <div class="btn-group me-2">
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-search me-1"></i>搜尋
@@ -81,9 +91,7 @@
                         </a>
                     </div>
                 </div>
-            </div>
-            <div class="row mt-2">
-                <div class="col-12 text-end">
+                <div class="col-6 text-end">
                     <!-- 匯入匯出功能 -->
                     <div class="btn-group">
                         <a href="{{ route('customers.create') }}" class="btn btn-primary">
