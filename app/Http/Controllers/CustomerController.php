@@ -82,7 +82,7 @@ class CustomerController extends Controller
             'name' => 'required|string|max:255',
             'id_number' => 'required|string|max:20|unique:customers,id_number',
             'birthday' => 'nullable|date',
-            'email' => 'nullable|email|unique:customers,email',
+            'email' => 'nullable|email',
             'phone_number' => 'required|string',
             'addresses' => 'required|string',
             'referral_date' => 'required|date',
@@ -151,7 +151,7 @@ class CustomerController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'id_number' => 'required|string|max:20|unique:customers,id_number,'.$customer->id,
-            'email' => 'nullable|email|unique:customers,email,'.$customer->id,
+            'email' => 'nullable|email',
             'phone_number' => 'required|string',
             'addresses' => 'required|string',
             'status' => 'required|in:開案中,暫停中,已結案',
