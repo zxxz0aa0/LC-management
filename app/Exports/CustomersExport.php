@@ -38,6 +38,17 @@ class CustomersExport implements FromQuery, WithHeadings, WithMapping
             $query->whereDate('referral_date', $this->request->referral_date);
         }
 
+        // 建立時間區間搜尋
+        if ($this->request->filled('created_start') && $this->request->filled('created_end')) {
+            $startDate = \Carbon\Carbon::parse($this->request->created_start);
+            $endDate = \Carbon\Carbon::parse($this->request->created_end);
+
+            // 驗證時間範圍合理性
+            if (! $endDate->lt($startDate)) {
+                $query->whereBetween('created_at', [$startDate, $endDate]);
+            }
+        }
+
         // 個案來源搜尋
         if ($this->request->filled('county_care')) {
             $query->where('county_care', $this->request->county_care);

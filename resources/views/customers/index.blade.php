@@ -97,7 +97,14 @@
                         <a href="{{ route('customers.create') }}" class="btn btn-primary">
                             <i class="fas fa-plus me-1"></i>新增個案
                         </a>
-                        <button type="submit" formaction="{{ route('customers.export') }}" formmethod="GET" class="btn btn-outline-success">
+                        <button type="submit"
+                                formaction="{{ route('customers.export') }}"
+                                formmethod="GET"
+                                class="btn btn-outline-success"
+                                @if(!$hasSearched) disabled @endif
+                                data-bs-toggle="@if(!$hasSearched) tooltip @endif"
+                                data-bs-placement="top"
+                                title="@if(!$hasSearched) 請先執行搜尋後再匯出資料 @else 匯出目前搜尋結果 @endif">
                             <i class="fas fa-download me-1"></i>匯出 Excel
                         </button>
                         <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#importModal">
@@ -376,6 +383,12 @@ function submitImport(type) {
 <!-- DataTables 初始腳本 -->
 <script>
     $(document).ready(function () {
+        // 初始化所有 Bootstrap Tooltip
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+
         $('#customers-table').DataTable({
             paging: false,      // 停用 DataTables 分頁
             searching: false,   // 停用 DataTables 搜尋

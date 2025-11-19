@@ -236,6 +236,20 @@ class CustomerController extends Controller
     // 匯出 Excel
     public function export(Request $request)
     {
+        // 後端驗證：確保有搜尋條件
+        $hasSearchCondition =
+            $request->filled('keyword') ||
+            $request->filled('referral_date') ||
+            $request->filled('county_care') ||
+            $request->has('status') ||
+            $request->filled('created_start') ||
+            $request->filled('created_end');
+
+        if (! $hasSearchCondition) {
+            return redirect()->route('customers.index')
+                ->with('error', '匯出失敗：請先設定搜尋條件再進行匯出');
+        }
+
         return Excel::download(new CustomersExport($request), 'customers.xlsx');
     }
 
