@@ -68,6 +68,7 @@ class CustomersExport implements FromQuery, WithHeadings, WithMapping
         return [
             $customer->name,
             $customer->id_number,
+            implode(',', $customer->phone_number ?? []),
             /*$customer->birthday,
             $customer->gender,
             implode(',', $customer->phone_number ?? []),
@@ -95,9 +96,9 @@ class CustomersExport implements FromQuery, WithHeadings, WithMapping
         return [
             'name',
             'id_number',
+            'phone_number',
             /*'birthday',
             'gender',
-            'phone_number',
             'addresses',
             'contact_person',
             'contact_phone',
