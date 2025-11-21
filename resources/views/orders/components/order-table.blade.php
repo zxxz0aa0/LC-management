@@ -951,26 +951,176 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+{{-- 批量更新摘要顯示 --}}
+@if(session('batch_update_summary'))
+    <div class="modal fade" id="summaryModal" tabindex="-1" aria-labelledby="summaryModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="summaryModalLabel">
+                        <i class="fas fa-info-circle me-2"></i>批量更新詳細摘要
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @php
+                        $summary = session('batch_update_summary');
+                    @endphp
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card border-primary mb-3">
+                                <div class="card-body text-center">
+                                    <h3 class="text-primary mb-0">{{ $summary['processed_rows'] }}</h3>
+                                    <small class="text-muted">處理 Excel 行數</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-success mb-3">
+                                <div class="card-body text-center">
+                                    <h3 class="text-success mb-0">{{ $summary['total_orders'] }}</h3>
+                                    <small class="text-muted">實際更新訂單數</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if($summary['carpool_sync'] > 0)
+                        <div class="alert alert-info">
+                            <i class="fas fa-users me-2"></i>
+                            <strong>共乘同步：</strong>額外同步更新了 {{ $summary['carpool_sync'] }} 筆共乘訂單
+                        </div>
+                    @endif
+
+                    @if($summary['failed_rows'] > 0)
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>失敗筆數：</strong>{{ $summary['failed_rows'] }} 筆（請查看錯誤詳情）
+                        </div>
+                    @endif
+
+                    <hr>
+
+                    <div class="text-muted small">
+                        <p class="mb-1"><strong>說明：</strong></p>
+                        <ul class="mb-0">
+                            <li>處理 Excel 行數：成功處理的 Excel 資料行數量</li>
+                            <li>實際更新訂單數：包含共乘同步更新的所有訂單</li>
+                            @if($summary['carpool_sync'] > 0)
+                                <li>共乘訂單會自動同步更新群組內的所有訂單</li>
+                            @endif
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>關閉
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 如果沒有錯誤，顯示摘要 Modal
+            @if(!session('import_errors'))
+                const summaryModal = new bootstrap.Modal(document.getElementById('summaryModal'));
+                summaryModal.show();
+            @endif
+        });
+    </script>
+@endif
+
 @if(session('import_errors'))
     <div class="modal fade" id="errorsModal" tabindex="-1" aria-labelledby="errorsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-warning">
                     <h5 class="modal-title" id="errorsModalLabel">
-                        <i class="fas fa-exclamation-triangle me-2"></i>匯入錯誤詳情
+                        <i class="fas fa-exclamation-triangle me-2"></i>批量更新錯誤詳情
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="alert alert-warning">
-                        以下資料列無法匯入，請檢查後重新匯入：
-                    </div>
-                    <div style="max-height: 400px; overflow-y: auto;">
-                        @foreach(session('import_errors') as $error)
-                            <div class="alert alert-danger mb-2">
-                                {{ $error }}
+                    {{-- 顯示摘要資訊 --}}
+                    @if(session('batch_update_summary'))
+                        @php
+                            $summary = session('batch_update_summary');
+                        @endphp
+                        <div class="row mb-3">
+                            <div class="col-4">
+                                <div class="text-center p-2 border rounded bg-light">
+                                    <div class="text-success h4 mb-0">{{ $summary['processed_rows'] }}</div>
+                                    <small class="text-muted">成功</small>
+                                </div>
                             </div>
+                            <div class="col-4">
+                                <div class="text-center p-2 border rounded bg-light">
+                                    <div class="text-danger h4 mb-0">{{ $summary['failed_rows'] }}</div>
+                                    <small class="text-muted">失敗</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-center p-2 border rounded bg-light">
+                                    <div class="text-info h4 mb-0">{{ $summary['total_orders'] }}</div>
+                                    <small class="text-muted">總訂單數</small>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle me-2"></i>
+                        以下資料列無法更新，請檢查後重新匯入：
+                    </div>
+
+                    {{-- 錯誤訊息按類型分組顯示 --}}
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        @php
+                            $errors = session('import_errors');
+                            $errorsByType = [
+                                '訂單不存在' => [],
+                                '駕駛不存在' => [],
+                                '格式錯誤' => [],
+                                '其他錯誤' => [],
+                            ];
+
+                            foreach ($errors as $error) {
+                                if (str_contains($error, '找不到訂單編號')) {
+                                    $errorsByType['訂單不存在'][] = $error;
+                                } elseif (str_contains($error, '找不到隊員編號')) {
+                                    $errorsByType['駕駛不存在'][] = $error;
+                                } elseif (str_contains($error, '格式錯誤') || str_contains($error, '狀態值')) {
+                                    $errorsByType['格式錯誤'][] = $error;
+                                } else {
+                                    $errorsByType['其他錯誤'][] = $error;
+                                }
+                            }
+                        @endphp
+
+                        @foreach($errorsByType as $type => $typeErrors)
+                            @if(count($typeErrors) > 0)
+                                <h6 class="text-danger mt-3 mb-2">
+                                    <i class="fas fa-exclamation-circle me-2"></i>{{ $type }} ({{ count($typeErrors) }} 筆)
+                                </h6>
+                                @foreach($typeErrors as $error)
+                                    <div class="alert alert-danger mb-2 py-2">
+                                        <small>{{ $error }}</small>
+                                    </div>
+                                @endforeach
+                            @endif
                         @endforeach
+                    </div>
+
+                    {{-- 常見問題提示 --}}
+                    <div class="alert alert-info mt-3 mb-0">
+                        <strong><i class="fas fa-lightbulb me-2"></i>常見問題：</strong>
+                        <ul class="mb-0 mt-2 small">
+                            <li>訂單不存在：請確認訂單編號正確無誤</li>
+                            <li>駕駛不存在：請確認隊員編號在系統中存在</li>
+                            <li>格式錯誤：請檢查日期時間格式（建議：YYYY-MM-DD HH:MM:SS）或狀態值</li>
+                        </ul>
                     </div>
                 </div>
                 <div class="modal-footer">

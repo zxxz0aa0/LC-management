@@ -1661,12 +1661,26 @@ class OrderController extends Controller
             $importer = new \App\Imports\OrderBatchUpdateImport;
             Excel::import($importer, $request->file('file'));
 
-            $success = $importer->successCount;
+            $processedRows = $importer->processedRowCount; // Excel 行數
+            $totalOrders = $importer->successCount; // 實際訂單數
+            $carpoolSync = $importer->carpoolSyncCount; // 共乘同步數
             $fail = $importer->skipCount;
             $errors = $importer->errorMessages;
 
+            // 建構成功訊息
+            $successMessage = "批量更新完成：成功 {$processedRows} 筆，失敗 {$fail} 筆";
+
+            // 建構詳細摘要
+            $summary = [
+                'processed_rows' => $processedRows,
+                'total_orders' => $totalOrders,
+                'carpool_sync' => $carpoolSync,
+                'failed_rows' => $fail,
+            ];
+
             return redirect()->route('orders.index')->with([
-                'success' => "批量更新完成：成功 {$success} 筆，失敗 {$fail} 筆。",
+                'success' => $successMessage,
+                'batch_update_summary' => $summary,
                 'import_errors' => $errors,
             ]);
         } catch (\Exception $e) {

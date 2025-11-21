@@ -13,13 +13,19 @@ use Maatwebsite\Excel\Concerns\WithChunkReading;
 
 class OrderBatchUpdateImport implements ToCollection, WithChunkReading
 {
-    public $successCount = 0;
+    public $successCount = 0; // 實際更新的訂單數（含共乘同步）
+
+    public $processedRowCount = 0; // 成功處理的 Excel 行數
 
     public $skipCount = 0;
 
     public $errorMessages = [];
 
+    public $carpoolSyncCount = 0; // 共乘同步更新的訂單數
+
     private $driverCache = [];
+
+    private $preValidationErrors = []; // 預檢查錯誤
 
     public function collection(Collection $rows)
     {
@@ -38,6 +44,9 @@ class OrderBatchUpdateImport implements ToCollection, WithChunkReading
 
         // 跳過標題行
         $dataRows = $rows->skip(1);
+
+        // 批次預檢查
+        $this->preValidate($dataRows);
 
         foreach ($dataRows as $index => $row) {
             try {
@@ -60,7 +69,9 @@ class OrderBatchUpdateImport implements ToCollection, WithChunkReading
         $memoryUsed = $endMemory - $startMemory;
 
         Log::info('批量更新匯入完成', [
-            'success_count' => $this->successCount,
+            'processed_row_count' => $this->processedRowCount, // Excel 行數
+            'total_order_count' => $this->successCount, // 實際訂單數
+            'carpool_sync_count' => $this->carpoolSyncCount, // 共乘同步數
             'skip_count' => $this->skipCount,
             'processing_time' => $processingTime.'秒',
             'memory_used' => $this->formatBytes($memoryUsed),
@@ -104,7 +115,7 @@ class OrderBatchUpdateImport implements ToCollection, WithChunkReading
                     $updateData['driver_plate_number'] = $driver->plate_number;
                     $updateData['driver_fleet_number'] = $driver->fleet_number;
                 } else {
-                    Log::warning("第 {$rowNumber} 行：找不到隊員編號 {$fleetNumber} 對應的駕駛");
+                    throw new \Exception("找不到隊員編號：{$fleetNumber}");
                 }
             }
 
@@ -113,7 +124,7 @@ class OrderBatchUpdateImport implements ToCollection, WithChunkReading
                 try {
                     $updateData['match_time'] = $this->parseDateTime($matchTime);
                 } catch (\Exception $e) {
-                    Log::warning("第 {$rowNumber} 行：媒合時間格式錯誤 {$matchTime}，跳過此欄位");
+                    throw new \Exception("媒合時間格式錯誤：{$matchTime}");
                 }
             }
 
@@ -131,13 +142,11 @@ class OrderBatchUpdateImport implements ToCollection, WithChunkReading
                 $cleanStatus = strip_tags($status);
                 if (array_key_exists($cleanStatus, $statusMapping)) {
                     $updateData['status'] = $statusMapping[$cleanStatus];
-                } else {
+                } elseif (in_array($status, array_values($statusMapping))) {
                     // 如果是英文狀態，直接使用
-                    if (in_array($status, array_values($statusMapping))) {
-                        $updateData['status'] = $status;
-                    } else {
-                        Log::warning("第 {$rowNumber} 行：未知的狀態值 {$status}，跳過此欄位");
-                    }
+                    $updateData['status'] = $status;
+                } else {
+                    throw new \Exception("未知的狀態值：{$status}（允許的狀態：待搶單、已指派、已取消、已候補、已完成）");
                 }
             }
 
@@ -151,24 +160,37 @@ class OrderBatchUpdateImport implements ToCollection, WithChunkReading
                 $updatedCount = 0;
 
                 foreach ($ordersToUpdate as $orderToUpdate) {
-                    $orderToUpdate->update($updateData);
+                    // 驗證更新是否成功
+                    $updateResult = $orderToUpdate->update($updateData);
+
+                    if ($updateResult === false) {
+                        throw new \Exception("訂單 {$orderToUpdate->order_number} 更新失敗");
+                    }
+
                     $updatedCount++;
 
+                    // 增強日誌：記錄實際更新的資料內容
                     Log::info('成功更新訂單', [
+                        'excel_row' => $rowNumber,
                         'order_number' => $orderToUpdate->order_number,
-                        'updates' => array_keys($updateData),
+                        'order_id' => $orderToUpdate->id,
+                        'updated_fields' => array_keys($updateData),
+                        'updated_data' => $updateData, // 記錄實際更新的資料
                         'is_carpool_sync' => count($ordersToUpdate) > 1,
                     ]);
                 }
 
-                $this->successCount += $updatedCount;
+                // 計數邏輯修正
+                $this->processedRowCount++; // Excel 行數 +1
+                $this->successCount += $updatedCount; // 訂單數累加
 
+                // 如果是共乘同步，記錄同步數量
                 if (count($ordersToUpdate) > 1) {
+                    $this->carpoolSyncCount += ($updatedCount - 1); // 扣除主訂單本身
                     Log::info("第 {$rowNumber} 行：共乘組合同步更新完成，共更新 {$updatedCount} 筆訂單");
                 }
             } else {
-                $this->skipCount++;
-                Log::info("第 {$rowNumber} 行：沒有需要更新的資料");
+                throw new \Exception('沒有需要更新的資料（E、H、O 欄位至少需填寫一項）');
             }
         });
     }
@@ -227,6 +249,64 @@ class OrderBatchUpdateImport implements ToCollection, WithChunkReading
         } catch (\Exception $e) {
             throw new \Exception("無法解析日期時間格式：{$dateTimeString}");
         }
+    }
+
+    /**
+     * 批次預檢查：驗證訂單編號和駕駛編號是否存在
+     */
+    private function preValidate(Collection $dataRows): void
+    {
+        Log::info('開始批次預檢查');
+
+        // 收集所有訂單編號
+        $orderNumbers = $dataRows->map(function ($row) {
+            return trim($row[0] ?? '');
+        })->filter()->unique();
+
+        // 收集所有駕駛編號
+        $fleetNumbers = $dataRows->map(function ($row) {
+            return trim($row[4] ?? ''); // E欄
+        })->filter()->unique();
+
+        // 檢查訂單編號是否存在
+        if ($orderNumbers->isNotEmpty()) {
+            $existingOrders = Order::whereIn('order_number', $orderNumbers->toArray())
+                ->pluck('order_number');
+
+            $missingOrders = $orderNumbers->diff($existingOrders);
+
+            if ($missingOrders->isNotEmpty()) {
+                Log::warning('預檢查：發現不存在的訂單編號', [
+                    'missing_orders' => $missingOrders->toArray(),
+                    'count' => $missingOrders->count(),
+                ]);
+            }
+        }
+
+        // 檢查駕駛編號是否存在（預先載入到快取）
+        if ($fleetNumbers->isNotEmpty()) {
+            $drivers = Driver::whereIn('fleet_number', $fleetNumbers->toArray())->get();
+
+            foreach ($drivers as $driver) {
+                $this->driverCache[$driver->fleet_number] = $driver;
+            }
+
+            $existingFleetNumbers = collect($this->driverCache)->keys();
+            $missingDrivers = $fleetNumbers->diff($existingFleetNumbers);
+
+            if ($missingDrivers->isNotEmpty()) {
+                Log::warning('預檢查：發現不存在的隊員編號', [
+                    'missing_fleet_numbers' => $missingDrivers->toArray(),
+                    'count' => $missingDrivers->count(),
+                ]);
+            }
+        }
+
+        Log::info('批次預檢查完成', [
+            'total_order_numbers' => $orderNumbers->count(),
+            'total_fleet_numbers' => $fleetNumbers->count(),
+            'cached_drivers' => count($this->driverCache),
+        ]);
     }
 
     private function formatBytes(int $bytes, int $precision = 2): string

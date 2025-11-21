@@ -4,7 +4,9 @@
       "Bash(cat:*)",
       "Bash(php artisan migrate:*)",
       "Bash(php artisan make:model:*)",
-      "Bash(php artisan:*)"
+      "Bash(php artisan:*)",
+      "Bash(schtasks:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []
