@@ -90,14 +90,37 @@ class DatabaseRestore extends Command
     {
         $tempPath = storage_path('app/temp_restore_' . now()->timestamp . '.sql');
 
-        $command = sprintf('gunzip -c "%s" > "%s"', $gzipPath, $tempPath);
-        exec($command, $output, $returnCode);
+        // 使用 PHP 原生函數解壓縮，確保 Windows 相容性
+        $this->info("使用 PHP 原生 gzip 解壓縮...");
 
-        if ($returnCode !== 0 || !File::exists($tempPath)) {
-            throw new \RuntimeException('解壓縮備份檔案失敗');
+        $compressedContent = File::get($gzipPath);
+        $decompressedContent = gzdecode($compressedContent);
+
+        if ($decompressedContent === false) {
+            throw new \RuntimeException('解壓縮備份檔案失敗：gzdecode 執行錯誤');
         }
 
+        $bytesWritten = File::put($tempPath, $decompressedContent);
+
+        if ($bytesWritten === false || !File::exists($tempPath)) {
+            throw new \RuntimeException('解壓縮備份檔案失敗：無法寫入暫存檔');
+        }
+
+        $this->info("解壓縮完成，檔案大小: " . $this->formatBytes(strlen($decompressedContent)));
+
         return $tempPath;
+    }
+
+    protected function formatBytes(int $bytes): string
+    {
+        if ($bytes >= 1073741824) {
+            return number_format($bytes / 1073741824, 2) . ' GB';
+        } elseif ($bytes >= 1048576) {
+            return number_format($bytes / 1048576, 2) . ' MB';
+        } elseif ($bytes >= 1024) {
+            return number_format($bytes / 1024, 2) . ' KB';
+        }
+        return $bytes . ' bytes';
     }
 
     protected function validateSqlFile(string $filePath): void
@@ -129,7 +152,11 @@ class DatabaseRestore extends Command
         $content .= "port={$config['port']}\n";
 
         File::put($cnfPath, $content);
-        chmod($cnfPath, 0600);
+
+        // Windows 不支援 chmod，加入作業系統判斷
+        if (PHP_OS_FAMILY !== 'Windows') {
+            chmod($cnfPath, 0600);
+        }
 
         // 執行還原命令
         $command = sprintf(

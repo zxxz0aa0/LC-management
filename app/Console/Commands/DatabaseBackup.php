@@ -186,12 +186,30 @@ class DatabaseBackup extends Command
             File::delete($gzipPath);
         }
 
-        $command = sprintf('gzip -9 "%s"', $filePath);
-        exec($command, $output, $returnCode);
+        // 使用 PHP 原生函數壓縮，確保 Windows 相容性
+        $this->info("使用 PHP 原生 gzip 壓縮...");
 
-        if ($returnCode !== 0 || !File::exists($gzipPath)) {
-            throw new \RuntimeException('壓縮備份檔案失敗');
+        $content = File::get($filePath);
+        $compressedContent = gzencode($content, 9);
+
+        if ($compressedContent === false) {
+            throw new \RuntimeException('壓縮備份檔案失敗：gzencode 執行錯誤');
         }
+
+        $bytesWritten = File::put($gzipPath, $compressedContent);
+
+        if ($bytesWritten === false || !File::exists($gzipPath)) {
+            throw new \RuntimeException('壓縮備份檔案失敗：無法寫入壓縮檔');
+        }
+
+        // 刪除原始未壓縮檔案
+        File::delete($filePath);
+
+        // 顯示壓縮率
+        $originalSize = strlen($content);
+        $compressedSize = File::size($gzipPath);
+        $ratio = round((1 - $compressedSize / $originalSize) * 100, 1);
+        $this->info("壓縮率: {$ratio}% (原始: {$this->formatBytes($originalSize)} → 壓縮後: {$this->formatBytes($compressedSize)})");
 
         return $gzipPath;
     }
