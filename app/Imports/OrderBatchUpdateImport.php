@@ -142,7 +142,7 @@ class OrderBatchUpdateImport implements ToCollection, WithChunkReading
             if (! empty($status)) {
                 $statusMapping = [
                     '待搶單' => 'open',
-                    '已派單' => 'assigned',
+                    '已指派' => 'assigned',
                     '已取消' => 'cancelled',
                     '已候補' => 'bkorder',
                     '已完成' => 'completed',
