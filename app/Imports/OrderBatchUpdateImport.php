@@ -26,6 +26,8 @@ class OrderBatchUpdateImport implements ToCollection, WithChunkReading
 
     private $preValidationErrors = []; // 預檢查錯誤
 
+    private $headerSkipped = false; // 是否已跳過標題列
+
     public function collection(Collection $rows)
     {
         if ($rows->isEmpty()) {
@@ -41,8 +43,9 @@ class OrderBatchUpdateImport implements ToCollection, WithChunkReading
             'memory_before' => $this->formatBytes($startMemory),
         ]);
 
-        // 跳過標題列
-        $dataRows = $rows->skip(1);
+        // 只在第一個 chunk 跳過標題列
+        $dataRows = $this->headerSkipped ? $rows : $rows->skip(1);
+        $this->headerSkipped = true;
 
         // 預先檢查
         $this->preValidate($dataRows);
