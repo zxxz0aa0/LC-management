@@ -307,6 +307,7 @@ class OrderController extends Controller
                 'special_status' => 'nullable|string',
                 'identity' => 'nullable|string',
                 'created_by' => 'required|string',
+                'status' => 'required|in:open,assigned,bkorder,blocked,cancelled,cancelledOOC,cancelledNOC,cancelledCOTD,blacklist,no_send',
             ];
 
             // 根據日期模式添加特定驗證規則

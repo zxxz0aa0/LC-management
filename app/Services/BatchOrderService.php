@@ -365,7 +365,7 @@ class BatchOrderService
             'created_by' => auth()->user()->name ?? 'system',
             'identity' => $orderData['identity'] ?? null,
             'special_status' => $orderData['special_status'] ?? null,
-            'status' => 'open',
+            'status' => $orderData['status'] ?? 'open',
             'batch_id' => $orderData['batch_id'] ?? null,
             'batch_sequence' => $orderData['batch_sequence'] ?? null,
         ];
