@@ -103,7 +103,15 @@ class OrdersExport implements FromCollection, WithHeadings
         $statusMap = [
             'open' => '可派遣',
             'assigned' => '已指派',
-            'replacement' => '候補',
+            'bkorder' => '已候補',
+            'blocked' => '無人承接',
+            'no_send' => '不派遣',
+            'blacklist' => '>黑名單',
+            'regular_sedans' => '一般車',
+            'no_car' => '>傳沒車',
+            'cancelledOOC' => '已取消-9999',
+            'cancelledNOC' => '已取消-!',
+            'cancelledCOTD' => '已取消-X',
             'cancelled' => '已取消',
         ];
 
@@ -113,8 +121,8 @@ class OrdersExport implements FromCollection, WithHeadings
     /**
      * 截斷過長的文字，避免 Excel 儲存格問題
      *
-     * @param string|null $text 要處理的文字
-     * @param int $maxLength 最大長度
+     * @param  string|null  $text  要處理的文字
+     * @param  int  $maxLength  最大長度
      * @return string
      */
     private function truncateText($text, $maxLength = 255)

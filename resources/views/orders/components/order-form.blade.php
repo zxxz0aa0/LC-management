@@ -537,6 +537,8 @@
                         <option value="blocked" {{ $defaultOrderStatus == 'blocked' ? 'selected' : '' }}>無人承接</option>
                         <option value="no_send" {{ $defaultOrderStatus == 'no_send' ? 'selected' : '' }}>不派遣</option>
                         <option value="blacklist" {{ $defaultOrderStatus == 'blacklist' ? 'selected' : '' }}>黑名單</option>
+                        <option value="regular_sedans" {{ $defaultOrderStatus == 'regular_sedans' ? 'selected' : '' }}>一般車</option>
+                        <option value="no_car" {{ $defaultOrderStatus == 'no_car' ? 'selected' : '' }}>傳沒車</option>
                     </select>
                 </div>
                 <div class="col-md-4">

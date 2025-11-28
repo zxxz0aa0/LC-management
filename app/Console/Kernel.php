@@ -18,54 +18,54 @@ class Kernel extends ConsoleKernel
 
         // 每日完整備份 - 凌晨 (02:00)
         $schedule->command('db:backup --type=full --compress')
-                 ->dailyAt('02:00')
-                 ->withoutOverlapping()
-                 ->runInBackground()
-                 ->onSuccess(function () {
-                     Log::info('Database backup (02:00) completed successfully');
-                 })
-                 ->onFailure(function () {
-                     Log::error('Database backup (02:00) failed');
-                 });
+            ->dailyAt('02:00')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->onSuccess(function () {
+                Log::info('Database backup (02:00) completed successfully');
+            })
+            ->onFailure(function () {
+                Log::error('Database backup (02:00) failed');
+            });
 
         // 每日完整備份 - 中午 (12:00)
         $schedule->command('db:backup --type=full --compress')
-                 ->dailyAt('12:00')
-                 ->withoutOverlapping()
-                 ->runInBackground()
-                 ->onSuccess(function () {
-                     Log::info('Database backup (12:00) completed successfully');
-                 })
-                 ->onFailure(function () {
-                     Log::error('Database backup (12:00) failed');
-                 });
+            ->dailyAt('12:00')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->onSuccess(function () {
+                Log::info('Database backup (12:00) completed successfully');
+            })
+            ->onFailure(function () {
+                Log::error('Database backup (12:00) failed');
+            });
 
         // 每日完整備份 - 晚上 (18:00)
         $schedule->command('db:backup --type=full --compress')
-                 ->dailyAt('18:00')
-                 ->withoutOverlapping()
-                 ->runInBackground()
-                 ->onSuccess(function () {
-                     Log::info('Database backup (18:00) completed successfully');
-                 })
-                 ->onFailure(function () {
-                     Log::error('Database backup (18:00) failed');
-                 });
+            ->dailyAt('18:00')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->onSuccess(function () {
+                Log::info('Database backup (18:00) completed successfully');
+            })
+            ->onFailure(function () {
+                Log::error('Database backup (18:00) failed');
+            });
 
         // 關鍵表額外備份 (每 4 小時)
         $schedule->command('db:backup --type=tables --tables=orders,order_sequences,customers,drivers --compress')
-                 ->cron('0 */4 * * *')
-                 ->withoutOverlapping()
-                 ->runInBackground();
+            ->cron('0 */4 * * *')
+            ->withoutOverlapping()
+            ->runInBackground();
 
         // 備份狀態監控 (每小時)
         $schedule->command('db:monitor-backups')
-                 ->hourly()
-                 ->withoutOverlapping();
+            ->hourly()
+            ->withoutOverlapping();
 
         // 每日備份報告 (每天早上 9:00)
         $schedule->command('db:monitor-backups --report')
-                 ->dailyAt('09:00');
+            ->dailyAt('09:00');
     }
 
     /**

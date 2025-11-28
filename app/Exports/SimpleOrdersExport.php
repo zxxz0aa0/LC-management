@@ -129,7 +129,7 @@ class SimpleOrdersExport implements FromCollection, WithHeadings
      * 安全地修剪多位元組字符串的空白符號
      * 使用正則表達式處理，避免 trim() 的邊界問題
      *
-     * @param string $str 要修剪的字符串
+     * @param  string  $str  要修剪的字符串
      * @return string 修剪後的字符串
      */
     private function mbTrim($str)

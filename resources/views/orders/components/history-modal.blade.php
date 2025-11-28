@@ -99,4 +99,6 @@
 .status-cancelledNOC { background-color: #f8d7da; color: #721c24; }
 .status-cancelledCOTD { background-color: #f8d7da; color: #721c24; }
 .status-blacklist { background-color: #f8d7da; color: #000000ff; }
+.status-regular_sedans { background-color: #6c757d !important; color: white; }
+.status-no_car { background-color: #6c757d !important; color: white; }
 </style>

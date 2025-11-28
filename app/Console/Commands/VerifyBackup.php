@@ -47,7 +47,7 @@ class VerifyBackup extends Command
             $status = $result['passed'] ? '<fg=green>✓</>' : '<fg=red>✗</>';
             $this->line("{$status} {$check}: {$result['message']}");
 
-            if (!$result['passed']) {
+            if (! $result['passed']) {
                 $allPassed = false;
             }
         }
@@ -55,9 +55,11 @@ class VerifyBackup extends Command
         $this->newLine();
         if ($allPassed) {
             $this->info('✓ 所有檢查都通過！備份檔案有效。');
+
             return Command::SUCCESS;
         } else {
             $this->error('✗ 部分檢查失敗，請檢查備份檔案。');
+
             return Command::FAILURE;
         }
     }
@@ -65,6 +67,7 @@ class VerifyBackup extends Command
     protected function checkFileExists(string $file): array
     {
         $exists = File::exists($file);
+
         return [
             'passed' => $exists,
             'message' => $exists ? '檔案已找到' : '檔案不存在',
@@ -73,7 +76,7 @@ class VerifyBackup extends Command
 
     protected function checkFileSize(string $file): array
     {
-        if (!File::exists($file)) {
+        if (! File::exists($file)) {
             return ['passed' => false, 'message' => '檔案不存在'];
         }
 
@@ -84,7 +87,7 @@ class VerifyBackup extends Command
         $passed = $size >= $minSize && $size <= $maxSize;
         $message = $this->formatBytes($size);
 
-        if (!$passed) {
+        if (! $passed) {
             if ($size < $minSize) {
                 $message .= ' (檔案太小，可能已損壞)';
             } else {
@@ -100,11 +103,12 @@ class VerifyBackup extends Command
 
     protected function checkFileReadable(string $file): array
     {
-        if (!File::exists($file)) {
+        if (! File::exists($file)) {
             return ['passed' => false, 'message' => '檔案不存在'];
         }
 
         $readable = is_readable($file);
+
         return [
             'passed' => $readable,
             'message' => $readable ? '檔案可讀取' : '檔案無法讀取',
@@ -113,7 +117,7 @@ class VerifyBackup extends Command
 
     protected function checkSqlStructure(string $file): array
     {
-        if (!File::exists($file)) {
+        if (! File::exists($file)) {
             return ['passed' => false, 'message' => '檔案不存在'];
         }
 
@@ -130,10 +134,10 @@ class VerifyBackup extends Command
             $passed = $hasCreateTable && $hasDumpHeader;
             $details = [];
 
-            if (!$hasCreateTable) {
+            if (! $hasCreateTable) {
                 $details[] = '未找到 CREATE TABLE 語句';
             }
-            if (!$hasDumpHeader) {
+            if (! $hasDumpHeader) {
                 $details[] = '不是 mysqldump/mariadb-dump 產生的檔案';
             }
 
@@ -147,14 +151,14 @@ class VerifyBackup extends Command
         } catch (\Exception $e) {
             return [
                 'passed' => false,
-                'message' => '讀取檔案錯誤: ' . $e->getMessage(),
+                'message' => '讀取檔案錯誤: '.$e->getMessage(),
             ];
         }
     }
 
     protected function checkRequiredTables(string $file, bool $detailed): array
     {
-        if (!File::exists($file)) {
+        if (! File::exists($file)) {
             return ['passed' => false, 'message' => '檔案不存在'];
         }
 
@@ -180,11 +184,11 @@ class VerifyBackup extends Command
                 count($this->requiredTables)
             );
 
-            if ($detailed && !empty($missingTables)) {
-                $message .= ' (缺少: ' . implode(', ', $missingTables) . ')';
+            if ($detailed && ! empty($missingTables)) {
+                $message .= ' (缺少: '.implode(', ', $missingTables).')';
             }
 
-            if ($detailed && !empty($foundTables)) {
+            if ($detailed && ! empty($foundTables)) {
                 $this->newLine();
                 $this->info('找到的資料表:');
                 foreach ($foundTables as $table) {
@@ -200,7 +204,7 @@ class VerifyBackup extends Command
         } catch (\Exception $e) {
             return [
                 'passed' => false,
-                'message' => '檢查資料表錯誤: ' . $e->getMessage(),
+                'message' => '檢查資料表錯誤: '.$e->getMessage(),
             ];
         }
     }
@@ -228,12 +232,13 @@ class VerifyBackup extends Command
     protected function formatBytes(int $bytes): string
     {
         if ($bytes >= 1073741824) {
-            return number_format($bytes / 1073741824, 2) . ' GB';
+            return number_format($bytes / 1073741824, 2).' GB';
         } elseif ($bytes >= 1048576) {
-            return number_format($bytes / 1048576, 2) . ' MB';
+            return number_format($bytes / 1048576, 2).' MB';
         } elseif ($bytes >= 1024) {
-            return number_format($bytes / 1024, 2) . ' KB';
+            return number_format($bytes / 1024, 2).' KB';
         }
-        return $bytes . ' bytes';
+
+        return $bytes.' bytes';
     }
 }

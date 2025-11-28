@@ -20,8 +20,9 @@ class ListBackups extends Command
 
         $backupDir = storage_path('backups');
 
-        if (!File::exists($backupDir)) {
+        if (! File::exists($backupDir)) {
             $this->error("備份目錄不存在: {$backupDir}");
+
             return Command::FAILURE;
         }
 
@@ -32,9 +33,9 @@ class ListBackups extends Command
         $totalSize = 0;
 
         foreach ($types as $backupType) {
-            $dir = $backupDir . '/' . $backupType;
+            $dir = $backupDir.'/'.$backupType;
 
-            if (!File::exists($dir)) {
+            if (! File::exists($dir)) {
                 continue;
             }
 
@@ -45,7 +46,7 @@ class ListBackups extends Command
             }
 
             // 按修改時間排序（最新的在前）
-            usort($files, fn($a, $b) => $b->getMTime() <=> $a->getMTime());
+            usort($files, fn ($a, $b) => $b->getMTime() <=> $a->getMTime());
 
             $this->info("[{$backupType}] 目錄 ({$dir})");
             $this->line(str_repeat('-', 80));
@@ -80,13 +81,13 @@ class ListBackups extends Command
         }
 
         // 顯示統計摘要
-        $this->info("=== 統計摘要 ===");
+        $this->info('=== 統計摘要 ===');
         $this->line("總檔案數: {$totalFiles}");
-        $this->line("總大小: " . $this->formatBytes($totalSize));
+        $this->line('總大小: '.$this->formatBytes($totalSize));
 
         // 顯示磁碟空間資訊
         $freeSpace = disk_free_space($backupDir);
-        $this->line("可用磁碟空間: " . $this->formatBytes($freeSpace));
+        $this->line('可用磁碟空間: '.$this->formatBytes($freeSpace));
 
         return Command::SUCCESS;
     }
@@ -94,12 +95,13 @@ class ListBackups extends Command
     protected function formatBytes(int $bytes): string
     {
         if ($bytes >= 1073741824) {
-            return number_format($bytes / 1073741824, 2) . ' GB';
+            return number_format($bytes / 1073741824, 2).' GB';
         } elseif ($bytes >= 1048576) {
-            return number_format($bytes / 1048576, 2) . ' MB';
+            return number_format($bytes / 1048576, 2).' MB';
         } elseif ($bytes >= 1024) {
-            return number_format($bytes / 1024, 2) . ' KB';
+            return number_format($bytes / 1024, 2).' KB';
         }
-        return $bytes . ' bytes';
+
+        return $bytes.' bytes';
     }
 }

@@ -100,7 +100,8 @@ class Order extends Model
                        $request->filled('end_date') ||
                        $request->filled('order_type') ||
                        $request->filled('stair_machine') ||
-                       $request->filled('driver_fleet_number');
+                       $request->filled('driver_fleet_number') ||
+                       $request->filled('service_company');
 
         // 關鍵字篩選
         if ($request->filled('keyword')) {
@@ -142,6 +143,11 @@ class Order extends Model
         // 爬梯機篩選
         if ($request->filled('stair_machine')) {
             $query->where('stair_machine', $request->stair_machine);
+        }
+
+        // 服務公司篩選
+        if ($request->filled('service_company')) {
+            $query->where('service_company', 'like', '%'.$request->service_company.'%');
         }
 
         // 如果不是搜尋模式，只顯示主訂單

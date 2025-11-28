@@ -38,6 +38,7 @@ class CleanOldDispatchRecords extends Command
 
         if ($count === 0) {
             $this->info('沒有需要清理的記錄。');
+
             return 0;
         }
 
@@ -46,6 +47,7 @@ class CleanOldDispatchRecords extends Command
             $this->warn("即將刪除 {$count} 筆記錄。");
             if (! $this->confirm('確定要繼續嗎？')) {
                 $this->info('已取消操作。');
+
                 return 1;
             }
         }
@@ -63,6 +65,7 @@ class CleanOldDispatchRecords extends Command
         $this->output->progressFinish();
 
         $this->info("成功清理 {$deletedCount} 筆排趟記錄。");
+
         return 0;
     }
 }

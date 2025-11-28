@@ -21,8 +21,9 @@ class MonitorBackups extends Command
 
         $backupDir = storage_path('backups');
 
-        if (!File::exists($backupDir)) {
+        if (! File::exists($backupDir)) {
             $this->error("✗ 備份目錄不存在: {$backupDir}");
+
             return Command::FAILURE;
         }
 
@@ -43,22 +44,24 @@ class MonitorBackups extends Command
         }
 
         // 記錄監控結果
-        $allPassed = collect($this->checks)->every(fn($check) => $check['passed']);
+        $allPassed = collect($this->checks)->every(fn ($check) => $check['passed']);
 
         if ($allPassed) {
             Log::info('Backup monitoring: All checks passed');
+
             return Command::SUCCESS;
         } else {
             Log::warning('Backup monitoring: Some checks failed', $this->checks);
+
             return Command::FAILURE;
         }
     }
 
     protected function checkRecentBackup(string $backupDir): array
     {
-        $dailyDir = $backupDir . '/daily';
+        $dailyDir = $backupDir.'/daily';
 
-        if (!File::exists($dailyDir)) {
+        if (! File::exists($dailyDir)) {
             return ['passed' => false, 'message' => 'Daily backup directory not found'];
         }
 
@@ -69,7 +72,7 @@ class MonitorBackups extends Command
         }
 
         // 取得最新的備份檔案
-        usort($files, fn($a, $b) => $b->getMTime() <=> $a->getMTime());
+        usort($files, fn ($a, $b) => $b->getMTime() <=> $a->getMTime());
         $latestFile = $files[0];
         $hoursSinceBackup = (time() - $latestFile->getMTime()) / 3600;
 
@@ -105,7 +108,7 @@ class MonitorBackups extends Command
     {
         $counts = [];
         foreach (['daily', 'manual'] as $type) {
-            $dir = $backupDir . '/' . $type;
+            $dir = $backupDir.'/'.$type;
             if (File::exists($dir)) {
                 $counts[$type] = count(File::files($dir));
             } else {
@@ -125,9 +128,9 @@ class MonitorBackups extends Command
 
     protected function checkFileSizes(string $backupDir): array
     {
-        $dailyDir = $backupDir . '/daily';
+        $dailyDir = $backupDir.'/daily';
 
-        if (!File::exists($dailyDir)) {
+        if (! File::exists($dailyDir)) {
             return ['passed' => false, 'message' => 'Daily backup directory not found'];
         }
 
@@ -137,11 +140,11 @@ class MonitorBackups extends Command
             return ['passed' => false, 'message' => 'No backup files found'];
         }
 
-        $sizes = array_map(fn($file) => File::size($file), $files);
+        $sizes = array_map(fn ($file) => File::size($file), $files);
         $avgSize = array_sum($sizes) / count($sizes);
 
         // 取得最新檔案
-        usort($files, fn($a, $b) => $b->getMTime() <=> $a->getMTime());
+        usort($files, fn ($a, $b) => $b->getMTime() <=> $a->getMTime());
         $latestSize = File::size($files[0]);
 
         // 檢查最新備份大小是否異常（與平均值差異超過 50%）
@@ -159,7 +162,7 @@ class MonitorBackups extends Command
             $this->formatBytes($avgSize)
         );
 
-        if (!$passed) {
+        if (! $passed) {
             $message .= ' (Abnormal size detected)';
         }
 
@@ -175,14 +178,14 @@ class MonitorBackups extends Command
             $this->line("{$status} {$name}: {$result['message']}");
         }
 
-        $allPassed = collect($this->checks)->every(fn($check) => $check['passed']);
+        $allPassed = collect($this->checks)->every(fn ($check) => $check['passed']);
 
         $this->newLine();
 
         if ($allPassed) {
-            $this->info("所有檢查都通過！");
+            $this->info('所有檢查都通過！');
         } else {
-            $this->warn("部分檢查未通過，請檢查備份系統");
+            $this->warn('部分檢查未通過，請檢查備份系統');
         }
     }
 
@@ -193,9 +196,9 @@ class MonitorBackups extends Command
 
         // 列出各類型備份的詳細資訊
         foreach (['daily', 'manual', 'critical', 'schema'] as $type) {
-            $dir = $backupDir . '/' . $type;
+            $dir = $backupDir.'/'.$type;
 
-            if (!File::exists($dir)) {
+            if (! File::exists($dir)) {
                 continue;
             }
 
@@ -206,16 +209,16 @@ class MonitorBackups extends Command
             }
 
             $this->info("[{$type}] 目錄:");
-            $this->line("  檔案數量: " . count($files));
+            $this->line('  檔案數量: '.count($files));
 
-            $totalSize = array_sum(array_map(fn($file) => File::size($file), $files));
-            $this->line("  總大小: " . $this->formatBytes($totalSize));
+            $totalSize = array_sum(array_map(fn ($file) => File::size($file), $files));
+            $this->line('  總大小: '.$this->formatBytes($totalSize));
 
             // 列出最新的 3 個備份
-            usort($files, fn($a, $b) => $b->getMTime() <=> $a->getMTime());
+            usort($files, fn ($a, $b) => $b->getMTime() <=> $a->getMTime());
             $recentFiles = array_slice($files, 0, 3);
 
-            $this->line("  最近備份:");
+            $this->line('  最近備份:');
             foreach ($recentFiles as $file) {
                 $size = $this->formatBytes(File::size($file));
                 $time = date('Y-m-d H:i:s', $file->getMTime());
@@ -229,12 +232,13 @@ class MonitorBackups extends Command
     protected function formatBytes(int $bytes): string
     {
         if ($bytes >= 1073741824) {
-            return number_format($bytes / 1073741824, 2) . ' GB';
+            return number_format($bytes / 1073741824, 2).' GB';
         } elseif ($bytes >= 1048576) {
-            return number_format($bytes / 1048576, 2) . ' MB';
+            return number_format($bytes / 1048576, 2).' MB';
         } elseif ($bytes >= 1024) {
-            return number_format($bytes / 1024, 2) . ' KB';
+            return number_format($bytes / 1024, 2).' KB';
         }
-        return $bytes . ' bytes';
+
+        return $bytes.' bytes';
     }
 }

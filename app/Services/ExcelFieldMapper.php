@@ -54,6 +54,9 @@ class ExcelFieldMapper
         '別家有車' => 'cancelledOOC',
         '!取消' => 'cancelledNOC',
         'X取消' => 'cancelledCOTD',
+        '不派遣' => 'no_send',
+        '一般車' => 'regular_sedans',
+        '沒車' => 'no_car',
         // 英文值也保持支援
         'open' => 'open',
         'assigned' => 'assigned',
@@ -63,6 +66,10 @@ class ExcelFieldMapper
         'cancelledOOC' => 'cancelledOOC',
         'cancelledNOC' => 'cancelledNOC',
         'cancelledCOTD' => 'cancelledCOTD',
+        'blacklist' => 'blacklist',
+        'no_send' => 'no_send',
+        'regular_sedans' => 'regular_sedans',
+        'no_car' => 'no_car',
     ];
 
     /**

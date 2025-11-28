@@ -14,6 +14,7 @@ use Maatwebsite\Excel\Concerns\WithChunkReading;
 class OrderBatchUpdateImport implements ToCollection, WithChunkReading
 {
     public $successCount = 0; // 實際更新訂單筆數（含共乘同步）
+
     public $processedRowCount = 0; // 已處理的 Excel 行數
 
     public $skipCount = 0;

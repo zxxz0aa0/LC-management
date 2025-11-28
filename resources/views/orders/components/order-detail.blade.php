@@ -116,6 +116,18 @@
                                 @case('blocked')
                                     <span class="badge bg-info">無人承接</span>
                                     @break
+                                @case('blacklist')
+                                    <span class="badge bg-dark">黑名單</span>
+                                    @break
+                                @case('no_send')
+                                    <span class="badge bg-danger">不派遣</span>
+                                    @break
+                                @case('regular_sedans')
+                                    <span class="badge bg-secondary">一般車</span>
+                                    @break
+                                @case('no_car')
+                                    <span class="badge bg-secondary">傳沒車</span>
+                                    @break
                                 @default
                                     <span class="badge bg-secondary">未知</span>
                             @endswitch

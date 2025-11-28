@@ -92,7 +92,7 @@ class OrderController extends Controller
         $user = auth()->user(); // 🔹目前登入的使用者
 
         // 保留搜尋參數，讓返回按鈕能維持搜尋狀態
-        $searchParams = $request->only(['keyword', 'start_date', 'end_date', 'customer_id', 'order_type', 'stair_machine']);
+        $searchParams = $request->only(['keyword', 'start_date', 'end_date', 'customer_id', 'order_type', 'stair_machine', 'service_company']);
 
         if ($request->ajax()) {
             return view('orders.create', compact('customer', 'user', 'searchParams', 'defaultStatus'));
@@ -128,7 +128,7 @@ class OrderController extends Controller
                     'string',
                     'regex:/^(.+?市|.+?縣)(.+?區|.+?鄉|.+?鎮).+$/u',
                 ],
-                'status' => 'required|in:open,assigned,bkorder,blocked,cancelled,cancelledOOC,cancelledNOC,cancelledCOTD,blacklist,no_send',
+                'status' => 'required|in:open,assigned,bkorder,blocked,cancelled,cancelledOOC,cancelledNOC,cancelledCOTD,blacklist,no_send,regular_sedans,no_car',
                 'companions' => 'required|integer|min:0',
                 'order_type' => 'required|string',
                 'service_company' => 'required|string',
@@ -307,7 +307,7 @@ class OrderController extends Controller
                 'special_status' => 'nullable|string',
                 'identity' => 'nullable|string',
                 'created_by' => 'required|string',
-                'status' => 'required|in:open,assigned,bkorder,blocked,cancelled,cancelledOOC,cancelledNOC,cancelledCOTD,blacklist,no_send',
+                'status' => 'required|in:open,assigned,bkorder,blocked,cancelled,cancelledOOC,cancelledNOC,cancelledCOTD,blacklist,no_send,regular_sedans,no_car',
             ];
 
             // 根據日期模式添加特定驗證規則
@@ -515,7 +515,7 @@ class OrderController extends Controller
             }
 
             // 取得搜尋參數以保持列表頁面的搜尋狀態
-            $searchParams = $request->only(['keyword', 'start_date', 'end_date']);
+            $searchParams = $request->only(['keyword', 'start_date', 'end_date', 'service_company']);
 
             // 處理 customer_id 參數 (表單中用 search_customer_id 避免與資料庫欄位衝突)
             if ($request->filled('search_customer_id')) {

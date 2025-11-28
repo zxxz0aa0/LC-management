@@ -22,7 +22,7 @@ class DatabaseBackup extends Command
         $compress = $this->option('compress');
         $customOutput = $this->option('output');
 
-        $this->info("開始執行資料庫備份...");
+        $this->info('開始執行資料庫備份...');
         $this->info("備份類型: {$type}");
 
         try {
@@ -34,7 +34,7 @@ class DatabaseBackup extends Command
             };
 
             if ($compress) {
-                $this->info("正在壓縮備份檔案...");
+                $this->info('正在壓縮備份檔案...');
                 $backupFile = $this->compressBackup($backupFile);
             }
 
@@ -42,21 +42,22 @@ class DatabaseBackup extends Command
             $this->cleanOldBackups();
 
             $fileSize = $this->formatBytes(File::size($backupFile));
-            $this->info("✓ 備份完成！");
+            $this->info('✓ 備份完成！');
             $this->info("檔案位置: {$backupFile}");
             $this->info("檔案大小: {$fileSize}");
 
-            Log::info("Database backup completed successfully", [
+            Log::info('Database backup completed successfully', [
                 'file' => $backupFile,
                 'size' => $fileSize,
-                'type' => $type
+                'type' => $type,
             ]);
 
             return Command::SUCCESS;
 
         } catch (\Exception $e) {
-            $this->error("✗ 備份失敗: " . $e->getMessage());
-            Log::error("Database backup failed: " . $e->getMessage());
+            $this->error('✗ 備份失敗: '.$e->getMessage());
+            Log::error('Database backup failed: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }
@@ -66,7 +67,7 @@ class DatabaseBackup extends Command
         $outputDir = $customOutput ?? storage_path('backups/daily');
         $this->ensureDirectoryExists($outputDir);
 
-        if (!$this->checkDiskSpace($outputDir)) {
+        if (! $this->checkDiskSpace($outputDir)) {
             throw new \RuntimeException('磁碟空間不足！');
         }
 
@@ -100,7 +101,7 @@ class DatabaseBackup extends Command
         }
 
         // 驗證備份檔案
-        if (!File::exists($outputPath) || File::size($outputPath) < 1024) {
+        if (! File::exists($outputPath) || File::size($outputPath) < 1024) {
             throw new \RuntimeException('備份檔案無效或太小');
         }
 
@@ -152,7 +153,7 @@ class DatabaseBackup extends Command
         $outputDir = $customOutput ?? storage_path('backups/schema');
         $this->ensureDirectoryExists($outputDir);
 
-        $filename = "lc_management_schema_" . now()->format('Y_m_d') . ".sql";
+        $filename = 'lc_management_schema_'.now()->format('Y_m_d').'.sql';
         $outputPath = "{$outputDir}/{$filename}";
 
         $config = config('database.connections.mysql');
@@ -180,14 +181,14 @@ class DatabaseBackup extends Command
 
     protected function compressBackup(string $filePath): string
     {
-        $gzipPath = $filePath . '.gz';
+        $gzipPath = $filePath.'.gz';
 
         if (File::exists($gzipPath)) {
             File::delete($gzipPath);
         }
 
         // 使用 PHP 原生函數壓縮，確保 Windows 相容性
-        $this->info("使用 PHP 原生 gzip 壓縮...");
+        $this->info('使用 PHP 原生 gzip 壓縮...');
 
         $content = File::get($filePath);
         $compressedContent = gzencode($content, 9);
@@ -198,7 +199,7 @@ class DatabaseBackup extends Command
 
         $bytesWritten = File::put($gzipPath, $compressedContent);
 
-        if ($bytesWritten === false || !File::exists($gzipPath)) {
+        if ($bytesWritten === false || ! File::exists($gzipPath)) {
             throw new \RuntimeException('壓縮備份檔案失敗：無法寫入壓縮檔');
         }
 
@@ -218,7 +219,7 @@ class DatabaseBackup extends Command
     {
         $backupDir = storage_path('backups/daily');
 
-        if (!File::exists($backupDir)) {
+        if (! File::exists($backupDir)) {
             return;
         }
 
@@ -240,7 +241,7 @@ class DatabaseBackup extends Command
 
     protected function ensureDirectoryExists(string $directory): void
     {
-        if (!File::exists($directory)) {
+        if (! File::exists($directory)) {
             File::makeDirectory($directory, 0755, true);
         }
     }
@@ -295,12 +296,13 @@ class DatabaseBackup extends Command
     protected function formatBytes(int $bytes): string
     {
         if ($bytes >= 1073741824) {
-            return number_format($bytes / 1073741824, 2) . ' GB';
+            return number_format($bytes / 1073741824, 2).' GB';
         } elseif ($bytes >= 1048576) {
-            return number_format($bytes / 1048576, 2) . ' MB';
+            return number_format($bytes / 1048576, 2).' MB';
         } elseif ($bytes >= 1024) {
-            return number_format($bytes / 1024, 2) . ' KB';
+            return number_format($bytes / 1024, 2).' KB';
         }
-        return $bytes . ' bytes';
+
+        return $bytes.' bytes';
     }
 }
