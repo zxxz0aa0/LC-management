@@ -15,6 +15,7 @@ LC-management 是一個基於 Laravel 10 框架的長照服務管理系統，主
 - **併發控制**: SELECT FOR UPDATE + 原子化序列號 + UUID 群組ID
 - **開發工具**: Laravel Pint (程式碼格式化) + IDE Helper + 併發測試套件
 
+
 ## 快速開始
 
 ```bash

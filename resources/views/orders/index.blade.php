@@ -14,6 +14,7 @@
             <select id="tableViewMode" class="form-select form-select-sm" style="width: auto;">
                 <option value="full">訂單模式</option>
                 <option value="search">爬梯模式</option>
+                <option value="edit">多編模式</option>
             </select>
         </div>
     </div>
@@ -26,6 +27,11 @@
     {{-- 訂單列表區塊 - 搜尋模式 --}}
     <div id="table-view-search" style="display: none;">
         @include('orders.components.order-table-search', ['orders' => $orders])
+    </div>
+
+    {{-- 訂單列表區塊 - 多編模式 --}}
+    <div id="table-view-edit" style="display: none;">
+        @include('orders.components.order-table-edit', ['orders' => $orders])
     </div>
 </div>
 @endsection
@@ -43,10 +49,12 @@
         // 切換顯示模式
         viewModeSelect.addEventListener('change', function() {
             const mode = this.value;
+            const editView = document.getElementById('table-view-edit');
 
             if (mode === 'full') {
                 fullView.style.display = 'block';
                 searchView.style.display = 'none';
+                editView.style.display = 'none';
 
                 // 觸發訂單模式表格的 DataTables 初始化
                 if (window.orderIndex) {
@@ -55,10 +63,20 @@
             } else if (mode === 'search') {
                 fullView.style.display = 'none';
                 searchView.style.display = 'block';
+                editView.style.display = 'none';
 
                 // 觸發爬梯模式表格的 DataTables 初始化
                 if (window.orderIndex) {
                     window.orderIndex.initializeSearchTable();
+                }
+            } else if (mode === 'edit') {
+                fullView.style.display = 'none';
+                searchView.style.display = 'none';
+                editView.style.display = 'block';
+
+                // 觸發多編模式表格的 DataTables 初始化
+                if (window.orderIndex && typeof window.orderIndex.initializeEditTable === 'function') {
+                    window.orderIndex.initializeEditTable();
                 }
             }
         });

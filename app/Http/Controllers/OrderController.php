@@ -1693,4 +1693,79 @@ class OrderController extends Controller
             return redirect()->route('orders.index')->with('error', '批量更新失敗：'.$e->getMessage());
         }
     }
+
+    /**
+     * 批量編輯訂單 - 多編模式
+     *
+     * 允許批量編輯選定訂單的特定欄位
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function batchEdit(Request $request)
+    {
+        try {
+            // 驗證請求
+            $validated = $request->validate([
+                'order_ids' => 'required|array|min:1',
+                'order_ids.*' => 'required|integer|exists:orders,id',
+                'ride_time' => 'nullable|date_format:H:i',
+                'pickup_address' => 'nullable|string|max:255',
+                'dropoff_address' => 'nullable|string|max:255',
+                'remark' => 'nullable|string|max:1000',
+                'status' => 'nullable|string|in:open,assigned,bkorder,blocked,cancelled,cancelledOOC,cancelledNOC,cancelledCOTD,blacklist,no_send,regular_sedans,no_car',
+                'special_status' => 'nullable|string|in:一般,網頁單,Line,個管單,黑名單,共乘單',
+                'customer_phone' => 'nullable|string|max:255',
+                'wheelchair' => 'nullable|string|in:是,否,未知',
+                'stair_machine' => 'nullable|string|in:是,否,未知',
+            ]);
+
+            // 提取訂單 ID 和更新資料
+            $orderIds = $validated['order_ids'];
+            unset($validated['order_ids']);
+
+            // 過濾掉空值（只更新有填入的欄位）
+            $updateData = array_filter($validated, function ($value) {
+                return $value !== null && $value !== '';
+            });
+
+            // 使用 BatchEditService 執行批量更新
+            $batchEditService = new \App\Services\BatchEditService();
+            $result = $batchEditService->batchUpdate($orderIds, $updateData);
+
+            if ($result['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $result['message'],
+                    'updated_count' => $result['updated_count'],
+                    'affected_orders' => $result['affected_orders'],
+                    'warnings' => $result['errors'], // 部分失敗時的警告訊息
+                ], 200);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message'],
+                    'errors' => $result['errors'],
+                ], 422);
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => '資料驗證失敗',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('批量編輯訂單失敗', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => '批量編輯失敗：' . $e->getMessage(),
+                'errors' => [$e->getMessage()],
+            ], 500);
+        }
+    }
 }
