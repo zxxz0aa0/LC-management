@@ -24,7 +24,7 @@
             <table class="table table-hover" id="ordersTableEdit">
                 <thead class="table-warning">
                     <tr>
-                        <th style="width:2%" class="text-center align-middle">
+                        <th style="width:3%" class="text-center align-middle">
                             <input type="checkbox" id="selectAll" class="form-check-input" title="全選">
                         </th>
                         <th style="width:6%">訂單來源</th>
@@ -38,8 +38,14 @@
                         <th style="width:6%">操作</th>
                     </tr>
                 </thead>
+                @php
+                    // 只顯示可派遣(open)的訂單
+                    $editableOrders = collect($orders)->filter(function($order) {
+                        return $order->status === 'open';
+                    });
+                @endphp
                 <tbody>
-                    @forelse($orders as $order)
+                    @forelse($editableOrders as $order)
                     <tr class="order-row" data-order-id="{{ $order->id }}" data-carpool-group="{{ $order->carpool_group_id }}">
                         <td class="text-center align-middle">
                             <input type="checkbox" class="order-checkbox form-check-input" value="{{ $order->id }}">
@@ -511,6 +517,19 @@ document.addEventListener('DOMContentLoaded', function() {
         const $table = $('#ordersTableEdit');
         if ($table.length === 0) {
             console.log('表格不存在，跳過初始化');
+            return;
+        }
+
+        // 確認有實際資料列（排除 colspan/提示列）
+        const $tbody = $table.find('tbody');
+        const dataRows = $tbody.find('tr').filter(function() {
+            return $(this).find('td[colspan]').length === 0 && !$(this).hasClass('no-data-row');
+        });
+
+        console.log('檢測到資料行數量:', dataRows.length);
+
+        if (dataRows.length === 0) {
+            console.warn('無資料行，跳過 DataTable 初始化');
             return;
         }
 
