@@ -32,19 +32,19 @@
                 </select>
             </div>
             <div class="col-md-1">
-                <label for="service_company" class="form-label">服務公司</label>
-                <select name="service_company" id="service_company" class="form-select">
-                    <option value="">全部</option>
-                    <option value="大立亨" {{ request('service_company') == '大立亨' ? 'selected' : '' }}>大立亨</option>
-                </select>
-            </div>
-            <div class="col-md-1">
                 <label for="stair_machine" class="form-label">爬梯機</label>
                 <select name="stair_machine" id="stair_machine" class="form-select">
                     <option value="">全部</option>
                     <option value="是" {{ request('stair_machine') == '是' ? 'selected' : '' }}>是</option>
                     <option value="否" {{ request('stair_machine') == '否' ? 'selected' : '' }}>否</option>
                     <!--<option value="未知" {{ request('stair_machine') == '未知' ? 'selected' : '' }}>未知</option>-->
+                </select>
+            </div>
+            <div class="col-md-1">
+                <label for="service_company" class="form-label">服務公司</label>
+                <select name="service_company" id="service_company" class="form-select">
+                    <option value="">全部</option>
+                    <option value="大立亨" {{ request('service_company') == '大立亨' ? 'selected' : '' }}>大立亨</option>
                 </select>
             </div>
             <div class="col-md-3">
