@@ -365,6 +365,16 @@ class OrderForm {
             }
         }
 
+        // 【新增】輪椅欄位驗證
+        const wheelchair = $('select[name="wheelchair"]').val();
+        if (wheelchair === '未知') {
+            isValid = false;
+            errors.push('輪椅欄位不能選擇「未知」，請選擇「是」或「否」');
+            $('select[name="wheelchair"]').addClass('is-invalid');
+        } else {
+            $('select[name="wheelchair"]').removeClass('is-invalid');
+        }
+
         // 顯示錯誤訊息
         if (!isValid) {
             this.showErrorMessages(errors);
@@ -2501,6 +2511,20 @@ class OrderForm {
                 alert('請先產生週期性日期');
                 return false;
             }
+        }
+
+        // 【新增】輪椅欄位驗證
+        const wheelchair = $('select[name="wheelchair"]').val();
+        if (wheelchair === '未知') {
+            alert('輪椅欄位不能選擇「未知」，請選擇「是」或「否」');
+            $('select[name="wheelchair"]').addClass('is-invalid').focus();
+            // 滾動到輪椅欄位
+            $('html, body').animate({
+                scrollTop: $('select[name="wheelchair"]').offset().top - 100
+            }, 500);
+            return false;
+        } else {
+            $('select[name="wheelchair"]').removeClass('is-invalid');
         }
 
         // 檢查基本欄位

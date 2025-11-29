@@ -12,6 +12,18 @@
     0%, 100% { background-color: transparent; }
     50% { background-color: #e3f2fd; }
 }
+
+/* 驗證錯誤時的輪椅欄位樣式 */
+select[name="wheelchair"].is-invalid {
+    border-color: #dc3545 !important;
+    background-color: #f8d7da !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+}
+
+select[name="wheelchair"].is-invalid:focus {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.5) !important;
+}
 </style>
 
 <form method="POST" action="{{ isset($order) ? route('orders.update', $order) : route('orders.store') }}"
