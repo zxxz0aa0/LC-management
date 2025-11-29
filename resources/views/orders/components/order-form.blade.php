@@ -311,7 +311,6 @@
                            pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
                            placeholder="直接輸入4位數字"
                            maxlength="5"
-                           inputmode="numeric"
                            title="直接輸入4位數字，系統會自動格式化為 HH:MM"
                            value="{{ old('ride_time', isset($order) && $order->ride_time ? (strlen($order->ride_time) > 5 ? substr($order->ride_time, 0, 5) : $order->ride_time) : '') }}">
                 </div>
@@ -323,7 +322,6 @@
                            pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
                            placeholder="例如1600"
                            maxlength="5"
-                           inputmode="numeric"
                            title="直接輸入4位數字，系統會自動格式化為 HH:MM。填寫後將自動建立往返兩筆訂單。"
                            value="{{ old('back_time', '') }}">
                     <small class="text-muted d-block">（填寫後將自動建立回程訂單）</small>
