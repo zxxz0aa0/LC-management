@@ -28,21 +28,27 @@ class OrderForm {
     }
 
     init() {
+        // 1. 地標功能（總是初始化）
         this.initializeLandmarkModal();
-        this.bindFormEvents();
-        this.bindCarpoolEvents();
-        this.bindDriverEvents();
-        this.bindAddressEvents();
-        this.initializeBatchFeatures();
+        this.bindLandmarkInputEvents(); // 新增：綁定 * 觸發功能
 
-        // 頁面載入時檢查日期與上車點重複（如果有預填資料）
-        this.performInitialDatePickupCheck();
+        // 2. 訂單表單專屬功能（只在有 .order-form 元素時初始化）
+        if (document.querySelector('.order-form')) {
+            this.bindFormEvents();
+            this.bindCarpoolEvents();
+            this.bindDriverEvents();
+            this.bindAddressEvents();
+            this.initializeBatchFeatures();
 
-        // 監聽訂單類型變化，動態調整日期限制
-        $('input[name="order_type"]').on('change input', this.updateDatePickerLimit.bind(this));
+            // 頁面載入時檢查日期與上車點重複（如果有預填資料）
+            this.performInitialDatePickupCheck();
 
-        // 頁面載入時執行一次日期限制更新
-        this.updateDatePickerLimit();
+            // 監聽訂單類型變化，動態調整日期限制
+            $('input[name="order_type"]').on('change input', this.updateDatePickerLimit.bind(this));
+
+            // 頁面載入時執行一次日期限制更新
+            this.updateDatePickerLimit();
+        }
     }
 
     /**
@@ -193,14 +199,21 @@ class OrderForm {
     }
 
     /**
+     * 綁定地標輸入框的 * 觸發事件（適用所有頁面）
+     */
+    bindLandmarkInputEvents() {
+        const self = this;
+        $('.landmark-input').on('input', function(e) {
+            self.handleLandmarkInput(e);
+        });
+    }
+
+    /**
      * 綁定地址相關事件
      */
     bindAddressEvents() {
         // 地址交換
         $('#swapAddressBtn').on('click', this.handleAddressSwap.bind(this));
-
-        // 地標輸入框星號觸發
-        $('.landmark-input').on('input', this.handleLandmarkInput.bind(this));
 
         // 地址輸入即時標準化（將「臺」轉換為「台」）
         $('#pickup_address, #dropoff_address').on('input', function() {
@@ -688,8 +701,17 @@ class OrderForm {
             const keyword = inputValue.replace('*', '').trim();
             e.target.value = keyword;
 
-            // 判斷地址類型
-            this.currentAddressType = e.target.name === 'pickup_address' ? 'pickup' : 'dropoff';
+            // 判斷地址類型（支援批次編輯的 edit_pickup_address 和 edit_dropoff_address）
+            const fieldId = e.target.id;
+            if (fieldId === 'pickup_address') {
+                this.currentAddressType = 'pickup';
+            } else if (fieldId === 'dropoff_address') {
+                this.currentAddressType = 'dropoff';
+            } else if (fieldId === 'edit_pickup_address') {
+                this.currentAddressType = 'edit_pickup';
+            } else if (fieldId === 'edit_dropoff_address') {
+                this.currentAddressType = 'edit_dropoff';
+            }
 
             // 開啟地標 Modal
             this.openLandmarkModal();
@@ -893,6 +915,24 @@ class OrderForm {
 
         // 關閉 Modal
         this.landmarkModal.hide();
+
+        // Modal 關閉後延遲觸發驗證，確保批次編輯立即顯示驗證結果
+        setTimeout(() => {
+            if (targetInput[0]) {
+                // 手動執行驗證邏輯（與 order-table-edit.blade.php 中的邏輯一致）
+                const regex = /(.+?(市|縣).+?(區|鎮|鄉).+)/;
+                const value = targetInput[0].value.trim();
+
+                targetInput[0].classList.remove('is-invalid');
+                targetInput[0].classList.remove('is-valid');
+
+                if (value !== '' && regex.test(value)) {
+                    targetInput[0].classList.add('is-valid');
+                } else if (value !== '') {
+                    targetInput[0].classList.add('is-invalid');
+                }
+            }
+        }, 100);
 
         // 更新使用次數
         this.updateLandmarkUsage(landmarkId);
@@ -3330,12 +3370,10 @@ let orderForm;
 
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
-    // 只在訂單表單頁面初始化（檢查是否存在 .order-form 元素）
-    if (document.querySelector('.order-form')) {
+    // 只要有地標 Modal 就初始化 OrderForm
+    // OrderForm 會自動判斷頁面環境，只啟用需要的功能
+    if (document.getElementById('landmarkModal')) {
         orderForm = new OrderForm();
-    } else if (document.getElementById('landmarkModal')) {
-        // 如果不是訂單表單頁面，但有地標 Modal，則初始化簡化版本
-        orderForm = new LandmarkOnlyHelper();
     }
 });
 
@@ -3343,238 +3381,5 @@ document.addEventListener('DOMContentLoaded', function() {
 function openLandmarkModal(addressType) {
     if (orderForm) {
         orderForm.openLandmarkModal(addressType);
-    }
-}
-
-// 簡化版本：只提供地標功能（用於批次編輯等非完整表單頁面）
-class LandmarkOnlyHelper {
-    constructor() {
-        this.currentAddressType = '';
-        this.landmarkModal = null;
-        this.initializeLandmarkModal();
-        this.bindLandmarkInputEvents();
-    }
-
-    initializeLandmarkModal() {
-        const modalElement = document.getElementById('landmarkModal');
-        if (modalElement) {
-            this.landmarkModal = new bootstrap.Modal(modalElement);
-
-            // 綁定 Modal 事件
-            modalElement.addEventListener('show.bs.modal', () => this.handleModalShow());
-            modalElement.addEventListener('hidden.bs.modal', () => this.handleModalHide());
-        }
-    }
-
-    bindLandmarkInputEvents() {
-        // 綁定所有地標輸入框的 * 觸發事件
-        const self = this;
-        $('.landmark-input').on('input', function(e) {
-            self.handleLandmarkInput(e);
-        });
-    }
-
-    handleLandmarkInput(e) {
-        const inputValue = e.target.value;
-        if (inputValue.includes('*')) {
-            const keyword = inputValue.replace('*', '').trim();
-            e.target.value = keyword;
-
-            // 判斷地址類型（支援批次編輯的 edit_pickup_address 和 edit_dropoff_address）
-            const fieldId = e.target.id;
-            if (fieldId === 'pickup_address') {
-                this.currentAddressType = 'pickup';
-            } else if (fieldId === 'dropoff_address') {
-                this.currentAddressType = 'dropoff';
-            } else if (fieldId === 'edit_pickup_address') {
-                this.currentAddressType = 'edit_pickup';
-            } else if (fieldId === 'edit_dropoff_address') {
-                this.currentAddressType = 'edit_dropoff';
-            }
-
-            // 開啟地標 Modal
-            this.openLandmarkModal();
-
-            // 自動搜尋
-            setTimeout(() => {
-                $('#landmarkSearchInput').val(keyword);
-                this.handleLandmarkSearch();
-            }, 300);
-        }
-    }
-
-    openLandmarkModal(addressType = null) {
-        if (addressType) {
-            this.currentAddressType = addressType;
-        }
-
-        if (this.landmarkModal) {
-            this.landmarkModal.show();
-        }
-    }
-
-    handleModalShow() {
-        // 設定標題（支援批次編輯的 edit_pickup 和 edit_dropoff）
-        const isPickup = this.currentAddressType === 'pickup' || this.currentAddressType === 'edit_pickup';
-        const title = isPickup ? '選擇上車地標' : '選擇下車地標';
-        const color = isPickup ? 'bg-success' : 'bg-danger';
-
-        $('#landmarkModalHeader').removeClass('bg-success bg-danger').addClass(color);
-        $('#landmarkModalLabel').text(title);
-
-        // 清空搜尋
-        $('#landmarkSearchInput').val('');
-        $('#landmarkSearchResults').html('<div class="text-center py-4"><p class="text-muted">請輸入關鍵字搜尋地標</p></div>');
-
-        // 重設到搜尋頁面
-        $('#search-tab').tab('show');
-
-        // 綁定搜尋按鈕（如果還沒綁定）
-        if (!this.searchBound) {
-            this.bindLandmarkSearch();
-            this.searchBound = true;
-        }
-    }
-
-    handleModalHide() {
-        this.currentAddressType = '';
-    }
-
-    bindLandmarkSearch() {
-        const self = this;
-
-        // 綁定搜尋按鈕
-        $('#searchLandmarkBtn').off('click').on('click', function() {
-            self.handleLandmarkSearch(1);
-        });
-
-        // 綁定 Enter 鍵搜尋
-        $('#landmarkSearchInput').off('keypress').on('keypress', function(e) {
-            if (e.which === 13) {
-                e.preventDefault();
-                self.handleLandmarkSearch(1);
-            }
-        });
-    }
-
-    handleLandmarkSearch(page = 1, category = null) {
-        const keyword = $('#landmarkSearchInput').val().trim();
-        if (!keyword) {
-            $('#landmarkSearchResults').html('<div class="alert alert-warning">請輸入搜尋關鍵字</div>');
-            return;
-        }
-
-        $('#landmarkSearchResults').html('<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">搜尋中...</p></div>');
-
-        let url = `/landmarks-search?keyword=${encodeURIComponent(keyword)}&page=${page}`;
-        if (category && category !== 'all') {
-            url += `&category=${encodeURIComponent(category)}`;
-        }
-
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.data && data.data.data && data.data.data.length > 0) {
-                    this.renderLandmarkResults(data.data.data, '#landmarkSearchResults');
-                } else {
-                    $('#landmarkSearchResults').html('<div class="text-center py-4"><p class="text-muted">查無符合條件的地標</p></div>');
-                }
-            })
-            .catch(error => {
-                console.error('搜尋地標錯誤:', error);
-                $('#landmarkSearchResults').html('<div class="alert alert-danger">搜尋失敗，請稍後再試</div>');
-            });
-    }
-
-    renderLandmarkResults(landmarks, container) {
-        if (!landmarks || landmarks.length === 0) {
-            $(container).html('<div class="alert alert-info">找不到相關地標</div>');
-            return;
-        }
-
-        let html = '';
-
-        landmarks.forEach(landmark => {
-            const fullAddress = `${landmark.city}${landmark.district}${landmark.address}`;
-            const categoryBadge = this.getCategoryBadge(landmark.category);
-            const categoryIcon = this.getCategoryIcon(landmark.category);
-
-            html += `
-                <div class="landmark-item border rounded-3 mb-2 p-3" style="cursor: pointer;"
-                     data-category="${landmark.category}"
-                     onclick="orderForm.selectLandmark('${fullAddress.replace(/'/g, "\\'")}', ${landmark.id}, '${landmark.name.replace(/'/g, "\\'")}')">
-                    <div class="d-flex align-items-start">
-                        <div class="me-3">
-                            <i class="${categoryIcon} text-primary"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <div class="d-flex justify-content-between align-items-start mb-1">
-                                <h5 class="mb-1">${landmark.name}：${fullAddress}</h5>
-                                <div>${categoryBadge}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-
-        $(container).html(html);
-    }
-
-    selectLandmark(address, landmarkId, landmarkName) {
-        // 處理批次編輯的 edit_pickup 和 edit_dropoff
-        const targetId = `${this.currentAddressType}_address`;
-        const targetInput = $(`#${targetId}`);
-        const fullAddress = `${address}(${landmarkName})`;
-
-        targetInput.val(fullAddress);
-        targetInput.attr('data-landmark-id', landmarkId);
-
-        // 手動觸發 change 事件
-        targetInput.trigger('change');
-
-        // 關閉 Modal
-        this.landmarkModal.hide();
-
-        // 更新使用次數
-        this.updateLandmarkUsage(landmarkId);
-    }
-
-    updateLandmarkUsage(landmarkId) {
-        $.ajax({
-            url: '/landmarks-usage',
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
-            data: { landmark_id: landmarkId },
-            error: (xhr) => {
-                console.error('更新地標使用次數失敗:', xhr);
-            }
-        });
-    }
-
-    getCategoryBadge(category) {
-        const badges = {
-            '醫療': '<span class="badge bg-danger">醫療</span>',
-            '交通': '<span class="badge bg-primary">交通</span>',
-            '教育': '<span class="badge bg-success">教育</span>',
-            '政府': '<span class="badge bg-warning text-dark">政府</span>',
-            '商業': '<span class="badge bg-info text-dark">商業</span>',
-            '一般': '<span class="badge bg-secondary">一般</span>'
-        };
-        return badges[category] || '<span class="badge bg-secondary">其他</span>';
-    }
-
-    getCategoryIcon(category) {
-        const icons = {
-            '醫療': 'fas fa-hospital',
-            '交通': 'fas fa-bus',
-            '教育': 'fas fa-school',
-            '政府': 'fas fa-landmark',
-            '商業': 'fas fa-store',
-            '一般': 'fas fa-map-marker-alt'
-        };
-        return icons[category] || 'fas fa-map-marker-alt';
     }
 }

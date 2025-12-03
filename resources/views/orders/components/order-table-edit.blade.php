@@ -41,7 +41,7 @@
                 @php
                     // 只顯示可派遣(open)的訂單
                     $editableOrders = collect($orders)->filter(function($order) {
-                        return $order->status === 'open';
+                      return in_array($order->status, ['open', 'blocked', 'cancelled','blacklist','no_send','regular_sedans','no_car'], true);
                     });
                 @endphp
                 <tbody>
