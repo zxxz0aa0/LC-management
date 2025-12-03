@@ -33,11 +33,15 @@
     <div id="table-view-edit" style="display: none;">
         @include('orders.components.order-table-edit', ['orders' => $orders])
     </div>
+
+    {{-- 地標選擇 Modal --}}
+    @include('orders.components.landmark-modal')
 </div>
 @endsection
 
 @push('scripts')
     <script src="{{ asset('js/orders/index.js') }}"></script>
+    <script src="{{ asset('js/orders/form.js') }}"></script>
 
     {{-- 列表切換功能 --}}
     <script>

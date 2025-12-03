@@ -205,7 +205,12 @@
                         <label for="edit_pickup_address" class="form-label">
                             <i class="fas fa-map-marker-alt me-1"></i>上車地址
                         </label>
-                        <input type="text" name="pickup_address" id="edit_pickup_address" class="form-control address-field" placeholder="">
+                        <div class="input-group">
+                            <input type="text" name="pickup_address" id="edit_pickup_address" class="form-control address-field landmark-input" placeholder="輸入地址或使用*觸發地標搜尋">
+                            <button type="button" class="btn btn-outline-secondary" onclick="openLandmarkModal('edit_pickup')">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </button>
+                        </div>
                         <div class="invalid-feedback">地址格式有誤（須含縣市/區域）</div>
                     </div>
 
@@ -213,7 +218,12 @@
                         <label for="edit_dropoff_address" class="form-label">
                             <i class="fas fa-map-marker-alt me-1"></i>下車地址
                         </label>
-                        <input type="text" name="dropoff_address" id="edit_dropoff_address" class="form-control address-field" placeholder="">
+                        <div class="input-group">
+                            <input type="text" name="dropoff_address" id="edit_dropoff_address" class="form-control address-field landmark-input" placeholder="輸入地址或使用*觸發地標搜尋">
+                            <button type="button" class="btn btn-outline-secondary" onclick="openLandmarkModal('edit_dropoff')">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </button>
+                        </div>
                         <div class="invalid-feedback">地址格式有誤（須含縣市/區域）</div>
                     </div>
 
