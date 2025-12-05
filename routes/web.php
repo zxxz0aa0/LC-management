@@ -8,6 +8,7 @@ use App\Http\Controllers\LandmarkController;
 use App\Http\Controllers\ManualDispatchController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\StatisticsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -113,6 +114,25 @@ Route::middleware('auth')->group(function () {
     Route::get('/dispatch-records', [DispatchRecordController::class, 'index'])->name('dispatch-records.index');
     Route::get('/dispatch-records/{id}', [DispatchRecordController::class, 'show'])->name('dispatch-records.show');
     Route::patch('/dispatch-records/{id}/entry-status', [DispatchRecordController::class, 'updateEntryStatus'])->name('dispatch-records.update-entry-status');
+
+    // 數據分析路由
+    Route::prefix('statistics')->name('statistics.')->group(function () {
+        // 頁面路由
+        Route::get('/geography', [StatisticsController::class, 'geographyIndex'])->name('geography.index');
+        Route::get('/time-analysis', [StatisticsController::class, 'timeAnalysisIndex'])->name('time.index');
+        Route::get('/customer-service', [StatisticsController::class, 'customerServiceIndex'])->name('customer-service');
+
+        // API 路由
+        Route::get('/api/geography', [StatisticsController::class, 'getGeographyData'])->name('api.geography');
+        Route::get('/api/time-analysis', [StatisticsController::class, 'getTimeAnalysisData'])->name('api.time');
+        Route::get('/api/customer-service', [StatisticsController::class, 'getCustomerServiceData'])->name('api.customer-service');
+        Route::get('/api/customer-service/users', [StatisticsController::class, 'getAvailableUsers'])->name('api.customer-service.users');
+
+        // 匯出路由
+        Route::get('/export/geography', [StatisticsController::class, 'exportGeographyReport'])->name('export.geography');
+        Route::get('/export/time-analysis', [StatisticsController::class, 'exportTimeReport'])->name('export.time');
+        Route::get('/export/customer-service', [StatisticsController::class, 'exportCustomerServiceReport'])->name('export.customer-service');
+    });
 });
 
 require __DIR__.'/auth.php';

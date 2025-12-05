@@ -1699,7 +1699,6 @@ class OrderController extends Controller
      *
      * 允許批量編輯選定訂單的特定欄位
      *
-     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function batchEdit(Request $request)
@@ -1730,7 +1729,7 @@ class OrderController extends Controller
             });
 
             // 使用 BatchEditService 執行批量更新
-            $batchEditService = new \App\Services\BatchEditService();
+            $batchEditService = new \App\Services\BatchEditService;
             $result = $batchEditService->batchUpdate($orderIds, $updateData);
 
             if ($result['success']) {
@@ -1763,7 +1762,7 @@ class OrderController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => '批量編輯失敗：' . $e->getMessage(),
+                'message' => '批量編輯失敗：'.$e->getMessage(),
                 'errors' => [$e->getMessage()],
             ], 500);
         }

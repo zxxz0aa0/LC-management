@@ -109,7 +109,44 @@
                             <p>地標管理</p>
                         </a>
                     </li>
-                    {{-- 未來可加入：訂單管理、駕駛管理 --}}
+
+                    @php $user = Auth::user(); @endphp
+
+                    @if($user && in_array($user->name, ['陳冠磊', '李四']))
+                    <!-- 數據分析選單 -->
+                    <li class="nav-item {{ request()->routeIs('statistics.*') ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ request()->routeIs('statistics.*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-chart-bar"></i>
+                            <p>
+                                數據分析
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('statistics.geography.index') }}"
+                                   class="nav-link {{ request()->routeIs('statistics.geography.*') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>地理分析</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('statistics.time.index') }}"
+                                   class="nav-link {{ request()->routeIs('statistics.time.*') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>時間分析</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('statistics.customer-service') }}"
+                                   class="nav-link {{ request()->routeIs('statistics.customer-service') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>客服統計</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    @endif
                 </ul>
             </nav>
         </div>
@@ -208,6 +245,9 @@ $(document).ready(function () {
 
 <!-- 留給每頁個別 @push('scripts') 使用 -->
 @stack('scripts')
+
+<!-- Alpine.js - 必須在頁面特定腳本之後載入 -->
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
 
 
 </html>

@@ -1428,13 +1428,13 @@ class OrderForm {
      * 用歷史訂單資料填入表單
      */
     fillFormWithHistoryOrder(order) {
-        // 填入時間欄位
-        if (order.ride_time) {
-            const timeInput = $('input[name="ride_time"]');
-            timeInput.val(order.ride_time);
-            // 觸發自動格式化
-            timeInput.trigger('input');
-        }
+        // 填入時間欄位-1141205拿掉要改回來再刪除//
+        //    if (order.ride_time) {
+        //       const timeInput = $('input[name="ride_time"]');
+        //        timeInput.val(order.ride_time);
+                // 觸發自動格式化
+        //        timeInput.trigger('input');
+        //    }
 
         // 填入電話欄位
         if (order.customer_phone) {

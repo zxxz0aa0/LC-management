@@ -6,6 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
+    /**
+     * 訂單來源類型
+     */
+    const ORDER_TYPES = [
+        '新北長照',
+        '台北長照',
+    ];
+
     // 可填寫的欄位（要與資料表欄位對應）
     protected $fillable = [
         'order_number', 'customer_id', 'driver_id',

@@ -3,9 +3,9 @@
 namespace App\Services;
 
 use App\Models\Order;
+use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Exception;
 
 /**
  * 批量編輯訂單服務
@@ -42,8 +42,8 @@ class BatchEditService
     /**
      * 批量更新訂單
      *
-     * @param array $orderIds 訂單 ID 陣列
-     * @param array $updateData 要更新的資料
+     * @param  array  $orderIds  訂單 ID 陣列
+     * @param  array  $updateData  要更新的資料
      * @return array 包含 success, updated_count, affected_orders, errors 的結果陣列
      */
     public function batchUpdate(array $orderIds, array $updateData): array
@@ -74,7 +74,7 @@ class BatchEditService
 
         // 驗證地址格式（如果有更新地址欄位）
         $addressValidationErrors = $this->validateAddresses($filteredData);
-        if (!empty($addressValidationErrors)) {
+        if (! empty($addressValidationErrors)) {
             return [
                 'success' => false,
                 'message' => '地址格式驗證失敗',
@@ -102,10 +102,10 @@ class BatchEditService
                 $individualOrders = [];
 
                 foreach ($orders as $order) {
-                    if ($order->carpool_group_id && !$order->is_group_dissolved) {
+                    if ($order->carpool_group_id && ! $order->is_group_dissolved) {
                         // 共乘訂單
                         $groupKey = $order->carpool_group_id;
-                        if (!isset($carpoolGroups[$groupKey])) {
+                        if (! isset($carpoolGroups[$groupKey])) {
                             $carpoolGroups[$groupKey] = [];
                         }
                         $carpoolGroups[$groupKey][] = $order;
@@ -123,7 +123,7 @@ class BatchEditService
                         $updatedCount++;
                     } catch (Exception $e) {
                         $errors[] = "訂單 {$order->order_number} 更新失敗: {$e->getMessage()}";
-                        Log::error("BatchEdit: 訂單更新失敗", [
+                        Log::error('BatchEdit: 訂單更新失敗', [
                             'order_id' => $order->id,
                             'order_number' => $order->order_number,
                             'error' => $e->getMessage(),
@@ -147,7 +147,7 @@ class BatchEditService
                     } catch (Exception $e) {
                         $groupOrderNumbers = collect($groupOrders)->pluck('order_number')->implode(', ');
                         $errors[] = "共乘群組 {$groupId} (訂單: {$groupOrderNumbers}) 更新失敗: {$e->getMessage()}";
-                        Log::error("BatchEdit: 共乘群組更新失敗", [
+                        Log::error('BatchEdit: 共乘群組更新失敗', [
                             'carpool_group_id' => $groupId,
                             'error' => $e->getMessage(),
                         ]);
@@ -155,7 +155,7 @@ class BatchEditService
                 }
 
                 // 記錄操作日誌
-                Log::info("BatchEdit: 批量更新完成", [
+                Log::info('BatchEdit: 批量更新完成', [
                     'updated_count' => $updatedCount,
                     'requested_count' => count($orderIds),
                     'affected_orders' => $affectedOrders,
@@ -171,7 +171,7 @@ class BatchEditService
                 ];
             });
         } catch (Exception $e) {
-            Log::error("BatchEdit: 批量更新失敗", [
+            Log::error('BatchEdit: 批量更新失敗', [
                 'order_ids' => $orderIds,
                 'update_data' => $filteredData,
                 'error' => $e->getMessage(),
@@ -180,7 +180,7 @@ class BatchEditService
 
             return [
                 'success' => false,
-                'message' => '批量更新失敗: ' . $e->getMessage(),
+                'message' => '批量更新失敗: '.$e->getMessage(),
                 'updated_count' => 0,
                 'affected_orders' => [],
                 'errors' => [$e->getMessage()],
@@ -191,7 +191,7 @@ class BatchEditService
     /**
      * 過濾只包含允許的欄位
      *
-     * @param array $data 原始資料
+     * @param  array  $data  原始資料
      * @return array 過濾後的資料
      */
     private function filterAllowedFields(array $data): array
@@ -210,7 +210,7 @@ class BatchEditService
     /**
      * 驗證地址格式
      *
-     * @param array $data 要驗證的資料
+     * @param  array  $data  要驗證的資料
      * @return array 驗證錯誤訊息陣列
      */
     private function validateAddresses(array $data): array
@@ -218,15 +218,15 @@ class BatchEditService
         $errors = [];
 
         // 驗證上車地址
-        if (isset($data['pickup_address']) && !empty($data['pickup_address'])) {
-            if (!preg_match(self::ADDRESS_PATTERN, $data['pickup_address'])) {
+        if (isset($data['pickup_address']) && ! empty($data['pickup_address'])) {
+            if (! preg_match(self::ADDRESS_PATTERN, $data['pickup_address'])) {
                 $errors[] = '上車地址格式不正確，應包含：縣市 + 區域 + 詳細地址';
             }
         }
 
         // 驗證下車地址
-        if (isset($data['dropoff_address']) && !empty($data['dropoff_address'])) {
-            if (!preg_match(self::ADDRESS_PATTERN, $data['dropoff_address'])) {
+        if (isset($data['dropoff_address']) && ! empty($data['dropoff_address'])) {
+            if (! preg_match(self::ADDRESS_PATTERN, $data['dropoff_address'])) {
                 $errors[] = '下車地址格式不正確，應包含：縣市 + 區域 + 詳細地址';
             }
         }
@@ -236,8 +236,6 @@ class BatchEditService
 
     /**
      * 取得允許的欄位列表
-     *
-     * @return array
      */
     public static function getAllowedFields(): array
     {
@@ -247,8 +245,7 @@ class BatchEditService
     /**
      * 檢查欄位是否允許編輯
      *
-     * @param string $field 欄位名稱
-     * @return bool
+     * @param  string  $field  欄位名稱
      */
     public static function isFieldAllowed(string $field): bool
     {
