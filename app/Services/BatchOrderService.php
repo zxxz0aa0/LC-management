@@ -240,7 +240,7 @@ class BatchOrderService
     /**
      * 檢查重複訂單
      */
-    private function checkDuplicateOrders($customerId, $dates, $time, $backTime = null)
+    public function checkDuplicateOrders($customerId, $dates, $time, $backTime = null)
     {
         $conflicts = [];
 
