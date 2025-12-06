@@ -117,7 +117,11 @@ class OrderController extends Controller
                     'date_format:H:i',
                     new UniqueOrderDateTime($request->customer_id, $request->ride_date, $request->back_time),
                 ],
-                'back_time' => 'nullable|date_format:H:i',
+                'back_time' => [
+                    'nullable',
+                    'date_format:H:i',
+                    new \App\Rules\UniqueBackTimeDateTime($request->customer_id, $request->ride_date, $request->order_id ?? null),
+                ],
                 'pickup_address' => [
                     'required',
                     'string',
@@ -368,6 +372,23 @@ class OrderController extends Controller
 
             if (empty($dates)) {
                 throw new \Exception('未選擇任何日期，請檢查設定');
+            }
+
+            // 檢查重複訂單（在建立之前先驗證）
+            if (! empty($validated['back_time'])) {
+                $conflicts = $this->batchOrderService->checkDuplicateOrders(
+                    $validated['customer_id'],
+                    $dates,
+                    $validated['ride_time'],
+                    $validated['back_time']
+                );
+
+                if (! empty($conflicts)) {
+                    $conflictDatesStr = implode(', ', $conflicts);
+                    throw ValidationException::withMessages([
+                        'selected_dates' => ["以下日期存在重複訂單：{$conflictDatesStr}"],
+                    ]);
+                }
             }
 
             // 解析地址中的縣市區域資訊
@@ -859,12 +880,19 @@ class OrderController extends Controller
             'customer_id' => 'required|integer',
             'ride_date' => 'required|date',
             'ride_time' => 'required|date_format:H:i',
+            'back_time' => 'nullable|date_format:H:i',
             'order_id' => 'nullable|integer',
         ]);
 
         $query = Order::where('customer_id', $request->customer_id)
-            ->where('ride_date', $request->ride_date)
-            ->where('ride_time', $request->ride_time);
+            ->where('ride_date', $request->ride_date);
+
+        // 如果有 back_time，檢查去程和回程時間是否與既有訂單的 ride_time 重複
+        if (! empty($request->back_time)) {
+            $query->whereIn('ride_time', [$request->ride_time, $request->back_time]);
+        } else {
+            $query->where('ride_time', $request->ride_time);
+        }
 
         // 編輯模式時排除當前訂單
         if ($request->order_id) {
@@ -873,17 +901,97 @@ class OrderController extends Controller
 
         $existingOrder = $query->first();
 
+        // 判斷是去程還是回程時間重複
+        $isBackTimeConflict = false;
+        if ($existingOrder && ! empty($request->back_time) && $existingOrder->ride_time === $request->back_time) {
+            $isBackTimeConflict = true;
+        }
+
+        $message = $existingOrder
+            ? ($isBackTimeConflict
+                ? '回程時間與既有訂單衝突（訂單編號：'.$existingOrder->order_number.'）'
+                : '該客戶在此日期時間已有訂單（訂單編號：'.$existingOrder->order_number.'）')
+            : '此時間可以使用';
+
         return response()->json([
             'isDuplicate' => $existingOrder !== null,
-            'message' => $existingOrder
-                ? '該客戶在此日期時間已有訂單（訂單編號：'.$existingOrder->order_number.'）'
-                : '此時間可以使用',
+            'message' => $message,
+            'conflictType' => $existingOrder ? ($isBackTimeConflict ? 'back_time' : 'ride_time') : null,
             'existingOrder' => $existingOrder ? [
                 'id' => $existingOrder->id,
                 'order_number' => $existingOrder->order_number,
+                'ride_time' => substr($existingOrder->ride_time, 0, 5),
                 'pickup_address' => $existingOrder->pickup_address,
                 'dropoff_address' => $existingOrder->dropoff_address,
                 'created_at' => $existingOrder->created_at->format('Y-m-d H:i'),
+            ] : null,
+        ]);
+    }
+
+    /**
+     * 檢查回程時間重複（阻擋）和地址相同（提示）的 API 端點
+     */
+    public function checkBackTimeOrder(Request $request)
+    {
+        $request->validate([
+            'customer_id' => 'required|integer',
+            'ride_date' => 'required|date',
+            'back_time' => 'required|date_format:H:i',
+            'pickup_address' => 'required|string',
+            'dropoff_address' => 'required|string',
+            'order_id' => 'nullable|integer',
+        ]);
+
+        $baseQuery = Order::where('customer_id', $request->customer_id)
+            ->where('ride_date', $request->ride_date);
+
+        // 編輯模式時排除當前訂單
+        if ($request->order_id) {
+            $baseQuery->where('id', '!=', $request->order_id);
+        }
+
+        // 檢查 1：時間重複（會阻擋建單）
+        $timeConflictOrder = (clone $baseQuery)
+            ->where('ride_time', $request->back_time)
+            ->first();
+
+        // 檢查 2：地址相同（只提示）
+        $sameRouteOrder = (clone $baseQuery)
+            ->where('pickup_address', $request->dropoff_address)
+            ->where('dropoff_address', $request->pickup_address)
+            ->first();
+
+        // 組織回應
+        $isTimeDuplicate = $timeConflictOrder !== null;
+        $hasSameRoute = $sameRouteOrder !== null;
+
+        $messages = [];
+        if ($isTimeDuplicate) {
+            $messages[] = '⚠️ 回程時間與既有訂單重複，無法建立訂單（訂單編號：'.$timeConflictOrder->order_number.'）';
+        }
+        if ($hasSameRoute && ! $isTimeDuplicate) {
+            $messages[] = 'ℹ️ 當天有相同回程路線的訂單（訂單編號：'.$sameRouteOrder->order_number.'）';
+        }
+
+        return response()->json([
+            'isTimeDuplicate' => $isTimeDuplicate,
+            'hasSameRoute' => $hasSameRoute,
+            'message' => ! empty($messages) ? implode("\n", $messages) : '此回程時間可以使用',
+            'timeConflictOrder' => $timeConflictOrder ? [
+                'id' => $timeConflictOrder->id,
+                'order_number' => $timeConflictOrder->order_number,
+                'ride_time' => substr($timeConflictOrder->ride_time, 0, 5),
+                'pickup_address' => $timeConflictOrder->pickup_address,
+                'dropoff_address' => $timeConflictOrder->dropoff_address,
+                'created_at' => $timeConflictOrder->created_at->format('Y-m-d H:i'),
+            ] : null,
+            'sameRouteOrder' => $sameRouteOrder ? [
+                'id' => $sameRouteOrder->id,
+                'order_number' => $sameRouteOrder->order_number,
+                'ride_time' => substr($sameRouteOrder->ride_time, 0, 5),
+                'pickup_address' => $sameRouteOrder->pickup_address,
+                'dropoff_address' => $sameRouteOrder->dropoff_address,
+                'created_at' => $sameRouteOrder->created_at->format('Y-m-d H:i'),
             ] : null,
         ]);
     }
@@ -919,7 +1027,8 @@ class OrderController extends Controller
             'existingOrder' => $existingOrder ? [
                 'id' => $existingOrder->id,
                 'order_number' => $existingOrder->order_number,
-                'ride_time' => $existingOrder->ride_time,
+                'ride_time' => substr($existingOrder->ride_time, 0, 5),
+                'pickup_address' => $existingOrder->pickup_address,
                 'dropoff_address' => $existingOrder->dropoff_address,
                 'created_at' => $existingOrder->created_at->format('Y-m-d H:i'),
             ] : null,
@@ -936,17 +1045,25 @@ class OrderController extends Controller
             'dates' => 'required|array|min:1|max:50',
             'dates.*' => 'date',
             'ride_time' => 'required|date_format:H:i',
+            'back_time' => 'nullable|date_format:H:i',
             'order_id' => 'nullable|integer',
         ]);
 
         $customerId = $request->customer_id;
         $dates = $request->dates;
         $rideTime = $request->ride_time;
+        $backTime = $request->back_time;
         $orderId = $request->order_id;
 
         // 查詢所有可能重複的訂單 - 使用 DATE() 函數確保純日期比對
-        $query = Order::where('customer_id', $customerId)
-            ->where('ride_time', $rideTime);
+        $query = Order::where('customer_id', $customerId);
+
+        // 如果有 back_time，檢查去程和回程時間是否與既有訂單的 ride_time 重複
+        if (! empty($backTime)) {
+            $query->whereIn('ride_time', [$rideTime, $backTime]);
+        } else {
+            $query->where('ride_time', $rideTime);
+        }
 
         // 使用 whereIn 和 DATE() 函數進行日期比對
         $query->where(function ($q) use ($dates) {
@@ -966,6 +1083,7 @@ class OrderController extends Controller
         \Log::info('批量重複檢查除錯', [
             'customer_id' => $customerId,
             'ride_time' => $rideTime,
+            'back_time' => $backTime,
             'dates' => $dates,
             'existing_orders_count' => $existingOrders->count(),
             'existing_orders' => $existingOrders->map(function ($order) {
@@ -989,12 +1107,17 @@ class OrderController extends Controller
             });
 
             if ($existing) {
+                // 判斷是去程還是回程時間重複
+                $isBackTimeConflict = ! empty($backTime) && $existing->ride_time === $backTime;
+
                 $duplicates[] = [
                     'date' => $date,
                     'formatted_date' => Carbon::parse($date)->format('Y-m-d (D)'),
+                    'conflict_type' => $isBackTimeConflict ? 'back_time' : 'ride_time',
                     'existing_order' => [
                         'id' => $existing->id,
                         'order_number' => $existing->order_number,
+                        'ride_time' => substr($existing->ride_time, 0, 5),
                         'pickup_address' => $existing->pickup_address,
                         'dropoff_address' => $existing->dropoff_address,
                         'status' => $existing->status,

@@ -319,7 +319,7 @@ select[name="wheelchair"].is-invalid:focus {
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">用車時間</label>
-                    <input type="text" name="ride_time" class="form-control form-control-custom time-auto-format" required
+                    <input type="text" id="ride_time" name="ride_time" class="form-control form-control-custom time-auto-format" required
                            pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
                            placeholder="直接輸入4位數字"
                            maxlength="5"
@@ -330,7 +330,7 @@ select[name="wheelchair"].is-invalid:focus {
                     <label class="form-label">
                         回程時間
                     </label>
-                    <input type="text" name="back_time" class="form-control form-control-custom time-auto-format"
+                    <input type="text" id="back_time" name="back_time" class="form-control form-control-custom time-auto-format"
                            pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
                            placeholder="例如1600"
                            maxlength="5"

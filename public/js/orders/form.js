@@ -93,6 +93,17 @@ class OrderForm {
         // 重複訂單檢查
         $('input[name="ride_date"], input[name="ride_time"]').on('change blur', this.checkDuplicateOrder.bind(this));
 
+        // 回程時間重複檢查
+        $('#back_time').on('blur change', this.checkBackTimeDuplicate.bind(this));
+
+        // 監聽地址變更（因為 back_time 檢查需要地址資訊）
+        $('#pickup_address, #dropoff_address').on('blur change', () => {
+            const backTime = $('#back_time').val();
+            if (backTime) {
+                this.checkBackTimeDuplicate();
+            }
+        });
+
         // 日期與上車點重複檢查
         console.log('綁定日期與上車點事件');
         console.log('pickup_address 元素數量:', $('input[name="pickup_address"]').length);
@@ -386,6 +397,13 @@ class OrderForm {
             $('select[name="wheelchair"]').addClass('is-invalid');
         } else {
             $('select[name="wheelchair"]').removeClass('is-invalid');
+        }
+
+        // 【新增】回程時間重複檢查（只檢查紅色警告，不檢查藍色資訊提示）
+        const hasBackTimeDuplicate = $('.back-time-duplicate-warning.alert-danger').length > 0;
+        if (hasBackTimeDuplicate) {
+            isValid = false;
+            errors.push('回程時間與既有訂單重複，無法建立訂單');
         }
 
         // 顯示錯誤訊息
@@ -1558,6 +1576,9 @@ class OrderForm {
         const orderId = window.location.pathname.includes('/edit') ?
             window.location.pathname.split('/').slice(-2, -1)[0] : null;
 
+        // 取得回程時間（如果有填寫）
+        const backTime = $('#back_time').val() || null;
+
         // 發送 AJAX 請求檢查重複
         $.ajax({
             url: '/orders/check-duplicate',
@@ -1566,6 +1587,7 @@ class OrderForm {
                 customer_id: customerId,
                 ride_date: rideDate,
                 ride_time: rideTime,
+                back_time: backTime,
                 order_id: orderId,
                 _token: $('meta[name="csrf-token"]').attr('content')
             },
@@ -1581,6 +1603,149 @@ class OrderForm {
                 this.clearDuplicateWarning();
             }
         });
+    }
+
+    /**
+     * 檢查回程時間重複（時間+地址）
+     */
+    checkBackTimeDuplicate() {
+        const customerId = $('input[name="customer_id"]').val();
+        const rideDate = $('input[name="ride_date"]').val();
+        const backTime = $('#back_time').val();
+        const pickupAddress = $('#pickup_address').val();
+        const dropoffAddress = $('#dropoff_address').val();
+
+        // 檢查必要欄位
+        if (!customerId || !rideDate || !backTime || !pickupAddress || !dropoffAddress) {
+            this.clearBackTimeDuplicateWarning();
+            return;
+        }
+
+        // 取得當前訂單 ID（編輯模式用）
+        const orderId = window.location.pathname.includes('/edit') ?
+            window.location.pathname.split('/').slice(-2, -1)[0] : null;
+
+        // 發送 AJAX 請求檢查回程時間重複
+        $.ajax({
+            url: '/orders/check-back-time',
+            method: 'POST',
+            data: {
+                customer_id: customerId,
+                ride_date: rideDate,
+                back_time: backTime,
+                pickup_address: pickupAddress,
+                dropoff_address: dropoffAddress,
+                order_id: orderId,
+                _token: $('meta[name="csrf-token"]').attr('content')
+            },
+            success: (response) => {
+                if (response.isTimeDuplicate) {
+                    // 時間重複：顯示警告（阻擋建單）
+                    this.showBackTimeDuplicateWarning(response.message, response.timeConflictOrder);
+                } else if (response.hasSameRoute) {
+                    // 地址相同：顯示資訊提示（不阻擋）
+                    this.showBackTimeSameRouteInfo(response.message, response.sameRouteOrder);
+                } else {
+                    // 無問題：顯示成功訊息
+                    this.showBackTimeDuplicateSuccess(response.message);
+                }
+            },
+            error: (xhr) => {
+                console.error('檢查回程時間重複時發生錯誤:', xhr);
+            }
+        });
+    }
+
+    /**
+     * 顯示回程時間重複警告（會阻擋建單）
+     */
+    showBackTimeDuplicateWarning(message, existingOrder) {
+        this.clearBackTimeDuplicateWarning();
+
+        const backTimeInput = $('#back_time');
+        const warningHtml = `
+            <div class="back-time-duplicate-warning alert alert-danger mt-2" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <div>
+                        <strong>警告：</strong>${message}
+                        ${existingOrder ? `
+                        <small class="">
+                            <br>時間：${existingOrder.ride_time}
+                            <br>上車：${existingOrder.pickup_address} → 下車：${existingOrder.dropoff_address}
+                            <br>建立時間：${existingOrder.created_at}
+                        </small>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const stairMachineInput = $('select[name="stair_machine"]');
+        stairMachineInput.parent().after(warningHtml);
+        backTimeInput.addClass('is-invalid');
+    }
+
+    /**
+     * 顯示相同回程路線資訊（只提示，不阻擋）
+     */
+    showBackTimeSameRouteInfo(message, existingOrder) {
+        this.clearBackTimeDuplicateWarning();
+
+        const infoHtml = `
+            <div class="back-time-route-info alert alert-info mt-2" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <div>
+                        <strong>回程路線提示：</strong>${message}
+                        ${existingOrder ? `
+                        <br><small class="">
+                            時間：${existingOrder.ride_time}
+                            <br>上車：${existingOrder.pickup_address} → 下車：${existingOrder.dropoff_address}
+                            <br>建立時間：${existingOrder.created_at}
+                        </small>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const stairMachineInput = $('select[name="stair_machine"]');
+        stairMachineInput.parent().after(infoHtml);
+    }
+
+    /**
+     * 顯示回程時間可用訊息
+     */
+    showBackTimeDuplicateSuccess(message) {
+        this.clearBackTimeDuplicateWarning();
+
+        const backTimeInput = $('#back_time');
+        const successHtml = `
+            <div class="back-time-success alert alert-success mt-2" role="alert">
+                <i class="fas fa-check me-2"></i>${message}
+            </div>
+        `;
+
+        const stairMachineInput = $('select[name="stair_machine"]');
+        stairMachineInput.parent().after(successHtml);
+        backTimeInput.removeClass('is-invalid').addClass('is-valid');
+
+        // 3秒後自動消失
+        setTimeout(() => {
+            $('.back-time-success').fadeOut(300, function() {
+                $(this).remove();
+            });
+            backTimeInput.removeClass('is-valid');
+        }, 3000);
+    }
+
+    /**
+     * 清除回程時間警告和提示
+     */
+    clearBackTimeDuplicateWarning() {
+        $('.back-time-duplicate-warning, .back-time-route-info, .back-time-success').remove();
+        $('#back_time').removeClass('is-invalid');
     }
 
     /**
@@ -1669,8 +1834,9 @@ class OrderForm {
                     <div>
                         <strong>重複訂單提醒：</strong>${message}
                         ${existingOrder ? `
-                        <br><small class="text-muted">
-                            上車：${existingOrder.pickup_address} → 下車：${existingOrder.dropoff_address}
+                        <br><small class="">
+                            用車時間：${existingOrder.ride_time}
+                            <br>上車：${existingOrder.pickup_address} → 下車：${existingOrder.dropoff_address}
                             <br>建立時間：${existingOrder.created_at}
                         </small>
                         ` : ''}
@@ -1734,9 +1900,9 @@ class OrderForm {
                     <div>
                         <strong>日期地點重複提醒：</strong>${message}
                         ${existingOrder ? `
-                        <br><small class="text-muted">
-                            用車時間：${existingOrder.ride_time} → 下車地址：${existingOrder.dropoff_address}
-                            <br>建立時間：${existingOrder.created_at}
+                        <br><small class="">
+                            用車時間：${existingOrder.ride_time}<br>
+                            建立時間：${existingOrder.created_at}
                         </small>
                         ` : ''}
                     </div>
@@ -2619,6 +2785,9 @@ class OrderForm {
      * 批量檢查重複訂單
      */
     checkBatchDuplicateOrders(dates, customerId, rideTime) {
+        // 取得回程時間（如果有填寫）
+        const backTime = $('input[name="back_time"]').val() || null;
+
         $.ajax({
             url: '/orders/check-batch-duplicate',
             method: 'POST',
@@ -2626,6 +2795,7 @@ class OrderForm {
                 customer_id: customerId,
                 dates: dates,
                 ride_time: rideTime,
+                back_time: backTime,
                 _token: $('meta[name="csrf-token"]').attr('content')
             },
             success: (response) => {

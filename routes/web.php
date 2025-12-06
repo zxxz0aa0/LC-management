@@ -81,6 +81,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/orders/check-duplicate', [OrderController::class, 'checkDuplicateOrder'])->name('orders.checkDuplicate');
     Route::post('/orders/check-date-pickup-duplicate', [OrderController::class, 'checkDatePickupDuplicate'])->name('orders.checkDatePickupDuplicate');
     Route::post('/orders/check-batch-duplicate', [OrderController::class, 'checkBatchDuplicateOrders'])->name('orders.checkBatchDuplicate');
+    Route::post('/orders/check-back-time', [OrderController::class, 'checkBackTimeOrder'])->name('orders.checkBackTime');
 
     // 地標管理路由 - 匯入匯出路由必須在 resource 路由之前，避免路由衝突
     Route::get('/landmarks/export', [LandmarkController::class, 'export'])->name('landmarks.export');

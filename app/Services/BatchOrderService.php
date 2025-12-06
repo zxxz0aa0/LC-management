@@ -35,7 +35,8 @@ class BatchOrderService
         }
 
         // 檢查重複訂單
-        $conflicts = $this->checkDuplicateOrders($orderData['customer_id'], $dates, $orderData['ride_time']);
+        $backTime = $orderData['back_time'] ?? null;
+        $conflicts = $this->checkDuplicateOrders($orderData['customer_id'], $dates, $orderData['ride_time'], $backTime);
 
         if (! empty($conflicts)) {
             throw new \Exception('存在重複訂單：'.implode(', ', $conflicts));
@@ -239,13 +240,20 @@ class BatchOrderService
     /**
      * 檢查重複訂單
      */
-    private function checkDuplicateOrders($customerId, $dates, $time)
+    private function checkDuplicateOrders($customerId, $dates, $time, $backTime = null)
     {
         $conflicts = [];
 
-        $existingOrders = Order::where('customer_id', $customerId)
-            ->where('ride_time', $time)
-            ->whereIn('ride_date', $dates)
+        $query = Order::where('customer_id', $customerId);
+
+        // 如果有 back_time，檢查去程和回程時間是否與既有訂單的 ride_time 重複
+        if (! empty($backTime)) {
+            $query->whereIn('ride_time', [$time, $backTime]);
+        } else {
+            $query->where('ride_time', $time);
+        }
+
+        $existingOrders = $query->whereIn('ride_date', $dates)
             ->pluck('ride_date')
             ->toArray();
 

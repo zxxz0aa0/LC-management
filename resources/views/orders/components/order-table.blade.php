@@ -222,9 +222,9 @@
                                         <i class="fas fa-ban"></i>
                                     </button>
                                 @endif
-                                <!--<button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteOrder({{ $order->id }})" title="刪除">
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteOrder({{ $order->id }})" title="刪除">
                                     <i class="fas fa-trash"></i>
-                                </button>-->
+                                </button>
                             </div>
                         </td>
                     </tr>
