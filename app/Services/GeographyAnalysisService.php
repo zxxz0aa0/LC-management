@@ -9,22 +9,39 @@ use Illuminate\Support\Facades\Cache;
 class GeographyAnalysisService
 {
     /**
-     * 圖表顯示的資料筆數限制
+     * 圖表顯示限制
      */
     const CHART_DISPLAY_LIMIT = 15;
 
     /**
-     * 取得上車區域統計
-     *
-     * @param  int|null  $limit  限制返回筆數，null 表示返回全部（用於匯出）
-     * @return \Illuminate\Support\Collection
+     * 取得要使用的狀態陣列（預設 assigned/open/bkorder）
+     */
+    private function resolveStatuses(Request $request): array
+    {
+        $default = ['assigned', 'open', 'bkorder'];
+        $statuses = $request->input('status', []);
+
+        if (is_string($statuses)) {
+            $statuses = [$statuses];
+        }
+
+        $statuses = array_values(array_unique(array_filter($statuses)));
+
+        return count($statuses) ? $statuses : $default;
+    }
+
+    /**
+     * 熱門上車地點
      */
     public function getPopularPickupLocations(Request $request, ?int $limit = null)
     {
+        $statuses = $this->resolveStatuses($request);
         $limitKey = $limit ? "limit_{$limit}" : 'all';
-        $cacheKey = 'statistics:pickup_locations:'.md5(json_encode($request->only(['start_date', 'end_date', 'order_type']))).":{$limitKey}";
+        $cacheKey = 'statistics:pickup_locations:'.
+            md5(json_encode($request->only(['start_date', 'end_date', 'order_type'])).json_encode($statuses)).
+            ":{$limitKey}";
 
-        return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request, $limit) {
+        return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request, $limit, $statuses) {
             $query = Order::selectRaw('
                     pickup_county,
                     pickup_district,
@@ -32,12 +49,11 @@ class GeographyAnalysisService
                     COUNT(DISTINCT customer_id) as unique_customers
                 ')
                 ->whereBetween('ride_date', [$request->start_date, $request->end_date])
-                ->whereIn('status', ['assigned', 'open', 'bkorder']) // 排除已取消
-                ->where('is_main_order', true) // 避免共乘重複計算
+                ->whereIn('status', $statuses)
+                ->where('is_main_order', true)
                 ->groupBy('pickup_county', 'pickup_district')
                 ->orderByDesc('order_count');
 
-            // 篩選訂單來源
             if ($request->filled('order_type')) {
                 $query->where('order_type', $request->order_type);
             }
@@ -60,17 +76,17 @@ class GeographyAnalysisService
     }
 
     /**
-     * 取得下車區域統計
-     *
-     * @param  int|null  $limit  限制返回筆數，null 表示返回全部（用於匯出）
-     * @return \Illuminate\Support\Collection
+     * 熱門下車地點
      */
     public function getPopularDropoffLocations(Request $request, ?int $limit = null)
     {
+        $statuses = $this->resolveStatuses($request);
         $limitKey = $limit ? "limit_{$limit}" : 'all';
-        $cacheKey = 'statistics:dropoff_locations:'.md5(json_encode($request->only(['start_date', 'end_date', 'order_type']))).":{$limitKey}";
+        $cacheKey = 'statistics:dropoff_locations:'.
+            md5(json_encode($request->only(['start_date', 'end_date', 'order_type'])).json_encode($statuses)).
+            ":{$limitKey}";
 
-        return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request, $limit) {
+        return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request, $limit, $statuses) {
             $query = Order::selectRaw('
                     dropoff_county,
                     dropoff_district,
@@ -78,12 +94,11 @@ class GeographyAnalysisService
                     COUNT(DISTINCT customer_id) as unique_customers
                 ')
                 ->whereBetween('ride_date', [$request->start_date, $request->end_date])
-                ->whereIn('status', ['assigned', 'open', 'bkorder'])
+                ->whereIn('status', $statuses)
                 ->where('is_main_order', true)
                 ->groupBy('dropoff_county', 'dropoff_district')
                 ->orderByDesc('order_count');
 
-            // 篩選訂單來源
             if ($request->filled('order_type')) {
                 $query->where('order_type', $request->order_type);
             }
@@ -106,18 +121,19 @@ class GeographyAnalysisService
     }
 
     /**
-     * 取得跨縣市訂單統計
+     * 跨縣市訂單統計
      */
     public function getCrossCountyOrders(Request $request)
     {
-        $cacheKey = 'statistics:cross_county:'.md5(json_encode($request->only(['start_date', 'end_date', 'order_type'])));
+        $statuses = $this->resolveStatuses($request);
+        $cacheKey = 'statistics:cross_county:'.
+            md5(json_encode($request->only(['start_date', 'end_date', 'order_type'])).json_encode($statuses));
 
-        return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request) {
+        return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request, $statuses) {
             $totalOrdersQuery = Order::whereBetween('ride_date', [$request->start_date, $request->end_date])
-                ->whereIn('status', ['assigned', 'open', 'bkorder'])
+                ->whereIn('status', $statuses)
                 ->where('is_main_order', true);
 
-            // 篩選訂單來源
             if ($request->filled('order_type')) {
                 $totalOrdersQuery->where('order_type', $request->order_type);
             }
@@ -125,31 +141,27 @@ class GeographyAnalysisService
             $totalOrders = $totalOrdersQuery->count();
 
             $crossCountyOrdersQuery = Order::whereBetween('ride_date', [$request->start_date, $request->end_date])
-                ->whereIn('status', ['assigned', 'open', 'bkorder'])
+                ->whereIn('status', $statuses)
                 ->where('is_main_order', true)
                 ->whereColumn('pickup_county', '!=', 'dropoff_county');
 
-            // 篩選訂單來源
             if ($request->filled('order_type')) {
                 $crossCountyOrdersQuery->where('order_type', $request->order_type);
             }
 
             $crossCountyOrders = $crossCountyOrdersQuery->count();
-
             $sameCountyOrders = $totalOrders - $crossCountyOrders;
 
-            // 取得前 5 名跨縣市路線
             $topCrossCountyRoutesQuery = Order::selectRaw('
                     pickup_county,
                     dropoff_county,
                     COUNT(*) as order_count
                 ')
                 ->whereBetween('ride_date', [$request->start_date, $request->end_date])
-                ->whereIn('status', ['assigned', 'open', 'bkorder'])
+                ->whereIn('status', $statuses)
                 ->where('is_main_order', true)
                 ->whereColumn('pickup_county', '!=', 'dropoff_county');
 
-            // 篩選訂單來源
             if ($request->filled('order_type')) {
                 $topCrossCountyRoutesQuery->where('order_type', $request->order_type);
             }
@@ -161,7 +173,7 @@ class GeographyAnalysisService
                 ->get()
                 ->map(function ($item) {
                     return [
-                        'route' => $item->pickup_county.' → '.$item->dropoff_county,
+                        'route' => $item->pickup_county.' 至'.$item->dropoff_county,
                         'order_count' => $item->order_count,
                     ];
                 });
@@ -178,17 +190,17 @@ class GeographyAnalysisService
     }
 
     /**
-     * 取得區域路線統計
-     *
-     * @param  int|null  $limit  限制返回筆數，null 表示返回全部（用於匯出）
-     * @return \Illuminate\Support\Collection
+     * 熱門路線
      */
     public function getPopularRoutes(Request $request, ?int $limit = null)
     {
+        $statuses = $this->resolveStatuses($request);
         $limitKey = $limit ? "limit_{$limit}" : 'all';
-        $cacheKey = 'statistics:popular_routes:'.md5(json_encode($request->only(['start_date', 'end_date', 'order_type']))).":{$limitKey}";
+        $cacheKey = 'statistics:popular_routes:'.
+            md5(json_encode($request->only(['start_date', 'end_date', 'order_type'])).json_encode($statuses)).
+            ":{$limitKey}";
 
-        return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request, $limit) {
+        return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request, $limit, $statuses) {
             $query = Order::selectRaw('
                     pickup_county,
                     pickup_district,
@@ -197,13 +209,11 @@ class GeographyAnalysisService
                     COUNT(*) as order_count
                 ')
                 ->whereBetween('ride_date', [$request->start_date, $request->end_date])
-                ->whereIn('status', ['assigned', 'open', 'bkorder'])
+                ->whereIn('status', $statuses)
                 ->where('is_main_order', true)
-                ->groupBy('pickup_county', 'pickup_district',
-                    'dropoff_county', 'dropoff_district')
+                ->groupBy('pickup_county', 'pickup_district', 'dropoff_county', 'dropoff_district')
                 ->orderByDesc('order_count');
 
-            // 篩選訂單來源
             if ($request->filled('order_type')) {
                 $query->where('order_type', $request->order_type);
             }
@@ -220,7 +230,7 @@ class GeographyAnalysisService
 
                 return [
                     'rank' => $index + 1,
-                    'route' => $pickupArea.' → '.$dropoffArea,
+                    'route' => $pickupArea.' 至'.$dropoffArea,
                     'order_count' => $item->order_count,
                 ];
             });

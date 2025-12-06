@@ -1,24 +1,29 @@
-// 等待 Alpine.js 載入後註冊組件
-document.addEventListener('alpine:init', () => {
-    // 地理分析頁面 Alpine.js 組件
+﻿document.addEventListener('alpine:init', () => {
+    // 地理統計頁面 Alpine.js 組件
     Alpine.data('geographyAnalysis', () => ({
         charts: {},
         hasData: false,
         exporting: false,
 
+        // 匯出地理統計報表
         async exportReport() {
             this.exporting = true;
             try {
-                const startDate = Alpine.store('dateFilter').startDate;
-                const endDate = Alpine.store('dateFilter').endDate;
-                const orderType = Alpine.store('dateFilter').orderType;
+                const store = Alpine.store('dateFilter');
+                const startDate = store.startDate;
+                const endDate = store.endDate;
+                const orderType = store.orderType;
+                const statuses = store.statuses || [];
 
-                // 建立匯出 URL
                 let exportUrl = `/statistics/export/geography?start_date=${startDate}&end_date=${endDate}`;
 
-                // 如果有選擇 order_type，加到 URL 參數中
                 if (orderType) {
                     exportUrl += `&order_type=${encodeURIComponent(orderType)}`;
+                }
+                if (Array.isArray(statuses) && statuses.length) {
+                    statuses.forEach(s => {
+                        exportUrl += `&status[]=${encodeURIComponent(s)}`;
+                    });
                 }
 
                 window.location.href = exportUrl;
@@ -34,28 +39,37 @@ document.addEventListener('alpine:init', () => {
         }
     }));
 
-    // 日期範圍篩選器 Alpine.js 組件
+    // 日期/篩選表單 Alpine.js 組件
     Alpine.data('dateRangeFilter', () => ({
         startDate: '',
         endDate: '',
         orderType: '',
+        statuses: [],
+        statusOptions: [
+            { value: 'open', label: '待派遣' },
+            { value: 'assigned', label: '已派遣' },
+            { value: 'bkorder', label: '候補單' },
+        ],
+        showStatus: false,
         loading: false,
         error: '',
 
         init() {
-            // 預設為最近 30 天
+            // 預設查詢最近 30 天
             this.setQuickRange('last30days');
 
-            // 建立全域 store 供其他組件使用
+            // 建立共用 store
             if (!Alpine.store('dateFilter')) {
                 Alpine.store('dateFilter', {
                     startDate: this.startDate,
                     endDate: this.endDate,
-                    orderType: this.orderType
+                    orderType: this.orderType,
+                    statuses: this.statuses,
                 });
             }
         },
 
+        // 快捷設定日期區間並觸發查詢
         setQuickRange(range) {
             const today = new Date();
             const formatDate = (date) => {
@@ -70,63 +84,73 @@ document.addEventListener('alpine:init', () => {
                     this.startDate = formatDate(today);
                     this.endDate = formatDate(today);
                     break;
-                case 'last7days':
-                    const last7 = new Date(today);
-                    last7.setDate(today.getDate() - 7);
-                    this.startDate = formatDate(last7);
+                case 'last7days': {
+                    const d = new Date(today);
+                    d.setDate(today.getDate() - 7);
+                    this.startDate = formatDate(d);
                     this.endDate = formatDate(today);
                     break;
-                case 'last30days':
-                    const last30 = new Date(today);
-                    last30.setDate(today.getDate() - 30);
-                    this.startDate = formatDate(last30);
+                }
+                case 'last30days': {
+                    const d = new Date(today);
+                    d.setDate(today.getDate() - 30);
+                    this.startDate = formatDate(d);
                     this.endDate = formatDate(today);
                     break;
-                case 'last90days':
-                    const last90 = new Date(today);
-                    last90.setDate(today.getDate() - 90);
-                    this.startDate = formatDate(last90);
+                }
+                case 'last90days': {
+                    const d = new Date(today);
+                    d.setDate(today.getDate() - 90);
+                    this.startDate = formatDate(d);
                     this.endDate = formatDate(today);
                     break;
-                case 'thisMonth':
+                }
+                case 'thisMonth': {
                     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
                     this.startDate = formatDate(firstDay);
                     this.endDate = formatDate(today);
                     break;
-                case 'lastMonth':
-                    const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                    const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
-                    this.startDate = formatDate(lastMonthStart);
-                    this.endDate = formatDate(lastMonthEnd);
+                }
+                case 'lastMonth': {
+                    const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                    const end = new Date(today.getFullYear(), today.getMonth(), 0);
+                    this.startDate = formatDate(start);
+                    this.endDate = formatDate(end);
                     break;
-                case 'thisYear':
-                    const yearStart = new Date(today.getFullYear(), 0, 1);
-                    this.startDate = formatDate(yearStart);
+                }
+                case 'thisYear': {
+                    const start = new Date(today.getFullYear(), 0, 1);
+                    this.startDate = formatDate(start);
                     this.endDate = formatDate(today);
                     break;
+                }
             }
 
             this.applyFilter();
         },
 
+        // 送出查詢，呼叫地理統計 API
         async applyFilter() {
             this.loading = true;
             this.error = '';
 
-            // 更新全域 store
             if (Alpine.store('dateFilter')) {
                 Alpine.store('dateFilter').startDate = this.startDate;
                 Alpine.store('dateFilter').endDate = this.endDate;
                 Alpine.store('dateFilter').orderType = this.orderType;
+                Alpine.store('dateFilter').statuses = this.statuses;
             }
 
             try {
-                // 建立 API URL
                 let apiUrl = `/statistics/api/geography?start_date=${this.startDate}&end_date=${this.endDate}`;
 
-                // 如果有選擇 order_type，加到 URL 參數中
                 if (this.orderType) {
                     apiUrl += `&order_type=${encodeURIComponent(this.orderType)}`;
+                }
+                if (Array.isArray(this.statuses) && this.statuses.length) {
+                    this.statuses.forEach(s => {
+                        apiUrl += `&status[]=${encodeURIComponent(s)}`;
+                    });
                 }
 
                 const response = await fetch(apiUrl);
@@ -138,9 +162,7 @@ document.addEventListener('alpine:init', () => {
                     return;
                 }
 
-                // 更新圖表
                 updateCharts(data);
-
             } catch (error) {
                 console.error('查詢失敗:', error);
                 this.error = '查詢失敗，請稍後再試';
@@ -149,16 +171,31 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        // 顯示目前日期區間摘要
         displayDateRange() {
             if (!this.startDate || !this.endDate) {
                 return '未選擇';
             }
             return `${this.startDate} 至 ${this.endDate}`;
+        },
+
+        // 顯示目前選取的狀態摘要
+        statusSummary() {
+            const map = this.statusOptions.reduce((acc, cur) => {
+                acc[cur.value] = cur.label;
+                return acc;
+            }, {});
+
+            if (Array.isArray(this.statuses) && this.statuses.length) {
+                const labels = this.statuses.map(s => map[s] || s);
+                return labels.join(', ');
+            }
+            return '已派遣 / 待派遣 / 候補單';
         }
     }));
 });
 
-// 圖表物件
+// Chart instances
 let charts = {};
 
 // 更新所有圖表
@@ -169,17 +206,15 @@ function updateCharts(data) {
     updateRoutesChart(data.popular_routes);
 }
 
-// 更新熱門上車地點圖表
+// 更新上車熱點圖表
 function updatePickupChart(data) {
     const ctx = document.getElementById('pickupChart');
     if (!ctx) return;
 
-    // 銷毀舊圖表
     if (charts.pickup) {
         charts.pickup.destroy();
     }
 
-    // 固定高度（圖表現在限制 Top 15）
     const fixedHeight = 450;
     ctx.style.height = fixedHeight + 'px';
 
@@ -203,46 +238,34 @@ function updatePickupChart(data) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    display: false
-                },
+                legend: { display: false },
                 title: {
                     display: true,
-                    text: '僅顯示前 15 名熱門上車區域',
-                    font: {
-                        size: 12,
-                        weight: 'normal'
-                    },
+                    text: '顯示前 15 筆熱門上車地點',
+                    font: { size: 12, weight: 'normal' },
                     color: '#6c757d',
-                    padding: {
-                        bottom: 10
-                    }
+                    padding: { bottom: 10 }
                 },
                 tooltip: {
                     callbacks: {
                         label: function (context) {
                             const item = data[context.dataIndex];
                             return [
-                                `訂單數: ${item.order_count}`,
-                                `獨特客戶數: ${item.unique_customers}`
+                                `訂單數 ${item.order_count}`,
+                                `獨立客戶數 ${item.unique_customers}`
                             ];
                         }
                     }
                 }
             },
             scales: {
-                x: {
-                    beginAtZero: true,
-                    ticks: {
-                        precision: 0
-                    }
-                }
+                x: { beginAtZero: true, ticks: { precision: 0 } }
             }
         }
     });
 }
 
-// 更新熱門下車地點圖表
+// 更新下車熱點圖表
 function updateDropoffChart(data) {
     const ctx = document.getElementById('dropoffChart');
     if (!ctx) return;
@@ -251,7 +274,6 @@ function updateDropoffChart(data) {
         charts.dropoff.destroy();
     }
 
-    // 固定高度（圖表現在限制 Top 15）
     const fixedHeight = 450;
     ctx.style.height = fixedHeight + 'px';
 
@@ -275,46 +297,34 @@ function updateDropoffChart(data) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    display: false
-                },
+                legend: { display: false },
                 title: {
                     display: true,
-                    text: '僅顯示前 15 名熱門下車區域',
-                    font: {
-                        size: 12,
-                        weight: 'normal'
-                    },
+                    text: '顯示前 15 筆熱門下車地點',
+                    font: { size: 12, weight: 'normal' },
                     color: '#6c757d',
-                    padding: {
-                        bottom: 10
-                    }
+                    padding: { bottom: 10 }
                 },
                 tooltip: {
                     callbacks: {
                         label: function (context) {
                             const item = data[context.dataIndex];
                             return [
-                                `訂單數: ${item.order_count}`,
-                                `獨特客戶數: ${item.unique_customers}`
+                                `訂單數 ${item.order_count}`,
+                                `獨立客戶數 ${item.unique_customers}`
                             ];
                         }
                     }
                 }
             },
             scales: {
-                x: {
-                    beginAtZero: true,
-                    ticks: {
-                        precision: 0
-                    }
-                }
+                x: { beginAtZero: true, ticks: { precision: 0 } }
             }
         }
     });
 }
 
-// 更新跨縣市訂單圖表
+// 更新跨縣市占比圖表
 function updateCrossCountyChart(data) {
     const ctx = document.getElementById('crossCountyChart');
     if (!ctx) return;
@@ -344,18 +354,16 @@ function updateCrossCountyChart(data) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    position: 'bottom'
-                },
+                legend: { position: 'bottom' },
                 tooltip: {
                     callbacks: {
                         label: function (context) {
                             const label = context.label || '';
                             const value = context.parsed;
-                            const percentage = context.label === '同縣市訂單' ?
-                                data.same_county_percentage :
-                                data.cross_county_percentage;
-                            return `${label}: ${value} 筆 (${percentage}%)`;
+                            const percentage = context.label === '同縣市訂單'
+                                ? data.same_county_percentage
+                                : data.cross_county_percentage;
+                            return `${label}: ${value} 筆(${percentage}%)`;
                         }
                     }
                 }
@@ -373,7 +381,6 @@ function updateRoutesChart(data) {
         charts.routes.destroy();
     }
 
-    // 固定高度（圖表現在限制 Top 15）
     const fixedHeight = 450;
     ctx.style.height = fixedHeight + 'px';
 
@@ -397,20 +404,13 @@ function updateRoutesChart(data) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    display: false
-                },
+                legend: { display: false },
                 title: {
                     display: true,
-                    text: '僅顯示前 15 名熱門路線',
-                    font: {
-                        size: 12,
-                        weight: 'normal'
-                    },
+                    text: '顯示前 15 筆熱門路線',
+                    font: { size: 12, weight: 'normal' },
                     color: '#6c757d',
-                    padding: {
-                        bottom: 10
-                    }
+                    padding: { bottom: 10 }
                 },
                 tooltip: {
                     callbacks: {
@@ -418,19 +418,14 @@ function updateRoutesChart(data) {
                             const item = data[context.dataIndex];
                             return [
                                 `路線: ${item.route}`,
-                                `訂單數: ${item.order_count}`
+                                `訂單數 ${item.order_count}`
                             ];
                         }
                     }
                 }
             },
             scales: {
-                x: {
-                    beginAtZero: true,
-                    ticks: {
-                        precision: 0
-                    }
-                }
+                x: { beginAtZero: true, ticks: { precision: 0 } }
             }
         }
     });

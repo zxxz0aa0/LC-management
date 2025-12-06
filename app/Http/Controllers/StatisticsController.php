@@ -57,6 +57,8 @@ class StatisticsController extends Controller
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'order_type' => 'nullable|string|in:'.implode(',', Order::ORDER_TYPES),
+            'status' => 'nullable|array',
+            'status.*' => 'in:assigned,open,bkorder',
         ]);
 
         $startDate = Carbon::parse($validated['start_date']);
@@ -96,6 +98,8 @@ class StatisticsController extends Controller
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'order_type' => 'nullable|string|in:'.implode(',', Order::ORDER_TYPES),
+            'status' => 'nullable|array',
+            'status.*' => 'in:assigned,open,bkorder',
         ]);
 
         $startDate = Carbon::parse($validated['start_date']);
