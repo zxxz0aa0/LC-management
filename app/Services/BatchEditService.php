@@ -31,6 +31,7 @@ class BatchEditService
         'customer_phone',
         'wheelchair',
         'stair_machine',
+        'updated_by',
     ];
 
     /**

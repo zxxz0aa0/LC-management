@@ -1851,6 +1851,9 @@ class OrderController extends Controller
                 return $value !== null && $value !== '';
             });
 
+            // 記錄批次更新者
+            $updateData['updated_by'] = auth()->id();
+
             // 使用 BatchEditService 執行批量更新
             $batchEditService = new \App\Services\BatchEditService;
             $result = $batchEditService->batchUpdate($orderIds, $updateData);
