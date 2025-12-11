@@ -475,7 +475,7 @@ select[name="wheelchair"].is-invalid:focus {
                 <div class="col-md-2">
                     <label class="form-label">訂單類型</label>
                     <input type="text" name="order_type" class="form-control form-control-custom"
-                        value="{{ old('order_type', isset($order) ? $order->order_type : ($customer->county_care ?? '')) }}" readonly>
+                        value="{{ old('order_type', isset($order) ? $order->order_type : ($customer->county_care ?? '')) }}">
                 </div>
                 <!--<div class="col-md-2"> 這邊主要先隱藏欄位，有需要用再打開
                     <label class="form-label">身份別</label>-->
