@@ -44,6 +44,9 @@
                       return in_array($order->status, ['open', 'blocked', 'cancelled','blacklist','no_send','regular_sedans','no_car'], true);
                     });
                 @endphp
+                @php
+                    $orderTypes = \App\Models\Order::ORDER_TYPES;
+                @endphp
                 <tbody>
                     @forelse($editableOrders as $order)
                     <tr class="order-row" data-order-id="{{ $order->id }}" data-carpool-group="{{ $order->carpool_group_id }}">
@@ -225,6 +228,20 @@
                             </button>
                         </div>
                         <div class="invalid-feedback">地址格式有誤（須含縣市/區域）</div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="edit_order_type" class="form-label">
+                                <i class="fas fa-tags me-1"></i>訂單來源
+                            </label>
+                            <select name="order_type" id="edit_order_type" class="form-select">
+                                <option value="">-- 不更新 --</option>
+                                @foreach($orderTypes as $type)
+                                    <option value="{{ $type }}">{{ $type }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
 
                     <div class="row mb-3">
@@ -500,6 +517,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 field.classList.remove('is-invalid');
                 field.classList.remove('is-valid');
             });
+        });
+    }
+
+    // 修正多重 modal（批次編輯 + 地標）關閉後畫面卡住無法滾動的問題
+    const landmarkModalElement = document.getElementById('landmarkModal');
+    if (landmarkModalElement) {
+        landmarkModalElement.addEventListener('hidden.bs.modal', () => {
+            const openModals = document.querySelectorAll('.modal.show');
+            const body = document.body;
+
+            // 若仍有其他 modal 開啟（如批次編輯），保持 modal-open 以允許內層滾動
+            if (openModals.length > 0) {
+                body.classList.add('modal-open');
+            } else {
+                body.classList.remove('modal-open');
+                body.style.removeProperty('padding-right');
+            }
+
+            // 移除多餘的 backdrop，避免遮罩殘留導致畫面被鎖住
+            const backdrops = Array.from(document.querySelectorAll('.modal-backdrop'));
+            while (backdrops.length > openModals.length) {
+                const backdrop = backdrops.pop();
+                if (backdrop) backdrop.remove();
+            }
         });
     }
 

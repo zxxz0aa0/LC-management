@@ -1835,6 +1835,7 @@ class OrderController extends Controller
                 'pickup_address' => 'nullable|string|max:255',
                 'dropoff_address' => 'nullable|string|max:255',
                 'remark' => 'nullable|string|max:1000',
+                'order_type' => 'nullable|string|in:'.implode(',', \App\Models\Order::ORDER_TYPES),
                 'status' => 'nullable|string|in:open,assigned,bkorder,blocked,cancelled,cancelledOOC,cancelledNOC,cancelledCOTD,blacklist,no_send,regular_sedans,no_car',
                 'special_status' => 'nullable|string|in:一般,網頁單,Line,個管單,黑名單,共乘單',
                 'customer_phone' => 'nullable|string|max:255',

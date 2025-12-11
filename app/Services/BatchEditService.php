@@ -27,6 +27,7 @@ class BatchEditService
         'dropoff_address',
         'remark',
         'status',
+        'order_type',
         'special_status',
         'customer_phone',
         'wheelchair',
