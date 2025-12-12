@@ -6,7 +6,9 @@
       "Bash(php artisan make:model:*)",
       "Bash(php artisan:*)",
       "Bash(schtasks:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(dir:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []
