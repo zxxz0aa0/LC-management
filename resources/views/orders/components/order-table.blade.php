@@ -55,7 +55,7 @@
             </div>
         @endif
 
-        <div class="table-responsive" style="width:100% font-size: 18px" >
+        <div class="table-responsive" style="width:100%; font-size: 16px">
             <table class="table table-hover" id="ordersTable">
                 <thead class="table-success">
                     <tr>
