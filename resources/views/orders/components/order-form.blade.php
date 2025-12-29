@@ -439,6 +439,15 @@ select[name="wheelchair"].is-invalid:focus {
                         </button>
                     </div>
                 </div>
+                <div class="col-12">
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="skip_new_taipei_limit" name="skip_new_taipei_limit"
+                               {{ old('skip_new_taipei_limit') ? 'checked' : '' }}>
+                        <label class="form-check-label" for="skip_new_taipei_limit">
+                            醫院到醫院
+                        </label>
+                    </div>
+                </div>
             </div>
             <div class="mt-4 h5" style="color:red">
                 <label class="">個案備註：</label>{{ isset($order) ? $order->customer_note : ($customer->note ?? '') }}
@@ -563,7 +572,7 @@ select[name="wheelchair"].is-invalid:focus {
             </div>
         </div>
     </div>
-    
+
     {{-- 共乘資訊區塊 --}}
     <div class="card mb-4">
         <div class="card-header bg-info text-white"

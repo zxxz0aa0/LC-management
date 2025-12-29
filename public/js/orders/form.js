@@ -371,7 +371,8 @@ class OrderForm {
         }
 
         // 長照地址限制驗證（orderType 已在上方宣告過）
-        if (orderType === '新北長照') {
+        const skipNewTaipeiLimit = $('#skip_new_taipei_limit').is(':checked');
+        if (orderType === '新北長照' && !skipNewTaipeiLimit) {
             const hasNewTaipei = pickupAddress.startsWith('新北市') || dropoffAddress.startsWith('新北市');
             if (!hasNewTaipei) {
                 isValid = false;
