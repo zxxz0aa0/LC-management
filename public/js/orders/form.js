@@ -79,6 +79,9 @@ class OrderForm {
         $('input[type="time"]').on('blur', this.validateTimeInput.bind(this));
 
         // 時間自動格式化
+        $('.time-auto-format').on('compositionstart', this.handleTimeCompositionStart.bind(this));
+        $('.time-auto-format').on('compositionend', this.handleTimeCompositionEnd.bind(this));
+        $('.time-auto-format').on('beforeinput', this.handleTimeBeforeInput.bind(this));
         $('.time-auto-format').on('input', this.handleTimeAutoFormat.bind(this));
         $('.time-auto-format').on('keydown', this.handleTimeKeydown.bind(this));
 
@@ -1225,10 +1228,150 @@ class OrderForm {
     }
 
     /**
+     * 處理時間自動格式化 (beforeinput)
+     */
+    handleTimeBeforeInput(e) {
+        const input = e.target;
+        const originalEvent = e.originalEvent || e;
+
+        if (originalEvent && originalEvent.isComposing) {
+            return;
+        }
+        if (input.dataset && input.dataset.composing === '1') {
+            return;
+        }
+
+        const inputType = originalEvent ? originalEvent.inputType : undefined;
+        const data = originalEvent ? originalEvent.data : undefined;
+
+        if (inputType === 'insertText' && /^[0-9]$/.test(data)) {
+            e.preventDefault();
+            this.applyTimeDigitInput(input, data);
+        } else if (inputType === 'insertFromPaste') {
+            const pastedText = (originalEvent && originalEvent.clipboardData)
+                ? originalEvent.clipboardData.getData('text')
+                : '';
+            const digits = pastedText.replace(/[^\d]/g, '').substring(0, 4);
+            if (digits.length > 0) {
+                e.preventDefault();
+                input.value = this.formatTimeDigits(digits);
+                const caretPos = this.getTimeCaretFromDigitIndex(input.value, digits, digits.length);
+                input.setSelectionRange(caretPos, caretPos);
+            }
+        }
+    }
+
+    formatTimeDigits(value) {
+        if (!value) {
+            return '';
+        }
+
+        let hours = value.substring(0, 2);
+        let minutes = value.substring(2, 4);
+
+        if (value.length === 1) {
+            if (parseInt(value, 10) >= 3) {
+                hours = '0' + value;
+                return hours + ':';
+            }
+            return value;
+        }
+
+        if (value.length === 2) {
+            let hourNum = parseInt(hours, 10);
+            if (hourNum > 23) {
+                hours = '23';
+            }
+            return hours + ':';
+        }
+
+        let hourNum = parseInt(hours, 10);
+        if (hourNum > 23) {
+            hours = '23';
+        }
+
+        if (minutes.length === 1) {
+            return hours + ':' + minutes;
+        }
+
+        let minNum = parseInt(minutes, 10);
+        if (minNum > 59) {
+            minutes = '59';
+        }
+        return hours + ':' + minutes;
+    }
+
+    getTimeDigitIndex(value, caretPos) {
+        let count = 0;
+        for (let i = 0; i < caretPos && i < value.length; i += 1) {
+            if (/\d/.test(value[i])) {
+                count += 1;
+            }
+        }
+        return count;
+    }
+
+    getTimeCaretFromDigitIndex(formattedValue, digits, digitIndex) {
+        if (digits.length === 1 && parseInt(digits, 10) >= 3) {
+            return 3;
+        }
+        if (formattedValue.indexOf(':') !== -1 && digitIndex >= 2) {
+            return digitIndex + 1;
+        }
+        return digitIndex;
+    }
+
+    applyTimeDigitInput(input, digit) {
+        const rawValue = input.value;
+        const digits = rawValue.replace(/[^\d]/g, '').substring(0, 4);
+        const selectionStart = input.selectionStart ?? rawValue.length;
+        const selectionEnd = input.selectionEnd ?? rawValue.length;
+        const startIndex = this.getTimeDigitIndex(rawValue, selectionStart);
+        const endIndex = this.getTimeDigitIndex(rawValue, selectionEnd);
+
+        let newDigits = digits.substring(0, startIndex) + digit + digits.substring(endIndex);
+        newDigits = newDigits.substring(0, 4);
+
+        const formattedValue = this.formatTimeDigits(newDigits);
+        input.value = formattedValue;
+
+        const newDigitIndex = Math.min(startIndex + 1, newDigits.length);
+        const caretPos = this.getTimeCaretFromDigitIndex(formattedValue, newDigits, newDigitIndex);
+        input.setSelectionRange(caretPos, caretPos);
+    }
+
+    /**
+     * 時間輸入組字開始
+     */
+    handleTimeCompositionStart(e) {
+        const input = e.target;
+        if (input && input.dataset) {
+            input.dataset.composing = '1';
+        }
+    }
+
+    /**
+     * 時間輸入組字結束
+     */
+    handleTimeCompositionEnd(e) {
+        const input = e.target;
+        if (input && input.dataset) {
+            input.dataset.composing = '0';
+        }
+        this.handleTimeAutoFormat(e);
+    }
+
+    /**
      * 處理時間自動格式化
      */
     handleTimeAutoFormat(e) {
         const input = e.target;
+        if (e && (e.isComposing || e.inputType === 'insertCompositionText')) {
+            return;
+        }
+        if (input.dataset && input.dataset.composing === '1') {
+            return;
+        }
         let value = input.value.replace(/[^\d]/g, ''); // 只保留數字
 
         // 限制最多4位數字
@@ -1237,6 +1380,8 @@ class OrderForm {
         }
 
         let formattedValue = '';
+        let shouldSetCursor = false;
+        let cursorPos = 0;
 
         if (value.length >= 1) {
             let hours = value.substring(0, 2);
@@ -1248,10 +1393,8 @@ class OrderForm {
                 if (parseInt(value) >= 3) {
                     hours = '0' + value;
                     formattedValue = hours + ':';
-                    // 設定游標位置到冒號後
-                    setTimeout(() => {
-                        input.setSelectionRange(3, 3);
-                    }, 0);
+                    shouldSetCursor = true;
+                    cursorPos = 3;
                 } else {
                     formattedValue = value;
                 }
@@ -1262,10 +1405,8 @@ class OrderForm {
                     hours = '23';
                 }
                 formattedValue = hours + ':';
-                // 設定游標位置到冒號後
-                setTimeout(() => {
-                    input.setSelectionRange(3, 3);
-                }, 0);
+                shouldSetCursor = true;
+                cursorPos = 3;
             } else if (value.length >= 3) {
                 // 處理分鐘部分
                 let hourNum = parseInt(hours);
@@ -1285,7 +1426,12 @@ class OrderForm {
             }
         }
 
-        input.value = formattedValue;
+        if (input.value !== formattedValue) {
+            input.value = formattedValue;
+        }
+        if (shouldSetCursor && document.activeElement === input) {
+            input.setSelectionRange(cursorPos, cursorPos);
+        }
     }
 
     /**
